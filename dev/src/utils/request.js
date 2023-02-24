@@ -17,7 +17,7 @@ service.interceptors.request.use(
                 sp = "&"
             }
             config.url = config.url 
-            config.header = "Authorization" + "token " + token
+            config.header = "Authorization" + "token" + token
         }
         return config
     },
