@@ -3,9 +3,9 @@
 		<el-row>
 			<el-col :span="10">
 				<div>
-					© 2018 wxingheng&emsp;&emsp;
-					<a href="https://github.com/wxingheng" target="_blank">Profile</a>&emsp;&emsp;
-					<a href="https://github.com/wxingheng/wxingheng.github.io" target="_blank">wxingheng</a>
+					© 2018 xerifg&emsp;&emsp;
+					<a href="https://github.com/xerifg" target="_blank">Profile</a>&emsp;&emsp;
+					<a href="https://github.com/xerifg/xerifg.github.io" target="_blank">xerifg</a>
 				</div>
 			</el-col>
 			<el-col :span="4">

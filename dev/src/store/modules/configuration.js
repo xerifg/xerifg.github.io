@@ -17,7 +17,7 @@ const configuration = {
 
     mutations: {
         SET_CONFIGURATION: (state, configuration) => {
-            state.githubUsername = configuration["githubUsername"] || "wxingheng"
+            state.githubUsername = configuration["githubUsername"] || "xerifg"
 
             state.blogTitle = configuration["blogTitle"] || state.githubUsername
 

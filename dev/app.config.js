@@ -7,7 +7,7 @@ module.exports = {
   },
   cdn: {
     host: 'http://cdn.aiyuwan.cn',
-    bucket: 'wxinghenggithubio',
+    bucket: 'xerifggithubio',
     ak: 'aVzGo5g6NExTHouv9i_spzq1iZi0bPmoPeo4ZGaS',
     sk: 'vgGbyBGrahi8Jv3qXoUqFtXPryGUidl_27DiAPwD'
   }
