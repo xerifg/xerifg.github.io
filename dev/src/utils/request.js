@@ -11,19 +11,29 @@ const service = axios.create({
 service.interceptors.request.use(
     config => {
         let token = store.state.token.token
+        // let token = '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'
+        // Vue.prototype.$message({
+        //     message: token ,
+        //     type: 'info'
+        // })
+        
         if (token) {
             let sp = "?"
-            if (config.url.indexOf("?") >= 0) {
+            if (token.type === "Bearer") {
                 sp = "&"
             }
-           
+            // config.url = config.url +'/user',
+            config.headers.Authorization = 'Bearer ' + token
+            
+
         }
         return config
     },
     error => {
-
+        return Promise.reject(error)
     }
 )
+
 
 
 service.interceptors.response.use(

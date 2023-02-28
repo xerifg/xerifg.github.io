@@ -66,6 +66,8 @@
 - 配置文件读取的总是与 ```index.html``` 同级的 ```./static/configuration.json```, 所以本地 ```npm run dev``` 的时候会出现修改配置无效的情况, 如果需要修改的话修改本地的配置文件就行, 发布到 github 之后不影响, 因为修改配置的时候是通过 ```github-api``` 修改 ```你的用户名.github.io``` 下的 ```/static/configuration.json ```
 
 ## 更新记录
+#### 2023.2.28 更新
+- 更新github的token绑定方式
 
 #### 2018.5.23 更新
 - 修改移动端页面样式
