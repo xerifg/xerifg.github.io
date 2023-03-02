@@ -38,7 +38,7 @@ const configuration = {
 
             state.mini = configuration["mini"] || false
 
-            state.audioAutoPlay = configuration["audioAutoPlay"] || false
+            state.audioAutoPlay = configuration["audioAutoPlay"] || true
 
             state.webSites = configuration["webSites"] || []
         }
