@@ -21,11 +21,8 @@
                 <el-row>
                     <el-col :span="10">
                         <el-menu @select="selectTopbar" :default-active="topbar.active" mode="horizontal" menu-trigger="click">
-                            <el-submenu index="#more">
-                                <template slot="title">了解博主</template>
-                                <el-menu-item index="#notebook">我的笔记本</el-menu-item>
-                                <!-- <el-menu-item index="#blog">其他博客</el-menu-item> -->
-                            </el-submenu>
+                            <el-menu-item index="#notebook">我的笔记本</el-menu-item>
+           
                             <el-submenu index="#webSites" v-if="webSites.length>0">
                                 <template slot="title">其他网站</template>
                                 <el-menu-item :index="'#webSites-'+index" v-for="(item,index) in webSites" :key="'#webSites'+index">{{item.name}}</el-menu-item>

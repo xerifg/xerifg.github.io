@@ -16,11 +16,11 @@
                 <el-button type="text" @click="openTokenDialog">绑定</el-button>
             </div>
             <div v-if="token" style="font-size: 0.9rem;line-height: 1.5;color: #303133;">
-                <el-tag type="success" size="small">&nbsp;</el-tag>&nbsp;&nbsp; Token已绑定&nbsp;&nbsp;
+                </el-tag>&nbsp;&nbsp; Token已绑定&nbsp;&nbsp;
                 <el-button type="text" @click="cancellation">注销</el-button>
             </div>
             <div style="margin-top: 10px;text-align: left;white-space: pre-line">
-                <el-alert title="Contactions" type="info" description="WeChat: 15503007029 Email: 15503007029@163.com welcome to contact me^_^"
+                <el-alert title="Contaction" type="info" description="Email: 15503007029@163.com "
                     :closable="false">
                 </el-alert>
                 <!-- <el-alert type="info" description="Email: 15503007029@163.com"
