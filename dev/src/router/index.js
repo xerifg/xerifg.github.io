@@ -47,7 +47,31 @@ export const constantRouterMap = [
       }
     }]
   },
-
+  // {
+  //   path: '/user/social',
+  //   redirect: '/user/social/main',
+  //   component: Layout,
+  //   meta: {
+  //     type: "user",
+  //     icon: 'el-icon-mobile-phone',
+  //     title: '社交圈'
+  //   },
+  //   children: [{
+  //       path: 'main',
+  //       component: SocialMain,
+  //       meta: {
+  //         title: '社交圈'
+  //       }
+  //     },
+  //     {
+  //       path: 'details/:name',
+  //       component: SocialDetails,
+  //       meta: {
+  //         title: '用户资料'
+  //       }
+  //     }
+  //   ]
+  // },
   {
     path: '/user/blog',
     redirect: '/user/blog/main',
