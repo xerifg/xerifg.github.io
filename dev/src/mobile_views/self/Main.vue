@@ -28,7 +28,7 @@
         <van-cell class="mobile-border mobile-margin-top" title="　项目源码" icon="logistics" url="https://github.com/xerifg/xerifg.github.io"
             is-link />
 
-        <van-cell class="mobile-border mobile-margin-top" title="　其他博客" icon="password-view" :url="blog" is-link />
+        <van-cell class="mobile-border mobile-margin-top" title="　我的笔记本" icon="password-view" url="https://github.com/xerifg/MyNotebook" is-link />
 
     </div>
 </template>
