@@ -13,50 +13,49 @@
             </div>
             <h1 class="project-name">{{blogTitle}}</h1>
             <h2 class="project-tagline">{{blogDescribe}}</h2>
-            <a :href="'https://github.com/'+githubUsername" class="btn" target="_blank">GitHub主页</a>
-            <a href="https://github.com/xerifg/xerifg.github.io" class="btn" target="_blank" v-if="!mini">博客源码</a>
+            <a :href="'https://github.com/'+githubUsername" class="btn" target="_blank"> My GitHub</a>
+            <a href="https://github.com/xerifg/MyNotebook" class="btn" target="_blank" v-if="!mini">My Notebook</a>
         </section>
         <div style="position:relative;  z-index:2;margin: auto;margin-top:-30px;width:64rem;">
             <el-card shadow="never" :body-style="{ padding: '0px' }">
                 <el-row>
                     <el-col :span="10">
                         <el-menu @select="selectTopbar" :default-active="topbar.active" mode="horizontal" menu-trigger="click">
-                            <el-menu-item index="#notebook">我的笔记本</el-menu-item>
-           
-                            <el-submenu index="#webSites" v-if="webSites.length>0">
+                            <el-menu-item index="#chatgpt">ChatGPT</el-menu-item>
+                            <!-- <el-submenu index="#webSites" v-if="webSites.length>0">
                                 <template slot="title">其他网站</template>
                                 <el-menu-item :index="'#webSites-'+index" v-for="(item,index) in webSites" :key="'#webSites'+index">{{item.name}}</el-menu-item>
-                            </el-submenu>
+                            </el-submenu> -->
                         </el-menu>
                     </el-col>
                     <el-col :span="8" style="text-align: center;padding: 12px 0px 0px 10px">
-                        <el-row>
-                            <el-col :span="4">
-                                <el-popover placement="top" trigger="hover">
-                                    <div style="text-align: center">
+                        <!-- <el-row> -->
+                            <!-- <el-col :span="4">
+                                <el-popover placement="top" trigger="hover"> -->
+                                    <!-- <div style="text-align: center">
                                         <el-progress color="#67C23A" type="circle" :percentage="music.volume"></el-progress>
                                         <br>
                                         <el-button @click="changeVolume(-10)" icon="el-icon-minus" circle></el-button>
                                         <el-button @click="changeVolume(10)" icon="el-icon-plus" circle></el-button>
-                                    </div>
+                                    </div> -->
 
-                                    <el-button @click="play" id="play" slot="reference" :icon="music.isPlay?'el-icon-refresh':'el-icon-caret-right'" circle></el-button>
-                                </el-popover>
-                            </el-col>
-                            <el-col :span="14" style="padding-left: 20px">
+                                    <!-- <el-button @click="play" id="play" slot="reference" :icon="music.isPlay?'el-icon-refresh':'el-icon-caret-right'" circle></el-button> -->
+                                <!-- </el-popover>
+                            </el-col> -->
+                            <!-- <el-col :span="14" style="padding-left: 20px">
                                 <el-slider @change="changeTime" :format-tooltip="$util.formatTime" :max="music.maxTime" v-model="music.currentTime" style="width: 100%;"></el-slider>
-                            </el-col>
-                            <el-col :span="6" style="padding: 9px 0px 0px 10px;color:#909399;font-size: 13px">
+                            </el-col> -->
+                            <!-- <el-col :span="6" style="padding: 9px 0px 0px 10px;color:#909399;font-size: 13px">
                                 {{$util.formatTime(music.currentTime)}}/{{$util.formatTime(music.maxTime)}}
-                            </el-col>
-                        </el-row>
+                            </el-col> -->
+                        <!-- </el-row> -->
 
-                        <audio ref="music" loop autoplay v-if="audioAutoPlay">
+                        <!-- <audio ref="music" loop autoplay v-if="audioAutoPlay">
                             <source :src="audioUrl" type="audio/mpeg">
                         </audio>
                         <audio ref="music" loop v-else>
                             <source :src="audioUrl" type="audio/mpeg">
-                        </audio>
+                        </audio> -->
                     </el-col>
                     <el-col :span="4" style="text-align: right;">
                         <div style="font-size: 20px;color:#606266;margin-top: 5px">
@@ -180,8 +179,8 @@ export default {
         case "#githubHome":
           window.open("https://github.com/" + this.githubUsername);
           break;
-        case "#notebook":
-        window.open('https://github.com/xerifg/MyNotebook');
+        case "#chatgpt":
+        window.open('https://chat.openai.com/');
         case "#blog":
           if (this.blog) {
             window.open(

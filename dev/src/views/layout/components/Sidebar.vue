@@ -19,15 +19,15 @@
                 </el-tag>&nbsp;&nbsp; Token已绑定&nbsp;&nbsp;
                 <el-button type="text" @click="cancellation">注销</el-button>
             </div>
-            <div style="margin-top: 10px;text-align: left;white-space: pre-line">
-                <el-alert title="Contaction" type="info" description="Email: 15503007029@163.com "
+            <!-- <div style="margin-top: 10px;text-align: left;white-space: pre-line"> -->
+                <!-- <el-alert title="欢迎联系我" type="info" description="Email: 15503007029@163.com "
                     :closable="false">
-                </el-alert>
+                </el-alert> -->
                 <!-- <el-alert type="info" description="Email: 15503007029@163.com"
                     :closable="false">
                 </el-alert> -->
                 
-            </div>
+            <!-- </div> -->
         </el-card>
         <token-dialog ref="tokenDialog"></token-dialog>
     </div>

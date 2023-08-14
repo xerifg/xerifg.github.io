@@ -25,10 +25,10 @@
         <!-- <van-cell class="mobile-border mobile-margin-top" title="github.com/xerifg" icon="sign" url="https://github.com/xerifg/xerifg.github.io"
             is-link /> -->
 
-        <van-cell class="mobile-border mobile-margin-top" title="　项目源码" icon="logistics" url="https://github.com/xerifg/xerifg.github.io"
-            is-link />
+        <!-- <van-cell class="mobile-border mobile-margin-top" title="　项目源码" icon="logistics" url="https://github.com/xerifg/xerifg.github.io"
+            is-link /> -->
 
-        <van-cell class="mobile-border mobile-margin-top" title="　我的笔记本" icon="password-view" url="https://github.com/xerifg/MyNotebook" is-link />
+        <van-cell class="mobile-border mobile-margin-top" title="ChatGPT" icon="password-view" url="https://chat.openai.com/" is-link />
 
     </div>
 </template>
