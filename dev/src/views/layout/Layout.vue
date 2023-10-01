@@ -1,27 +1,28 @@
 <template>
     <div>
         <section class="page-header" :style="'background-image: linear-gradient(120deg, '+backgroundColorLeft+', '+backgroundColorRight+');color: '+fontColor+';'">
-            <div style="position:absolute; top:20px; right:20px; z-index:2;">
+            <!-- <div style="position:absolute; top:20px; right:20px; z-index:2;">
                 <el-tooltip effect="dark" :content="fullButton.full?'退出':'全屏'" placement="bottom-end">
                     <el-button @click="full" :icon="fullButton.full?'el-icon-close':'el-icon-rank'" circle></el-button>
                 </el-tooltip>
-            </div>
-            <div v-for="(item,index) in randomIcon" :key="'ri'+index" :style="'position:absolute; top:'+item.top+'px; left:'+item.left+'px; z-index:1;'">
+            </div> -->
+            <!-- <div v-for="(item,index) in randomIcon" :key="'ri'+index" :style="'position:absolute; top:'+item.top+'px; left:'+item.left+'px; z-index:1;'">
                 <font :style="'font-size: '+item.size+'px;color:#fff;'">
                     <b>♪</b>
                 </font>
-            </div>
+            </div> -->
             <h1 class="project-name">{{blogTitle}}</h1>
-            <h2 class="project-tagline">{{blogDescribe}}</h2>
-            <a :href="'https://github.com/'+githubUsername" class="btn" target="_blank"> My GitHub</a>
-            <a href="https://github.com/xerifg/MyNotebook" class="btn" target="_blank" v-if="!mini">My Notebook</a>
+            <!-- <h2 class="project-tagline">{{blogDescribe}}</h2> -->
+            <!-- <a :href="'https://github.com/'+githubUsername" class="btn" target="_blank"> My GitHub</a>
+            <a href="https://github.com/xerifg/MyNotebook" class="btn" target="_blank" v-if="!mini">My Notebook</a> -->
         </section>
         <div style="position:relative;  z-index:2;margin: auto;margin-top:-30px;width:64rem;">
             <el-card shadow="never" :body-style="{ padding: '0px' }">
                 <el-row>
                     <el-col :span="10">
                         <el-menu @select="selectTopbar" :default-active="topbar.active" mode="horizontal" menu-trigger="click">
-                            <el-menu-item index="#chatgpt">ChatGPT</el-menu-item>
+                            <el-menu-item index="#我的笔记本">我的笔记本</el-menu-item>
+                            <!-- <el-menu-item index="#我的笔记本">我的笔记本</el-menu-item> -->
                             <!-- <el-submenu index="#webSites" v-if="webSites.length>0">
                                 <template slot="title">其他网站</template>
                                 <el-menu-item :index="'#webSites-'+index" v-for="(item,index) in webSites" :key="'#webSites'+index">{{item.name}}</el-menu-item>
@@ -179,8 +180,8 @@ export default {
         case "#githubHome":
           window.open("https://github.com/" + this.githubUsername);
           break;
-        case "#chatgpt":
-        window.open('https://chat.openai.com/');
+        case "#我的笔记本":
+        window.open('https://github.com/xerifg/MyNotebook/');
         case "#blog":
           if (this.blog) {
             window.open(
@@ -260,16 +261,18 @@ export default {
 
 <style>
 .page-header {
-  padding: 5rem 6rem;
+  padding: 2rem 6rem;
   color: #fff;
-  text-align: center;
-  background-color: #159957;
+  text-align: left;
+  /* background-color: #159957; */
   background-image: linear-gradient(120deg, #155799, #159957);
 }
 
 .project-name {
-  font-size: 3.25rem;
-  margin-top: 0;
+  font-size: 1.8rem;
+  margin-top: 0.5rem;
+  margin-left: -4.0rem;
+  font-family: cursive;
   margin-bottom: 0.1rem;
 }
 

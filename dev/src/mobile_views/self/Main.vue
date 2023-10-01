@@ -28,7 +28,7 @@
         <!-- <van-cell class="mobile-border mobile-margin-top" title="　项目源码" icon="logistics" url="https://github.com/xerifg/xerifg.github.io"
             is-link /> -->
 
-        <van-cell class="mobile-border mobile-margin-top" title="ChatGPT" icon="password-view" url="https://chat.openai.com/" is-link />
+        <van-cell class="mobile-border mobile-margin-top" title="My Notebook" icon="password-view" url="https://github.com/xerifg/MyNotebook/" is-link />
 
     </div>
 </template>
