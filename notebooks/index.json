@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-05T00:00:00.000Z",
+  "folders": [
+    {
+      "id": "folder-writing",
+      "name": "写作台",
+      "parentId": null
+    },
+    {
+      "id": "folder-system",
+      "name": "使用说明",
+      "parentId": "folder-writing"
+    }
+  ],
+  "docs": [
+    {
+      "id": "note-welcome",
+      "title": "个人知识库起点",
+      "folderId": "folder-system",
+      "path": "写作台/使用说明",
+      "tags": [
+        "知识库",
+        "Tiptap",
+        "GitHub"
+      ],
+      "updatedAt": "2026-07-05T00:00:00.000Z",
+      "file": "notebooks/docs/welcome.json"
+    }
+  ]
+}

@@ -2,6 +2,25 @@
 
 ![](https://img.shields.io/badge/vue-2.5.2-brightgreen.svg) ![](https://img.shields.io/badge/element--ui-2.3.5-brightgreen.svg) ![](https://img.shields.io/badge/vant-1.1.2-brightgreen.svg)
 
+## 当前实现：Personal Notebook
+
+当前首页已改造为 GitHub Pages 静态个人笔记本：
+
+- 前端直接部署在 GitHub Pages，不依赖本地服务器。
+- 文档编辑器使用 Tiptap/ProseMirror 自定义实现，支持飞书式加号菜单、斜杠菜单、选区工具条、富文本编辑和阅读/编辑切换。
+- 编辑内容会自动保存到浏览器本地草稿。
+- 点击「发表」后，浏览器通过 GitHub Contents API 把当前文档保存到仓库的 `notebooks/docs/`，并同步更新 `notebooks/index.json`。
+- 点击「编辑」或「发表」时会弹出账号和密码验证；验证通过后，发表内容会写入当前笔记本仓库的 `main` 分支。
+
+默认文档数据位于：
+
+```text
+notebooks/index.json
+notebooks/docs/*.json
+```
+
+`server.py` 是旧的本地代理方案，当前静态发布流程不再依赖它。
+
 
 
 ## 目录
