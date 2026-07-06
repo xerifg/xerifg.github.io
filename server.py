@@ -14,6 +14,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
+CACHE_ROOT = ROOT / ".notebook-cache" / "assets"
 
 
 def load_dotenv():
@@ -92,6 +93,23 @@ def safe_repo_path(path):
     return normalized
 
 
+def safe_asset_segment(value):
+    text = str(value or "asset").replace("\\", "/").strip().strip("/")
+    if not text or "/" in text or text in {".", ".."}:
+        raise ValueError("Invalid asset path")
+    cleaned = "".join(char if char.isalnum() or char in "-_." else "-" for char in text)
+    return cleaned.strip(".-") or "asset"
+
+
+def safe_cache_path(note_id, filename):
+    note_segment = safe_asset_segment(note_id)
+    file_segment = safe_asset_segment(filename)
+    path = (CACHE_ROOT / note_segment / file_segment).resolve()
+    if CACHE_ROOT.resolve() not in path.parents:
+        raise ValueError("Invalid cache path")
+    return path
+
+
 def github_headers(token):
     return {
         "Accept": "application/vnd.github+json",
@@ -157,11 +175,22 @@ class NotebookHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
+    def do_GET(self):
+        if self.path.startswith("/api/local-assets/"):
+            try:
+                self.handle_local_asset()
+            except Exception as error:
+                self.send_json({"error": str(error)}, 404)
+            return
+        super().do_GET()
+
     def do_POST(self):
         try:
             payload = self.read_json()
             if self.path == "/api/auth":
                 self.handle_auth(payload)
+            elif self.path == "/api/assets/upload":
+                self.handle_asset_upload(payload)
             elif self.path == "/api/github/save":
                 self.require_session(payload)
                 self.handle_save(payload)
@@ -175,7 +204,7 @@ class NotebookHandler(SimpleHTTPRequestHandler):
 
     def read_json(self):
         length = int(self.headers.get("Content-Length", "0"))
-        if length > 30 * 1024 * 1024:
+        if length > 120 * 1024 * 1024:
             raise ValueError("Request body is too large")
         raw = self.rfile.read(length).decode("utf-8") if length else "{}"
         return json.loads(raw or "{}")
@@ -202,6 +231,41 @@ class NotebookHandler(SimpleHTTPRequestHandler):
     def require_session(self, payload):
         if not verify_session(str(payload.get("session", ""))):
             raise PermissionError("Invalid or expired session")
+
+    def handle_asset_upload(self, payload):
+        note_id = safe_asset_segment(payload.get("noteId"))
+        name = safe_asset_segment(payload.get("name"))
+        content = str(payload.get("content", ""))
+        if not content:
+            raise ValueError("Missing asset content")
+        data = base64.b64decode(content.encode("ascii"), validate=True)
+        path = safe_cache_path(note_id, name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        self.send_json({
+            "ok": True,
+            "localUrl": f"/api/local-assets/{urllib.parse.quote(note_id)}/{urllib.parse.quote(name)}",
+            "size": len(data),
+        })
+
+    def handle_local_asset(self):
+        route = urllib.parse.urlparse(self.path).path
+        parts = route.split("/")
+        if len(parts) < 5:
+            raise ValueError("Invalid local asset URL")
+        note_id = urllib.parse.unquote(parts[3])
+        name = urllib.parse.unquote(parts[4])
+        path = safe_cache_path(note_id, name)
+        if not path.exists() or not path.is_file():
+            raise FileNotFoundError("Local asset not found")
+        content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        data = path.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def handle_save(self, payload):
         title = str(payload.get("title", "untitled")).strip() or "untitled"

@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.notebook-cache/
 dev/node_modules/
 dev/dist/
 ndev/pm-debug.log*

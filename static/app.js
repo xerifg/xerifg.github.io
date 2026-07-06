@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "https://esm.sh/react@18.3.1";
 import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
-import { Editor } from "https://esm.sh/@tiptap/core@2.11.7";
+import { Editor, Node, mergeAttributes } from "https://esm.sh/@tiptap/core@2.11.7";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit@2.11.7";
 import Underline from "https://esm.sh/@tiptap/extension-underline@2.11.7";
 import Link from "https://esm.sh/@tiptap/extension-link@2.11.7";
@@ -19,7 +19,68 @@ const storageKey = "personal-notebook-tiptap-v1";
 const blockNoteStorageKey = "personal-notebook-blocknote-v1";
 const legacyStorageKey = "personal-notebook-v2";
 const publishedIndexPath = "notebooks/index.json";
+const localAssetPrefix = "/api/local-assets/";
+const assetRootPath = "notebooks/assets";
 const now = () => new Date().toISOString();
+
+const Video = Node.create({
+  name: "video",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      src: { default: null },
+      controls: {
+        default: true,
+        parseHTML: (element) => element.hasAttribute("controls"),
+        renderHTML: (attributes) => attributes.controls === false ? {} : { controls: "" }
+      },
+      title: { default: null }
+    };
+  },
+  parseHTML() {
+    return [{ tag: "video[src]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["video", mergeAttributes(HTMLAttributes)];
+  }
+});
+
+const FileAttachment = Node.create({
+  name: "fileAttachment",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      href: {
+        default: null,
+        parseHTML: (element) => element.querySelector("a")?.getAttribute("href") || null
+      },
+      name: {
+        default: "附件",
+        parseHTML: (element) => element.querySelector("a")?.getAttribute("download")
+          || element.querySelector("a")?.textContent?.replace(/^附件：/, "").trim()
+          || "附件"
+      },
+      size: {
+        default: "",
+        parseHTML: (element) => element.querySelector("span")?.textContent || ""
+      }
+    };
+  },
+  parseHTML() {
+    return [{ tag: "div[data-type='file-attachment']" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    const href = HTMLAttributes.href || "#";
+    const name = HTMLAttributes.name || "附件";
+    const size = HTMLAttributes.size || "";
+    return ["div", { "data-type": "file-attachment", class: "doc-attachment-card" },
+      ["a", mergeAttributes({ class: "doc-attachment", href, download: name }, { href }), `附件：${name}`],
+      ["span", {}, size]
+    ];
+  }
+});
 
 const seedHtml = [
   "<h2>记录方式</h2>",
@@ -65,6 +126,7 @@ const seed = {
       file: "notebooks/docs/welcome.json",
       dirty: false,
       publishedAt: "",
+      assets: [],
       html: seedHtml
     }
   ]
@@ -168,6 +230,7 @@ function App() {
         file: `notebooks/docs/${slugify(title)}.json`,
         dirty: true,
         publishedAt: "",
+        assets: [],
         html: "<p></p>"
       });
       draft.activeId = id;
@@ -277,8 +340,20 @@ function App() {
       const publishedAt = now();
       const current = currentNote(state);
       const docPath = current.file || `notebooks/docs/${slugify(current.title)}.json`;
+      const publishedAssets = await publishPendingAssets(settings, current);
+      const publishedHtml = replaceLocalAssetUrls(
+        normalizeHtml(current.html || blocksToHtml(current.blocks)),
+        publishedAssets
+      );
       const nextNotes = state.notes.map((item) => (
-        item.id === current.id ? { ...item, file: docPath, dirty: false, publishedAt } : item
+        item.id === current.id ? {
+          ...item,
+          file: docPath,
+          dirty: false,
+          publishedAt,
+          html: publishedHtml,
+          assets: publishedAssets
+        } : item
       ));
       const library = buildPublishedIndex({ ...state, notes: nextNotes }, publishedAt);
       const documentData = {
@@ -290,7 +365,8 @@ function App() {
         tags: current.tags || [],
         createdAt: current.createdAt || current.date || publishedAt,
         updatedAt: publishedAt,
-        html: normalizeHtml(current.html || blocksToHtml(current.blocks))
+        assets: publishedAssets.map(({ content, dataUrl, ...asset }) => asset),
+        html: publishedHtml
       };
 
       await putGitHubFile(settings, docPath, documentData, `Publish notebook: ${current.title}`);
@@ -304,6 +380,8 @@ function App() {
           target.dirty = false;
           target.publishedAt = publishedAt;
           target.date = publishedAt;
+          target.html = publishedHtml;
+          target.assets = publishedAssets.map(({ content, dataUrl, ...asset }) => asset);
         }
         next.syncStatus = "ready";
         next.message = "已发表到 GitHub 仓库";
@@ -625,6 +703,11 @@ function DocumentPaper({ note, state, editable, updateNote }) {
             note,
             onChange: (html) => updateNote(note.id, (item) => {
               item.html = normalizeHtml(html);
+            }),
+            onAssetInserted: (asset, html) => updateNote(note.id, (item) => {
+              const assets = Array.isArray(item.assets) ? item.assets : [];
+              item.assets = [...assets.filter((candidate) => candidate.id !== asset.id), asset];
+              item.html = normalizeHtml(html);
             })
           })
         : h("div", {
@@ -635,10 +718,12 @@ function DocumentPaper({ note, state, editable, updateNote }) {
   );
 }
 
-function TiptapEditor({ note, onChange }) {
+function TiptapEditor({ note, onChange, onAssetInserted }) {
   const shellRef = useRef(null);
   const hostRef = useRef(null);
   const editorRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const pendingAssetKindRef = useRef("file");
   const [editor, setEditor] = useState(null);
   const [insertMenu, setInsertMenu] = useState(null);
   const [sideButton, setSideButton] = useState({ top: 72 });
@@ -669,6 +754,8 @@ function TiptapEditor({ note, onChange }) {
         Link.configure({ openOnClick: false, HTMLAttributes: { target: "_blank", rel: "noreferrer" } }),
         Highlight.configure({ multicolor: true }),
         Image,
+        Video,
+        FileAttachment,
         Table.configure({ resizable: false }),
         TableRow,
         TableHeader,
@@ -719,7 +806,7 @@ function TiptapEditor({ note, onChange }) {
     };
   }, [note.id]);
 
-  const run = (command) => {
+  const run = async (command) => {
     if (!editorRef.current) return;
     if (insertMenu?.slashRange) {
       const { from, to } = insertMenu.slashRange;
@@ -727,9 +814,26 @@ function TiptapEditor({ note, onChange }) {
         editorRef.current.chain().focus().deleteRange({ from, to }).run();
       }
     }
-    applyEditorCommand(editorRef.current, command);
+    await applyEditorCommand(editorRef.current, command, {
+      note,
+      fileInputRef,
+      pendingAssetKindRef
+    });
     setInsertMenu(null);
     onChange(editorRef.current.getHTML());
+  };
+
+  const handleFileInput = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !editorRef.current) return;
+    try {
+      const asset = await cacheNotebookAsset(note, file, pendingAssetKindRef.current);
+      insertAssetNode(editorRef.current, asset);
+      onAssetInserted?.(asset, editorRef.current.getHTML());
+    } catch (error) {
+      window.alert(error.message || "附件插入失败");
+    }
   };
 
   return h("div", { className: "feishu-editor-shell", ref: shellRef },
@@ -746,6 +850,12 @@ function TiptapEditor({ note, onChange }) {
       }
     }, "+"),
     h("div", { ref: hostRef }),
+    h("input", {
+      ref: fileInputRef,
+      type: "file",
+      className: "hidden-file-input",
+      onChange: handleFileInput
+    }),
     insertMenu ? h(FeishuInsertMenu, { position: insertMenu, run }) : null
   );
 }
@@ -828,7 +938,8 @@ function FeishuInsertMenu({ position, run }) {
       items: [
         { icon: "✓", label: "任务", command: "taskList", color: "#4c6fff" },
         { icon: "▧", label: "图片", command: "image", color: "#ffb800" },
-        { icon: "↥", label: "视频或文件", command: "file", color: "#15b8a6" },
+        { icon: "▷", label: "视频", command: "video", color: "#15b8a6" },
+        { icon: "↥", label: "文件附件", command: "file", color: "#64748b" },
         { icon: "▦", label: "表格", command: "table", color: "#00b578", arrow: true },
         { icon: "▥", label: "分栏", command: "columns", color: "#6366f1", arrow: true },
         { icon: "▤", label: "高亮块", command: "highlightBlock", color: "#ff7a45" },
@@ -862,7 +973,7 @@ function FeishuInsertMenu({ position, run }) {
   )));
 }
 
-function applyEditorCommand(editor, command) {
+async function applyEditorCommand(editor, command, context = {}) {
   const chain = editor.chain().focus();
   if (command === "paragraph") chain.setParagraph().run();
   if (command === "h1") chain.toggleHeading({ level: 1 }).run();
@@ -889,17 +1000,26 @@ function applyEditorCommand(editor, command) {
     else chain.extendMarkRange("link").setLink({ href: url }).run();
   }
   if (command === "image") {
-    const url = window.prompt("图片地址");
-    if (url) chain.setImage({ src: url }).run();
+    openAssetPicker(context, "image");
+    return;
   }
-  if (["file", "columns", "highlightBlock", "button", "template"].includes(command)) {
+  if (command === "video") {
+    openAssetPicker(context, "video");
+    return;
+  }
+  if (command === "file") {
+    openAssetPicker(context, "file");
+    return;
+  }
+  if (["columns", "highlightBlock", "button", "template"].includes(command)) {
     chain.insertContent(`<p>${commandName(command)}</p>`).run();
   }
 }
 
 function commandName(command) {
   const names = {
-    file: "视频或文件",
+    file: "文件附件",
+    video: "视频",
     table: "表格",
     columns: "分栏",
     highlightBlock: "高亮块",
@@ -907,6 +1027,124 @@ function commandName(command) {
     template: "模板"
   };
   return names[command] || command;
+}
+
+function openAssetPicker({ fileInputRef, pendingAssetKindRef }, kind) {
+  if (!fileInputRef?.current) return;
+  pendingAssetKindRef.current = kind;
+  fileInputRef.current.accept = kind === "image" ? "image/*" : kind === "video" ? "video/*" : "";
+  fileInputRef.current.click();
+}
+
+async function cacheNotebookAsset(note, file, requestedKind) {
+  const kind = normalizeAssetKind(requestedKind, file.type);
+  validateAssetFile(file, kind);
+  const dataUrl = await readFileAsDataUrl(file);
+  const content = dataUrlToBase64(dataUrl);
+  const fileName = uniqueAssetFileName(file.name);
+  const noteSegment = safeSegment(note.id || "note");
+  const remotePath = `${assetRootPath}/${noteSegment}/${fileName}`;
+  let localUrl = dataUrl;
+  let cached = false;
+
+  try {
+    const response = await fetch("/api/assets/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        noteId: note.id,
+        name: fileName,
+        type: file.type || "application/octet-stream",
+        content
+      })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      localUrl = data.localUrl || `${localAssetPrefix}${noteSegment}/${fileName}`;
+      cached = true;
+    }
+  } catch {
+    cached = false;
+  }
+
+  return {
+    id: `asset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: file.name || fileName,
+    fileName,
+    kind,
+    type: file.type || "application/octet-stream",
+    size: file.size,
+    localUrl,
+    localPath: `.notebook-cache/assets/${noteSegment}/${fileName}`,
+    remotePath,
+    remoteUrl: remotePath,
+    cached,
+    content: cached ? "" : content,
+    dataUrl: cached ? "" : dataUrl,
+    published: false
+  };
+}
+
+function insertAssetNode(editor, asset) {
+  if (asset.kind === "image") {
+    editor.chain().focus().setImage({ src: asset.localUrl, alt: asset.name, title: asset.name }).run();
+    return;
+  }
+  if (asset.kind === "video") {
+    editor.chain().focus().insertContent({
+      type: "video",
+      attrs: { src: asset.localUrl, title: asset.name, controls: true }
+    }).run();
+    return;
+  }
+  editor.chain().focus().insertContent({
+    type: "fileAttachment",
+    attrs: {
+      href: asset.localUrl,
+      name: asset.name,
+      size: formatBytes(asset.size)
+    }
+  }).run();
+}
+
+function normalizeAssetKind(kind, mimeType) {
+  if (kind === "image" || kind === "video") return kind;
+  if (String(mimeType || "").startsWith("image/")) return "image";
+  if (String(mimeType || "").startsWith("video/")) return "video";
+  return "file";
+}
+
+function validateAssetFile(file, kind) {
+  const limits = {
+    image: 10 * 1024 * 1024,
+    video: 80 * 1024 * 1024,
+    file: 50 * 1024 * 1024
+  };
+  const max = limits[kind] || limits.file;
+  if (file.size > max) {
+    throw new Error(`${kind === "image" ? "图片" : kind === "video" ? "视频" : "附件"}不能超过 ${formatBytes(max)}`);
+  }
+}
+
+function safeSegment(value) {
+  return slugify(String(value || "asset")).replace(/^-+|-+$/g, "") || "asset";
+}
+
+function uniqueAssetFileName(name) {
+  const cleaned = String(name || "attachment").replace(/[/\\:*?"<>|]+/g, "-").replace(/\s+/g, "-");
+  const dot = cleaned.lastIndexOf(".");
+  const base = dot > 0 ? cleaned.slice(0, dot) : cleaned;
+  const ext = dot > 0 ? cleaned.slice(dot).toLowerCase() : "";
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+  const suffix = Math.random().toString(36).slice(2, 7);
+  return `${safeSegment(base).slice(0, 64) || "attachment"}-${stamp}-${suffix}${ext}`;
+}
+
+function formatBytes(bytes) {
+  const value = Number(bytes || 0);
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function getSelectionRect() {
@@ -1109,6 +1347,7 @@ async function loadPublishedLibrary() {
       file: doc.file,
       dirty: false,
       publishedAt: documentData.updatedAt || doc.updatedAt || "",
+      assets: documentData.assets || [],
       html: normalizeHtml(documentData.html || blocksToHtml(documentData.blocks))
     };
   }));
@@ -1137,11 +1376,15 @@ function buildPublishedIndex(state, updatedAt) {
 }
 
 async function putGitHubFile(settings, path, data, message) {
+  return putGitHubBase64File(settings, path, encodeBase64Utf8(JSON.stringify(data, null, 2)), message);
+}
+
+async function putGitHubBase64File(settings, path, content, message) {
   const sha = await getGitHubSha(settings, path);
   const body = {
     message,
     branch: settings.branch,
-    content: encodeBase64Utf8(JSON.stringify(data, null, 2))
+    content
   };
   if (sha) body.sha = sha;
   const response = await fetch(githubContentUrl(settings, path), {
@@ -1154,6 +1397,45 @@ async function putGitHubFile(settings, path, data, message) {
     throw new Error(detail?.message || `GitHub 写入失败：${response.status}`);
   }
   return response.json();
+}
+
+async function publishPendingAssets(settings, note) {
+  const assets = Array.isArray(note.assets) ? note.assets : [];
+  const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
+  const referenced = assets.filter((asset) => asset.localUrl && html.includes(asset.localUrl));
+  const published = [];
+  for (const asset of referenced) {
+    const content = await assetContentBase64(asset);
+    await putGitHubBase64File(settings, asset.remotePath, content, `Upload notebook asset: ${asset.name || asset.fileName}`);
+    published.push({
+      ...asset,
+      localUrl: asset.localUrl,
+      remoteUrl: asset.remotePath,
+      content: "",
+      dataUrl: "",
+      published: true
+    });
+  }
+  return [
+    ...assets.filter((asset) => !referenced.some((item) => item.id === asset.id)),
+    ...published
+  ];
+}
+
+async function assetContentBase64(asset) {
+  if (asset.content) return asset.content;
+  if (asset.dataUrl) return dataUrlToBase64(asset.dataUrl);
+  if (!asset.localUrl) throw new Error(`附件缺少本地缓存：${asset.name || asset.fileName}`);
+  const response = await fetch(asset.localUrl, { cache: "no-store" });
+  if (!response.ok) throw new Error(`读取本地附件失败：${asset.name || asset.fileName}`);
+  return blobToBase64(await response.blob());
+}
+
+function replaceLocalAssetUrls(html, assets) {
+  return assets.reduce((content, asset) => {
+    if (!asset.localUrl || !asset.remotePath) return content;
+    return content.split(asset.localUrl).join(asset.remotePath);
+  }, html);
 }
 
 async function getGitHubSha(settings, path) {
@@ -1235,6 +1517,7 @@ function migrate(data) {
     file: note.file || `notebooks/docs/${slugify(note.title || "untitled")}.json`,
     dirty: Boolean(note.dirty),
     publishedAt: note.publishedAt || "",
+    assets: Array.isArray(note.assets) ? note.assets : [],
     html: normalizeHtml(note.html || blocksToHtml(note.blocks))
   }));
   if (!merged.notes.some((note) => note.id === merged.activeId)) merged.activeId = merged.notes[0]?.id || "";
@@ -1275,6 +1558,7 @@ function migrateLegacy(legacy) {
       file: `notebooks/docs/${slugify(note.title || note.id)}.json`,
       dirty: true,
       publishedAt: "",
+      assets: [],
       html: normalizeHtml(note.html || "")
     }))
   };
@@ -1464,6 +1748,19 @@ function encodeBase64Utf8(text) {
     binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
   }
   return btoa(binary);
+}
+
+function dataUrlToBase64(dataUrl) {
+  return String(dataUrl || "").split(",", 2)[1] || "";
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(dataUrlToBase64(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
 
 function escapeHtml(value) {

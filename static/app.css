@@ -606,6 +606,48 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   border-radius: 8px;
 }
 
+.feishu-editor video,
+.tiptap-reader video {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  border-radius: 8px;
+  background: #111827;
+}
+
+.doc-attachment-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 7px 11px;
+  border: 1px solid rgba(60, 60, 67, .14);
+  border-radius: 8px;
+  background: rgba(118, 118, 128, .08);
+  color: #245bdb;
+}
+
+.doc-attachment {
+  min-width: 0;
+  color: #245bdb;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-attachment-card span {
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
 .feishu-editor table,
 .tiptap-reader table {
   width: 100%;
