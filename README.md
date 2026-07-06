@@ -1,155 +1,169 @@
-# XBlog
+# Personal Notebook
 
-![](https://img.shields.io/badge/vue-2.5.2-brightgreen.svg) ![](https://img.shields.io/badge/element--ui-2.3.5-brightgreen.svg) ![](https://img.shields.io/badge/vant-1.1.2-brightgreen.svg)
+一个部署在 GitHub Pages 上的静态个人笔记本。页面本身不依赖后端服务，笔记内容通过 GitHub Contents API 写回当前仓库。
 
-## 当前实现：Personal Notebook
+## 功能
 
-当前首页已改造为 GitHub Pages 静态个人笔记本：
+- GitHub Pages 静态部署
+- Tiptap/ProseMirror 富文本编辑器
+- 飞书式加号菜单、斜杠菜单、选区工具条
+- 文件夹、文档、标签管理
+- 浏览器本地草稿自动保存
+- 点击「发表」后写入 GitHub 仓库
+- 支持上传图片、视频和文件附件
+- 本地编辑时附件先缓存，发表后上传到仓库并改为线上相对路径
 
-- 前端直接部署在 GitHub Pages，不依赖本地服务器。
-- 文档编辑器使用 Tiptap/ProseMirror 自定义实现，支持飞书式加号菜单、斜杠菜单、选区工具条、富文本编辑和阅读/编辑切换。
-- 编辑内容会自动保存到浏览器本地草稿。
-- 点击「发表」后，浏览器通过 GitHub Contents API 把当前文档保存到仓库的 `notebooks/docs/`，并同步更新 `notebooks/index.json`。
-- 点击「编辑」或「发表」时会弹出账号和密码验证；验证通过后，发表内容会写入当前笔记本仓库的 `main` 分支。
+## 目录结构
 
-默认文档数据位于：
+```text
+index.html              # GitHub Pages 入口
+static/
+  app.js                # 笔记本前端逻辑
+  app.css               # 笔记本样式
+notebooks/
+  index.json            # 已发表文档索引
+  docs/                 # 已发表文档 JSON
+  assets/               # 发表后的图片、视频、文件附件
+server.py               # 本地编辑辅助服务
+start-notebook.cmd      # Windows 本地启动脚本
+.env.example            # 本地服务配置示例
+```
+
+## 在线使用
+
+访问：
+
+```text
+https://xerifg.github.io/
+```
+
+如果浏览器曾打开过早期页面，建议使用无痕窗口或强制刷新：
+
+```text
+https://xerifg.github.io/?v=notebook
+```
+
+## GitHub Pages 配置
+
+在仓库的 `Settings -> Pages` 中保持以下配置：
+
+```text
+Source: Deploy from a branch
+Branch: main
+Folder: / (root)
+```
+
+保存后 GitHub Pages 会从仓库根目录的 `index.html` 发布页面。
+
+## 编辑和发表
+
+1. 打开笔记本首页。
+2. 点击「编辑」进入编辑模式。
+3. 首次编辑或发表时输入账号和密码。
+4. 内容会先保存到浏览器本地草稿。
+5. 点击「发表」后，当前文档会保存到：
+
+```text
+notebooks/docs/
+```
+
+同时文档索引会更新到：
 
 ```text
 notebooks/index.json
-notebooks/docs/*.json
 ```
 
-`server.py` 是旧的本地代理方案，当前静态发布流程不再依赖它。
+## 附件上传
 
+编辑器支持三类附件：
 
+- 图片：插入为图片预览
+- 视频：插入为播放器
+- 文件附件：插入为下载卡片
 
-## 目录
-- [简介](#简介)
-- [演示地址](#演示地址)
-- [项目特点](#项目特点)
-- [使用的组件](#使用的组件)
-- [项目截图](#项目截图)
-- [快速使用](#快速使用)
-- [开发](#开发)
-- [更新记录](#更新记录)
-- [License](#License)
+本地编辑时，附件会优先缓存到：
 
-## 简介
+```text
+.notebook-cache/assets/
+```
 
-博客基于 GitHub Pages 与 Github API 实现无后台，可动态发布博客的系统
-博客数据储存于gist 通过Github API 进行增删改查
-喜欢的话留下你的星星╭(●｀∀´●)╯╰(●’◡’●)╮
+点击「发表」后，附件会上传到仓库：
 
-## 演示地址
-[https://xerifg.github.io](https://xerifg.github.io)
+```text
+notebooks/assets/{noteId}/
+```
 
-## 项目特点
+文档中的本地临时地址会被替换为仓库内相对路径，因此线上访问时图片、视频和文件都来自 GitHub Pages。
 
-- [x] 基于 GitHub Pages 无需服务器
-- [x] 改进传统 GitHub Pages 不能动态发布的缺陷
-- [x] 包含电脑端和移动端
-- [x] 单页面应用
+默认大小限制：
 
-## 使用的组件
+```text
+图片：10 MB
+视频：80 MB
+文件：50 MB
+```
 
-- Element (电脑端)
-- Vant (移动端)
+GitHub 仓库不适合长期存放很大的视频。如果需要大量视频，建议使用外部对象存储或 CDN。
 
-## 快速使用
-搭建博客只需2步
-- 点击github头像旁边的 "+" 号 选择 ```Import repository ```克隆地址填 ```https://github.com/xerifg/xerifg.github.io ```项目名填 ```你的用户名.github.io ```
-- 克隆完成后 修改文件 ```/static/configuration.json``` 中的 ```githubUsername``` 为自己的github用户名
+## 本地运行
 
+直接打开 `index.html` 可以阅读和使用基础功能。若要支持本地附件缓存和本地预览，请启动本地服务：
 
-类似演示地址其中 xerifg 为我的用户名
+```cmd
+start-notebook.cmd
+```
 
+或手动运行：
 
-现在 ```https://你的用户名.github.io``` 就是你的个人博客了,例如[https://xerifg.github.io](https://xerifg.github.io)
+```bash
+python server.py
+```
 
-## 开发
+默认地址：
 
-#### 安装 运行 构建
+```text
+http://127.0.0.1:8000/
+```
 
-    npm install
+## 本地服务配置
 
-    npm run dev
+复制 `.env.example` 为 `.env`，并按需修改：
 
-    npm run build
+```text
+NOTEBOOK_USER=admin
+NOTEBOOK_PASSWORD=change-this-password
+NOTEBOOK_SECRET=change-this-random-session-secret
 
-#### 获取Token
+GITHUB_OWNER=xerifg
+GITHUB_REPO=xerifg.github.io
+GITHUB_BRANCH=main
+GITHUB_TOKEN=github_pat_xxx
 
-在 ```github > settings > Developer settings > Personal access tokens```  勾选```gist``` 和 ```repo```权限 获取```Token```
+PORT=8000
+```
 
-#### 开发注意事项
+说明：
 
-- 配置文件读取的总是与 ```index.html``` 同级的 ```./static/configuration.json```, 所以本地 ```npm run dev``` 的时候会出现修改配置无效的情况, 如果需要修改的话修改本地的配置文件就行, 发布到 github 之后不影响, 因为修改配置的时候是通过 ```github-api``` 修改 ```你的用户名.github.io``` 下的 ```/static/configuration.json ```
+- `NOTEBOOK_USER` 和 `NOTEBOOK_PASSWORD` 用于本地编辑验证。
+- `GITHUB_TOKEN` 用于本地服务代理写入 GitHub。
+- 在线 GitHub Pages 模式下，浏览器会通过 GitHub Contents API 写入当前仓库。
 
-## 更新记录
-#### 2023.2.28 更新
-- 更新github的token绑定方式
+## 发布
 
-#### 2018.5.23 更新
-- 修改移动端页面样式
-- 修改PC端样式小修改
-- 去除PC端License
+提交并推送到 `main` 分支即可触发 GitHub Pages 部署：
 
-#### 2018.5.23 更新
-- 修复404页面显示不正常的bug
-- 优化权限不足的情况
+```bash
+git add .
+git commit -m "update notebook"
+git push origin main
+```
 
-#### 2018.5.22 更新
-- 增加其他站点的配置, 在状态栏显示个人的其他网站
+部署完成后访问：
 
-#### 2018.5.21 更新
-- 优化部分提示效果
-- 修复博客描述没有换行
+```text
+https://xerifg.github.io/
+```
 
-#### 2018.5.20 更新
-- 修改点击其他博客异常的bug
-- 修改日期格式
-- 修改使用帮助显示效果
+## License
 
-#### 2018.5.19 更新
-- 增加使用帮助页面
-- 修复没有README.md时候出现的BUG
-
-#### 2018.5.16 更新
-- 显示粉丝数量
-- 增加粉丝详情页面
-
-#### 2018.5.15 更新
-- 粉丝页面优化没有粉丝的情况
-- 修改有的图片越界
-- 配置增加是否自动播放音乐
-- 去除默认音乐
-
-#### 2018.5.13 更新
-- 电脑端增加社交圈, 查看粉丝和关注的用户
-
-#### 2018.5.11 更新
-- 移动端增加博客, 项目, 个人中心, 移动端和PC端共用API, 页面独立 
-- 修复文章样式奇怪的BUG
-
-#### 2018.5.8 更新
-- 增加配置选项
-- 改善富文本编辑器
-
-#### 2018.5.6 更新
-- 状态栏增加音乐播放器
-
-#### 2018.5.5 更新
-- 增加了系统配置, 可以动态修改标题, 描述, 背景等配置 
-
-#### 2018.5.2 更新
-- 增加博客和项目列表的分页 
-- 增加分享链接 
-- 改进Token绑定验证 
-- 修改代码结构 
-
-#### 2018.4.30 更新
-- 添加了从github获取个人开源项目的功能,显示信息更加全面,显示开源项目列表
-- Readme 从github动态获取
-
-#### 2018.4.29 更新
-- 增加个人信息的状态栏
-- 修复发图片博文的BUG 
+MIT

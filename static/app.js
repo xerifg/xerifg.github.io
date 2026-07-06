@@ -1290,7 +1290,7 @@ function renderModal(state, handleAction) {
   }
   if (state.modal === "name-note") {
     return modalShell("新文档", "新文档会先保存为本地草稿，发表后进入 GitHub 仓库。",
-      h("div", { className: "field" }, h("label", null, "文档标题"), h("input", { "data-modal-input": "noteTitle", placeholder: "例如 Vue 组件通信" })),
+      h("div", { className: "field" }, h("label", null, "文档标题"), h("input", { "data-modal-input": "noteTitle", placeholder: "例如 阅读摘记" })),
       "创建", "confirm-note", handleAction);
   }
   if (state.modal === "rename-folder") {
