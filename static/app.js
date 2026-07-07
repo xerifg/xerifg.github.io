@@ -102,6 +102,7 @@ const seed = {
   modal: null,
   modalContext: null,
   openCreateMenu: null,
+  collapsedFolders: {},
   syncStatus: "ready",
   networkRestored: true,
   message: "",
@@ -210,7 +211,9 @@ function App() {
   const createFolder = () => {
     const name = document.querySelector("[data-modal-input='folderName']")?.value.trim() || "新文件夹";
     patchState((draft) => {
-      draft.folders.push({ id: `folder-${Date.now()}`, name, parentId: draft.modalContext?.folderId || null });
+      const parentId = draft.modalContext?.folderId || null;
+      draft.folders.push({ id: `folder-${Date.now()}`, name, parentId });
+      if (parentId) delete draft.collapsedFolders?.[parentId];
       draft.modal = null;
       draft.modalContext = null;
     });
@@ -221,10 +224,11 @@ function App() {
     const title = document.querySelector("[data-modal-input='noteTitle']")?.value.trim() || "未命名文档";
     patchState((draft) => {
       const id = `note-${Date.now()}`;
+      const folderId = draft.modalContext?.folderId || null;
       draft.notes.unshift({
         id,
         title,
-        folderId: draft.modalContext?.folderId || null,
+        folderId,
         tags: [],
         date: now(),
         file: `notebooks/docs/${slugify(title)}.json`,
@@ -233,6 +237,7 @@ function App() {
         assets: [],
         html: "<p></p>"
       });
+      if (folderId) delete draft.collapsedFolders?.[folderId];
       draft.activeId = id;
       draft.mode = "edit";
       draft.modal = null;
@@ -430,6 +435,17 @@ function App() {
         draft.openCreateMenu = draft.openCreateMenu === targetFolderId ? null : targetFolderId;
       });
     }
+    if (action === "toggle-folder") {
+      patchState((draft) => {
+        draft.collapsedFolders = draft.collapsedFolders || {};
+        if (draft.collapsedFolders[targetFolderId]) {
+          delete draft.collapsedFolders[targetFolderId];
+        } else {
+          draft.collapsedFolders[targetFolderId] = true;
+          if (draft.openCreateMenu === targetFolderId) draft.openCreateMenu = null;
+        }
+      });
+    }
     if (action === "new-folder-in-folder") {
       patchState((draft) => {
         draft.modalContext = { folderId: targetFolderId };
@@ -483,7 +499,7 @@ function App() {
         ),
         h("div", { className: "brand" },
           h("h1", null, "Notes"),
-          h("p", null, "像文档一样写，像书目录一样找。")
+          h("p", null, "谢瑞峰的个人笔记本，也是博客站点")
         ),
         h("div", { className: "search-wrap" },
           h("input", {
@@ -1233,17 +1249,28 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
   const children = state.folders.filter((item) => item.parentId === folder.id);
   const notes = visibleNotes.filter((note) => note.folderId === folder.id);
   const count = countNotes(state, folder.id, visibleNotes);
+  const isSearching = Boolean(state.query.trim());
+  const isCollapsed = !isSearching && Boolean(state.collapsedFolders?.[folder.id]);
   if (state.query.trim() && count === 0) return null;
   return h("div", { className: "tree-section", key: folder.id },
     h("button", {
-      className: `tree-folder indent-${Math.min(depth, 3)}`,
+      className: `tree-folder indent-${Math.min(depth, 3)} ${isCollapsed ? "collapsed" : ""}`,
+      "aria-expanded": !isCollapsed,
+      title: isCollapsed ? "展开目录" : "收起目录",
+      onClick: () => handleAction("toggle-folder", folder.id),
       onDoubleClick: () => patchState((draft) => {
         draft.modalContext = { folderId: folder.id };
         draft.openCreateMenu = null;
         draft.modal = "rename-folder";
       })
     },
-      h("span", null, "▾"),
+      h("span", {
+        className: "folder-toggle",
+        onClick: (event) => {
+          event.stopPropagation();
+          handleAction("toggle-folder", folder.id);
+        }
+      }, isCollapsed ? "▸" : "▾"),
       h("strong", null, folder.name),
       h("span", {
         className: "mini-action",
@@ -1260,8 +1287,8 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
           h("button", { onClick: () => handleAction("new-note-in-folder", folder.id) }, "文档")
         )
       : null,
-    notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, patchState)),
-    children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, patchState))
+    isCollapsed ? null : notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, patchState)),
+    isCollapsed ? null : children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, patchState))
   );
 }
 
@@ -1540,6 +1567,9 @@ function migrate(data) {
   };
   merged.modal = null;
   merged.openCreateMenu = null;
+  merged.collapsedFolders = merged.collapsedFolders && typeof merged.collapsedFolders === "object" && !Array.isArray(merged.collapsedFolders)
+    ? merged.collapsedFolders
+    : {};
   merged.syncStatus = merged.syncStatus === "publishing" ? "ready" : merged.syncStatus || "ready";
   return merged;
 }
