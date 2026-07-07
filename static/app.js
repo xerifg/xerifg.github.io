@@ -13,6 +13,7 @@ import TableHeader from "https://esm.sh/@tiptap/extension-table-header@2.11.7";
 import TableCell from "https://esm.sh/@tiptap/extension-table-cell@2.11.7";
 import TaskList from "https://esm.sh/@tiptap/extension-task-list@2.11.7";
 import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
+import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -543,20 +544,19 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
     const ctx = canvas.getContext("2d");
-    const palette = ["#ffd166", "#b9f6ca", "#7cc7ff", "#c4b5fd", "#ff9aa2", "#9bf6ff", "#a0c4ff"];
-    const sourceTags = tagStats.length ? tagStats : [{ name: "Notes", count: state.notes.length }];
-    const nodes = sourceTags.map((tag, index) => ({
-      tag,
-      phase: index * 1.71,
-      drift: 0.00022 + (index % 4) * 0.000052,
-      color: palette[index % palette.length],
-      radius: 42 + Math.min(tag.count, 8) * 3,
-      x: 0,
-      y: 0
-    }));
-    let frame = 0;
+    const palette = ["#7cc7ff", "#b9f6ca", "#ffd166", "#ff9aa2", "#c4b5fd", "#9bf6ff", "#a0c4ff"];
+    const hasNetworkQuery = Boolean((state.networkQuery || "").trim());
+    const sourceTags = tagStats.length ? tagStats : (hasNetworkQuery ? [] : [{ name: "Notes", count: state.notes.length }]);
+    const links = buildTagLinks(state.notes, sourceTags.map((tag) => tag.name));
+    let nodes = [];
+    let hoveredName = "";
+    let selectedName = sourceTags[0]?.name || "";
+    let detailRect = null;
+    let detailActionRect = null;
     let disposed = false;
-    let startTime = 0;
+
+    const nodeByName = () => new Map(nodes.map((node) => [node.name, node]));
+    const activeName = () => selectedName || hoveredName;
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
@@ -564,112 +564,245 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
       canvas.width = Math.max(1, Math.floor(rect.width * ratio));
       canvas.height = Math.max(1, Math.floor(rect.height * ratio));
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      nodes = layoutNetworkNodes(sourceTags, rect.width, rect.height)
+        .map((node, index) => ({ ...node, color: palette[index % palette.length] }));
+      draw();
     }
 
-    function draw(time) {
+    function draw() {
       if (disposed) return;
-      if (!startTime) startTime = time;
-      const elapsed = time - startTime;
       const rect = canvas.getBoundingClientRect();
       const width = rect.width;
       const height = rect.height;
       const cx = width / 2;
-      const cy = height * .64;
       ctx.clearRect(0, 0, width, height);
 
       const glow = ctx.createRadialGradient(cx, height * .52, 0, cx, height * .52, Math.min(width, height) * .48);
-      glow.addColorStop(0, "rgba(255,255,255,.78)");
-      glow.addColorStop(.55, "rgba(255,255,255,.20)");
+      glow.addColorStop(0, "rgba(255,255,255,.86)");
+      glow.addColorStop(.54, "rgba(255,255,255,.26)");
       glow.addColorStop(1, "rgba(255,255,255,0)");
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, width, height);
 
-      nodes.forEach((node, index) => {
-        const spread = Math.min(320, Math.max(150, width * .16));
-        const centerOffset = (nodes.length - 1) / 2;
-        const baseX = cx + (index - centerOffset) * spread;
-        const arcLift = Math.abs(index - centerOffset) * 34;
-        const baseY = cy - arcLift + Math.sin(index * 1.3) * 10;
-        node.x = baseX + Math.cos(elapsed * node.drift + node.phase) * 8;
-        node.y = baseY + Math.sin(elapsed * node.drift * .9 + node.phase) * 6;
-      });
+      if (!nodes.length) {
+        drawEmptyState(width, height);
+        return;
+      }
 
-      ctx.save();
-      ctx.strokeStyle = "rgba(124, 199, 255, .16)";
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      nodes
-        .slice()
-        .sort((a, b) => a.x - b.x)
-        .forEach((node, index, sorted) => {
-          if (index === 0) ctx.moveTo(node.x, node.y);
-          else {
-            const previous = sorted[index - 1];
-            const midX = (previous.x + node.x) / 2;
-            const midY = Math.min(previous.y, node.y) - 18;
-            ctx.quadraticCurveTo(midX, midY, node.x, node.y);
-          }
-        });
-      ctx.stroke();
-      ctx.restore();
+      drawLinks();
+      nodes.forEach(drawNode);
+      if (selectedName) drawDetailPanel();
+    }
 
-      nodes.forEach((node) => {
-        const aura = ctx.createRadialGradient(node.x, node.y, node.radius * .24, node.x, node.y, node.radius * 2.2);
-        aura.addColorStop(0, hexToRgba(node.color, .42));
-        aura.addColorStop(.48, hexToRgba(node.color, .18));
-        aura.addColorStop(1, "rgba(255,255,255,0)");
+    function drawLinks() {
+      const lookup = nodeByName();
+      const active = activeName();
+      links.forEach((link) => {
+        const source = lookup.get(link.source);
+        const target = lookup.get(link.target);
+        if (!source || !target) return;
+        const linked = active && (link.source === active || link.target === active);
+        const maxWeight = Math.max(...links.map((item) => item.weight), 1);
+        const strength = link.weight / maxWeight;
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius * 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = aura;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,.92)";
-        ctx.shadowColor = hexToRgba(node.color, .52);
-        ctx.shadowBlur = 22;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(255,255,255,.82)";
+        ctx.moveTo(source.x, source.y);
+        ctx.lineTo(target.x, target.y);
+        ctx.strokeStyle = linked ? "rgba(0, 122, 255, .42)" : `rgba(89, 114, 145, ${.10 + strength * .12})`;
+        ctx.lineWidth = linked ? 2.2 + strength * 1.4 : 1 + strength * 1.2;
+        ctx.setLineDash(linked ? [] : [3, 8]);
+        ctx.lineCap = "round";
         ctx.stroke();
+        ctx.restore();
+      });
+    }
 
-        ctx.fillStyle = "rgba(29,29,31,.82)";
-        ctx.font = "700 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(node.tag.name, node.x, node.y - 7);
-        ctx.fillStyle = "rgba(118,118,128,.82)";
-        ctx.font = "14px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-        ctx.fillText(`${node.tag.count} 篇`, node.x, node.y + 17);
+    function drawNode(node) {
+      const active = activeName();
+      const related = !active || node.name === active || links.some((link) =>
+        (link.source === active && link.target === node.name) || (link.target === active && link.source === node.name)
+      );
+      const selected = selectedName === node.name;
+      const hovered = hoveredName === node.name;
+      const alpha = related ? 1 : .42;
+
+      const aura = ctx.createRadialGradient(node.x, node.y, node.radius * .25, node.x, node.y, node.radius * 2.2);
+      aura.addColorStop(0, hexToRgba(node.color, selected || hovered ? .44 : .24));
+      aura.addColorStop(.52, hexToRgba(node.color, selected || hovered ? .18 : .08));
+      aura.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, node.radius * 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = aura;
+      ctx.fill();
+
+      if (selected || hovered) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius + 9, 0, Math.PI * 2);
+        ctx.strokeStyle = hexToRgba(node.color, selected ? .68 : .42);
+        ctx.lineWidth = selected ? 2.2 : 1.5;
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${.72 + alpha * .22})`;
+      ctx.shadowColor = hexToRgba(node.color, .36);
+      ctx.shadowBlur = selected || hovered ? 24 : 14;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = selected ? 1.6 : 1;
+      ctx.strokeStyle = selected ? hexToRgba(node.color, .82) : "rgba(255,255,255,.82)";
+      ctx.stroke();
+
+      ctx.fillStyle = `rgba(29,29,31,${.42 + alpha * .44})`;
+      ctx.font = `${selected ? "800" : "700"} 17px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(fitCanvasText(node.name, node.radius * 1.52), node.x, node.y - 7);
+      ctx.fillStyle = `rgba(99,105,116,${.35 + alpha * .42})`;
+      ctx.font = "13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      ctx.fillText(`${node.count} 篇`, node.x, node.y + 17);
+    }
+
+    function drawDetailPanel() {
+      const node = nodes.find((item) => item.name === selectedName);
+      if (!node) return;
+      const rect = canvas.getBoundingClientRect();
+      const panelWidth = Math.min(270, rect.width - 32);
+      const panelHeight = 164;
+      const x = Math.min(rect.width - panelWidth - 18, Math.max(18, node.x + node.radius + 28));
+      const y = Math.min(rect.height - panelHeight - 22, Math.max(72, node.y - panelHeight / 2));
+      const notes = noteSummariesForTag(state.notes, selectedName === "Notes" ? "" : selectedName, 3);
+      detailRect = { x, y, width: panelWidth, height: panelHeight };
+      detailActionRect = { x: x + 16, y: y + panelHeight - 42, width: panelWidth - 32, height: 28 };
+
+      drawRoundRect(x, y, panelWidth, panelHeight, 18);
+      ctx.fillStyle = "rgba(255,255,255,.86)";
+      ctx.shadowColor = "rgba(63, 78, 102, .14)";
+      ctx.shadowBlur = 28;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(255,255,255,.92)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(29,29,31,.88)";
+      ctx.font = "800 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(selectedName === "Notes" ? "全部笔记" : `# ${selectedName}`, x + 16, y + 27);
+      ctx.fillStyle = "rgba(105,112,124,.78)";
+      ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      ctx.fillText(`${notes.length} 条预览`, x + 16, y + 47);
+
+      notes.forEach((note, index) => {
+        const rowY = y + 69 + index * 19;
+        ctx.fillStyle = index === 0 ? hexToRgba(node.color, .26) : "rgba(92, 110, 133, .16)";
+        drawRoundRect(x + 16, rowY - 8, 7, 7, 3.5);
+        ctx.fill();
+        ctx.fillStyle = "rgba(56,62,72,.78)";
+        ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        ctx.fillText(fitCanvasText(note.title || "未命名文档", panelWidth - 54), x + 30, rowY);
       });
 
-      frame = requestAnimationFrame(draw);
+      drawRoundRect(detailActionRect.x, detailActionRect.y, detailActionRect.width, detailActionRect.height, 10);
+      ctx.fillStyle = "rgba(0, 122, 255, .10)";
+      ctx.fill();
+      ctx.fillStyle = "rgba(0, 95, 199, .88)";
+      ctx.font = "700 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("进入标签", detailActionRect.x + detailActionRect.width / 2, detailActionRect.y + 18);
+    }
+
+    function drawEmptyState(width, height) {
+      ctx.fillStyle = "rgba(105,112,124,.72)";
+      ctx.font = "15px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("没有匹配的标签", width / 2, height * .62);
+    }
+
+    function drawRoundRect(x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + width, y, x + width, y + height, r);
+      ctx.arcTo(x + width, y + height, x, y + height, r);
+      ctx.arcTo(x, y + height, x, y, r);
+      ctx.arcTo(x, y, x + width, y, r);
+      ctx.closePath();
+    }
+
+    function fitCanvasText(text, maxWidth) {
+      if (ctx.measureText(text).width <= maxWidth) return text;
+      let next = text;
+      while (next.length > 1 && ctx.measureText(`${next}...`).width > maxWidth) {
+        next = next.slice(0, -1);
+      }
+      return `${next}...`;
+    }
+
+    function hitNode(x, y) {
+      const sorted = [...nodes].sort((a, b) => Math.hypot(x - a.x, y - a.y) - Math.hypot(x - b.x, y - b.y));
+      const hit = sorted[0];
+      return hit && Math.hypot(x - hit.x, y - hit.y) <= hit.radius + 12 ? hit : null;
+    }
+
+    function inside(rect, x, y) {
+      return rect && x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
+    }
+
+    function handlePointerMove(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const hit = hitNode(x, y);
+      const next = hit?.name || "";
+      const actionable = Boolean(hit || inside(detailActionRect, x, y));
+      canvas.style.cursor = actionable ? "pointer" : "default";
+      if (next !== hoveredName) {
+        hoveredName = next;
+        draw();
+      }
+    }
+
+    function handlePointerLeave() {
+      hoveredName = "";
+      canvas.style.cursor = "default";
+      draw();
     }
 
     function handleClick(event) {
       const rect = canvas.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
-      const sorted = [...nodes].sort((a, b) => Math.hypot(x - a.x, y - a.y) - Math.hypot(x - b.x, y - b.y));
-      const hit = sorted[0];
-      if (hit && Math.hypot(x - hit.x, y - hit.y) <= hit.radius + 14) {
-        onEnterTag(hit.tag.name === "Notes" ? "" : hit.tag.name);
+      if (inside(detailActionRect, x, y) && selectedName) {
+        onEnterTag(selectedName === "Notes" ? "" : selectedName);
+        return;
       }
+      if (inside(detailRect, x, y)) return;
+      const hit = hitNode(x, y);
+      if (hit) {
+        selectedName = hit.name;
+        draw();
+        return;
+      }
+      selectedName = "";
+      draw();
     }
 
     resize();
     window.addEventListener("resize", resize);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerleave", handlePointerLeave);
     canvas.addEventListener("click", handleClick);
-    frame = requestAnimationFrame(draw);
 
     return () => {
       disposed = true;
-      cancelAnimationFrame(frame);
       window.removeEventListener("resize", resize);
+      canvas.removeEventListener("pointermove", handlePointerMove);
+      canvas.removeEventListener("pointerleave", handlePointerLeave);
       canvas.removeEventListener("click", handleClick);
     };
-  }, [tagStats, onEnterTag, state.notes.length]);
+  }, [tagStats, onEnterTag, state.networkQuery, state.notes]);
 
   return h("section", { className: "network-shell" },
     h("canvas", { id: "network-canvas", ref: canvasRef, "aria-hidden": "true" }),
@@ -1620,15 +1753,11 @@ function filteredTagStats(state) {
     : state.notes;
   const counts = new Map();
   matchedNotes.forEach((note) => {
-    (note.tags || []).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1));
-  });
-  if (query) {
-    state.notes.forEach((note) => {
-      (note.tags || [])
-        .filter((tag) => tag.toLowerCase().includes(query))
-        .forEach((tag) => counts.set(tag, Math.max(counts.get(tag) || 0, 1)));
+    (note.tags || []).forEach((tag) => {
+      if (query && !tag.toLowerCase().includes(query)) return;
+      counts.set(tag, (counts.get(tag) || 0) + 1);
     });
-  }
+  });
   return Array.from(counts.entries())
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "zh-Hans-CN"));
