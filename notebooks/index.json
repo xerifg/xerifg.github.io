@@ -1,49 +1,47 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-08T02:58:28.114Z",
+  "updatedAt": "2026-07-08T05:18:43.511Z",
   "folders": [
     {
       "id": "folder-writing",
-      "name": "个人笔记",
+      "name": "Notebooks",
       "parentId": null
     },
     {
       "id": "folder-system",
       "name": "使用说明",
       "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1783480956351",
+      "name": "123",
+      "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1783482435818",
+      "name": "学习笔记",
+      "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1783482449804",
+      "name": "工具",
+      "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1783482462216",
+      "name": "个人项目",
+      "parentId": "folder-writing"
     }
   ],
   "docs": [
     {
-      "id": "note-1783479474463",
-      "title": "笔记说明",
-      "folderId": "folder-writing",
-      "path": "个人笔记",
-      "tags": [],
-      "updatedAt": "2026-07-08T02:57:56.141Z",
-      "file": "notebooks/docs/笔记说明.json"
-    },
-    {
       "id": "note-1783479447843",
       "title": "笔记说明",
       "folderId": "folder-writing",
-      "path": "个人笔记",
+      "path": "Notebooks",
       "tags": [],
       "updatedAt": "2026-07-08T02:57:27.843Z",
       "file": "notebooks/docs/笔记说明.json"
-    },
-    {
-      "id": "note-welcome",
-      "title": "个人知识库起点",
-      "folderId": "folder-system",
-      "path": "个人笔记/使用说明",
-      "tags": [
-        "知识库",
-        "Tiptap",
-        "GitHub"
-      ],
-      "updatedAt": "2026-07-06T14:29:09.019Z",
-      "file": "notebooks/docs/welcome.json"
     }
   ]
 }
