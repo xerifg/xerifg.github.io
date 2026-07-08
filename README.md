@@ -20,7 +20,7 @@
 1. 页面由 `index.html` 加载 `static/app.css` 和 `static/app.js`。
 2. `static/app.js` 负责 React UI、Tiptap 编辑器、文档库状态、发布流程和 GitHub Contents API 调用。
 3. `static/network-model.mjs` 提供标签关系计算和网络布局，相关逻辑有独立测试。
-4. `server.py` 是本地辅助服务，提供静态文件服务、登录会话、本地附件缓存，以及可选的 GitHub 保存/删除代理接口。
+4. `server.py` 是本地辅助服务，提供静态文件服务和本地附件缓存接口。
 5. 已发布内容存放在 `notebooks/` 下，GitHub Pages 直接读取这些 JSON 和资源文件。
 
 ## 目录结构
@@ -107,7 +107,7 @@ notebooks/assets/{noteId}/
 
 ## 本地运行
 
-直接打开 `index.html` 可以阅读和使用基础功能。需要本地附件缓存、稳定预览或本地代理接口时，启动本地服务：
+直接打开 `index.html` 可以阅读和使用基础功能。需要本地附件缓存或稳定预览时，启动本地服务：
 
 ```cmd
 start-notebook.cmd
@@ -127,28 +127,13 @@ http://127.0.0.1:8000/
 
 ## 本地服务配置
 
-在仓库根目录创建 `.env`，按需填写：
+本地服务默认监听 `8000` 端口。如需修改，可设置环境变量：
 
 ```text
-NOTEBOOK_USER=admin
-NOTEBOOK_PASSWORD=change-this-password
-NOTEBOOK_SECRET=change-this-random-session-secret
-NOTEBOOK_SESSION_TTL=43200
-
-GITHUB_OWNER=xerifg
-GITHUB_REPO=xerifg.github.io
-GITHUB_BRANCH=main
-GITHUB_TOKEN=github_pat_xxx
-
 PORT=8000
 ```
 
-说明：
-
-- `NOTEBOOK_USER` 和 `NOTEBOOK_PASSWORD` 用于本地服务登录。
-- `NOTEBOOK_SECRET` 用于签发本地会话；未设置时会基于 `GITHUB_TOKEN` 派生。
-- `GITHUB_TOKEN` 用于本地服务代理写入 GitHub。
-- 在线 GitHub Pages 模式下，前端也可以直接使用浏览器中输入的 GitHub token 调用 GitHub Contents API。
+编辑和发布仍由浏览器直接使用 GitHub token 调用 GitHub Contents API，不经过 `server.py`。
 
 ## 测试
 

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "https:
 import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
 import { Editor, Node, mergeAttributes } from "https://esm.sh/@tiptap/core@2.11.7";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit@2.11.7";
+import CodeBlock from "https://esm.sh/@tiptap/extension-code-block@2.11.7";
 import Underline from "https://esm.sh/@tiptap/extension-underline@2.11.7";
 import Link from "https://esm.sh/@tiptap/extension-link@2.11.7";
 import Highlight from "https://esm.sh/@tiptap/extension-highlight@2.11.7";
@@ -24,6 +25,134 @@ const localAssetPrefix = "/api/local-assets/";
 const assetRootPath = "notebooks/assets";
 const now = () => new Date().toISOString();
 
+
+const NotebookCodeBlock = CodeBlock.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      wrapped: {
+        default: false,
+        parseHTML: (element) => element.getAttribute("data-wrapped") === "true",
+        renderHTML: (attributes) => attributes.wrapped ? { "data-wrapped": "true" } : {}
+      }
+    };
+  },
+  addNodeView() {
+    return ({ node, getPos, view }) => {
+      let currentNode = node;
+      const dom = document.createElement("pre");
+      dom.className = "notebook-code-block";
+      dom.classList.toggle("is-wrapped", Boolean(node.attrs.wrapped));
+      const header = document.createElement("div");
+      header.className = "notebook-code-header";
+      const title = document.createElement("div");
+      title.className = "notebook-code-title";
+      title.textContent = "\u25be  \u4ee3\u7801\u5757";
+      const actions = document.createElement("div");
+      actions.className = "notebook-code-actions";
+      const language = document.createElement("button");
+      language.type = "button";
+      language.className = "notebook-code-language";
+      language.textContent = codeLanguageLabel(node.attrs.language);
+      language.title = "\u4ee3\u7801\u8bed\u8a00";
+      const wrapButton = document.createElement("button");
+      wrapButton.type = "button";
+      wrapButton.textContent = "\u81ea\u52a8\u6362\u884c";
+      wrapButton.title = "\u5207\u6362\u81ea\u52a8\u6362\u884c";
+      const copyButton = document.createElement("button");
+      copyButton.type = "button";
+      copyButton.textContent = "\u590d\u5236";
+      copyButton.title = "\u590d\u5236\u4ee3\u7801";
+      actions.append(language, separatorNode(), wrapButton, separatorNode(), copyButton);
+      header.append(title, actions);
+      const body = document.createElement("div");
+      body.className = "notebook-code-body";
+      const gutter = document.createElement("div");
+      gutter.className = "notebook-code-gutter";
+      const contentDOM = document.createElement("code");
+      contentDOM.className = "notebook-code-content";
+      body.append(gutter, contentDOM);
+      dom.append(header, body);
+      const syncLineNumbers = () => {
+        const count = Math.max(1, (contentDOM.textContent.match(/\n/g) || []).length + 1);
+        gutter.replaceChildren(...Array.from({ length: count }, (_, index) => {
+          const line = document.createElement("span");
+          line.textContent = String(index + 1);
+          return line;
+        }));
+      };
+      wrapButton.addEventListener("mousedown", (event) => event.preventDefault());
+      wrapButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        const pos = typeof getPos === "function" ? getPos() : null;
+        if (typeof pos !== "number") return;
+        view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, {
+          ...currentNode.attrs,
+          wrapped: !currentNode.attrs.wrapped
+        }));
+      });
+      copyButton.addEventListener("mousedown", (event) => event.preventDefault());
+      copyButton.addEventListener("click", async (event) => {
+        event.preventDefault();
+        try {
+          await copyTextToClipboard(contentDOM.textContent || "");
+          copyButton.textContent = "\u5df2\u590d\u5236";
+          window.setTimeout(() => { copyButton.textContent = "\u590d\u5236"; }, 1200);
+        } catch {
+          copyButton.textContent = "\u590d\u5236\u5931\u8d25";
+          window.setTimeout(() => { copyButton.textContent = "\u590d\u5236"; }, 1200);
+        }
+      });
+      syncLineNumbers();
+      return {
+        dom,
+        contentDOM,
+        update(updatedNode) {
+          if (updatedNode.type.name !== node.type.name) return false;
+          currentNode = updatedNode;
+          language.textContent = codeLanguageLabel(updatedNode.attrs.language);
+          dom.classList.toggle("is-wrapped", Boolean(updatedNode.attrs.wrapped));
+          window.requestAnimationFrame(syncLineNumbers);
+          return true;
+        },
+        ignoreMutation(mutation) {
+          return mutation.target === gutter || gutter.contains(mutation.target) || header.contains(mutation.target);
+        }
+      };
+    };
+  }
+});
+
+function separatorNode() {
+  const separator = document.createElement("span");
+  separator.className = "notebook-code-separator";
+  separator.textContent = "|";
+  return separator;
+}
+
+function codeLanguageLabel(language) {
+  const value = String(language || "").trim();
+  if (!value) return "Plain Text";
+  const names = { bash: "Bash", sh: "Shell", shell: "Shell", js: "JavaScript", javascript: "JavaScript", ts: "TypeScript", typescript: "TypeScript", py: "Python", python: "Python", json: "JSON", html: "HTML", css: "CSS" };
+  return names[value.toLowerCase()] || value;
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  if (!copied) throw new Error("copy failed");
+}
 const Video = Node.create({
   name: "video",
   group: "block",
@@ -486,10 +615,12 @@ function App() {
     });
     try {
       const publishedAt = now();
+      const remoteLibrary = await loadGitHubPublishedIndex(settings);
+      const normalizedNotes = assignPublishFiles(sourceNotes);
       const nextNotes = [];
-      const publishState = { ...state, notes: sourceNotes };
-      for (const item of sourceNotes) {
-        const docPath = item.file || `notebooks/docs/${slugify(item.title)}.json`;
+      const publishState = { ...state, notes: normalizedNotes };
+      for (const item of normalizedNotes) {
+        const docPath = item.file;
         const publishTags = ensureDefaultTags(item.tags);
         const publishedAssets = await publishPendingAssets(settings, item);
         const publishedHtml = replaceLocalAssetUrls(
@@ -523,6 +654,7 @@ function App() {
       }
       const library = buildPublishedIndex({ ...state, notes: nextNotes }, publishedAt);
       await putGitHubFile(settings, publishedIndexPath, library, "Publish notebook index");
+      await deleteStalePublishedDocs(settings, remoteLibrary, nextNotes);
 
       setState((latest) => {
         const next = structuredClone(latest);
@@ -1057,43 +1189,93 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
 }
 
 function DocumentPaper({ note, state, editable, updateNote }) {
-  return h("article", { className: `paper ${editable ? "is-editing" : ""}` },
-    editable
-      ? h("input", {
-          className: "doc-title-input",
-          value: note.title,
-          placeholder: "无标题",
-          onChange: (event) => updateNote(note.id, (item) => {
-            item.title = event.target.value;
-          })
-        })
-      : h("h1", { className: "doc-title" }, note.title),
-    h("div", { className: "doc-meta" },
-      h("span", { className: "pill" }, folderPath(state, note.folderId) || "未归档"),
-      ensureDefaultTags(note.tags).map((tag) => h("span", { className: "pill", key: tag }, tag)),
-      h("span", { className: `pill ${note.dirty ? "dirty" : ""}` }, note.dirty ? "本地草稿" : "已发表"),
-      h("span", { className: "pill" }, formatDate(note.date))
-    ),
-    h("div", { className: "tiptap-shell" },
+  const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
+  const outline = documentOutlineFromHtml(html);
+  return h("div", { className: `document-workspace ${outline.length ? "has-outline" : "has-empty-outline"}` },
+    h(DocumentOutline, { noteId: note.id, outline }),
+    h("article", { className: `paper ${editable ? "is-editing" : ""}`, "data-note-id": note.id },
       editable
-        ? h(TiptapEditor, {
-            key: note.id,
-            note,
-            onChange: (html) => updateNote(note.id, (item) => {
-              item.html = normalizeHtml(html);
-            }),
-            onAssetInserted: (asset, html) => updateNote(note.id, (item) => {
-              const assets = Array.isArray(item.assets) ? item.assets : [];
-              item.assets = [...assets.filter((candidate) => candidate.id !== asset.id), asset];
-              item.html = normalizeHtml(html);
+        ? h("input", {
+            className: "doc-title-input",
+            value: note.title,
+            placeholder: "无标题",
+            onChange: (event) => updateNote(note.id, (item) => {
+              item.title = event.target.value;
             })
           })
-        : h("div", {
-            className: "reader tiptap-reader",
-            dangerouslySetInnerHTML: { __html: sanitizeHtml(note.html || blocksToHtml(note.blocks)) }
-          })
+        : h("h1", { className: "doc-title" }, note.title),
+      h("div", { className: "doc-meta" },
+        h("span", { className: "pill" }, folderPath(state, note.folderId) || "未归档"),
+        ensureDefaultTags(note.tags).map((tag) => h("span", { className: "pill", key: tag }, tag)),
+        h("span", { className: `pill ${note.dirty ? "dirty" : ""}` }, note.dirty ? "本地草稿" : "已发表"),
+        h("span", { className: "pill" }, formatDate(note.date))
+      ),
+      h("div", { className: "tiptap-shell" },
+        editable
+          ? h(TiptapEditor, {
+              key: note.id,
+              note,
+              onChange: (nextHtml) => updateNote(note.id, (item) => {
+                item.html = normalizeHtml(nextHtml);
+              }),
+              onAssetInserted: (asset, nextHtml) => updateNote(note.id, (item) => {
+                const assets = Array.isArray(item.assets) ? item.assets : [];
+                item.assets = [...assets.filter((candidate) => candidate.id !== asset.id), asset];
+                item.html = normalizeHtml(nextHtml);
+              })
+            })
+          : h("div", {
+              className: "reader tiptap-reader",
+              dangerouslySetInnerHTML: { __html: sanitizeHtml(html) }
+            })
+      )
     )
   );
+}
+
+function DocumentOutline({ noteId, outline }) {
+  return h("nav", { className: "document-outline", "aria-label": "文档目录" },
+    h("div", { className: "document-outline-title" }, "文档目录"),
+    outline.length
+      ? h("ol", null, outline.map((item) => h("li", {
+          key: item.key,
+          className: `document-outline-item level-${item.level}`
+        },
+          h("button", {
+            type: "button",
+            title: item.text,
+            onClick: () => scrollToDocumentHeading(noteId, item.index)
+          }, item.text)
+        )))
+      : h("p", { className: "document-outline-empty" }, "暂无标题")
+  );
+}
+
+function documentOutlineFromHtml(html) {
+  if (!html || typeof DOMParser === "undefined") return [];
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return Array.from(doc.body.querySelectorAll("h1, h2, h3"))
+    .map((node, index) => ({
+      key: `${index}-${node.tagName}`,
+      index,
+      level: Number(node.tagName.slice(1)),
+      text: (node.textContent || "").replace(/\s+/g, " ").trim()
+    }))
+    .filter((item) => item.text);
+}
+
+function scrollToDocumentHeading(noteId, headingIndex) {
+  const selector = `[data-note-id="${cssEscape(noteId)}"]`;
+  const paper = document.querySelector(selector);
+  const headings = paper ? paper.querySelectorAll(".tiptap-reader h1, .tiptap-reader h2, .tiptap-reader h3, .feishu-editor h1, .feishu-editor h2, .feishu-editor h3") : [];
+  const heading = headings[headingIndex];
+  if (!heading) return;
+  heading.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cssEscape(value) {
+  if (window.CSS?.escape) return window.CSS.escape(String(value));
+  return String(value).replace(/["\\]/g, "\\$&");
 }
 
 function TiptapEditor({ note, onChange, onAssetInserted }) {
@@ -1101,6 +1283,8 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
   const hostRef = useRef(null);
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
+  const sideButtonFrameRef = useRef(0);
+  const sideButtonUpdateSeqRef = useRef(0);
   const pendingAssetKindRef = useRef("file");
   const [editor, setEditor] = useState(null);
   const [insertMenu, setInsertMenu] = useState(null);
@@ -1126,21 +1310,28 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
   useEffect(() => {
     if (!hostRef.current) return undefined;
     const updateSideButton = (current) => {
-      window.requestAnimationFrame(() => {
-        if (!current?.view || !shellRef.current) return;
+      sideButtonUpdateSeqRef.current += 1;
+      const updateSeq = sideButtonUpdateSeqRef.current;
+      if (sideButtonFrameRef.current) window.cancelAnimationFrame(sideButtonFrameRef.current);
+      sideButtonFrameRef.current = window.requestAnimationFrame(() => {
+        sideButtonFrameRef.current = 0;
+        if (updateSeq !== sideButtonUpdateSeqRef.current || !current?.view || !shellRef.current) return;
         try {
           const coords = current.view.coordsAtPos(current.state.selection.from);
           const shellRect = shellRef.current.getBoundingClientRect();
-          setSideButton({ top: Math.max(4, coords.top - shellRect.top - 2) });
+          const nextTop = Math.max(4, coords.top - shellRect.top - 2);
+          if (!Number.isFinite(nextTop)) return;
+          setSideButton((previous) => Math.abs(previous.top - nextTop) < 1 ? previous : { top: nextTop });
         } catch {
-          setSideButton({ top: 72 });
+          // Keep the previous position when ProseMirror cannot resolve coords during blank-area clicks.
         }
       });
     };
     const instance = new Editor({
       element: hostRef.current,
       extensions: [
-        StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+        StarterKit.configure({ heading: { levels: [1, 2, 3] }, codeBlock: false }),
+        NotebookCodeBlock,
         Placeholder.configure({
           placeholder: "输入 / 插入内容",
           showOnlyCurrent: false
@@ -1184,8 +1375,10 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
             return true;
           },
           click(view, event) {
-            maybeCreateParagraphAtClick(view, event);
-            return false;
+            return maybeCreateParagraphAtClick(view, event);
+          },
+          dblclick(view, event) {
+            return maybeCreateParagraphBetweenBlocks(view, event);
           }
         },
         handleKeyDown(view, event) {
@@ -1222,6 +1415,7 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
     setEditor(instance);
     updateSideButton(instance);
     return () => {
+      if (sideButtonFrameRef.current) window.cancelAnimationFrame(sideButtonFrameRef.current);
       instance.destroy();
       editorRef.current = null;
       setEditor(null);
@@ -1371,7 +1565,7 @@ function FeishuInsertMenu({ position, run }) {
         { icon: "H3", label: "标题 3", command: "h3" },
         { icon: "1.", label: "有序列表", command: "orderedList" },
         { icon: "•", label: "无序列表", command: "bulletList" },
-        { icon: "✓", label: "任务", command: "taskList" },
+        { icon: "☑", label: "任务", command: "taskList" },
         { icon: "{}", label: "代码块", command: "codeBlock" },
         { icon: "“”", label: "引用", command: "blockquote" },
         { icon: "—", label: "分割线", command: "divider" },
@@ -1381,24 +1575,24 @@ function FeishuInsertMenu({ position, run }) {
     {
       title: "常用",
       items: [
-        { icon: "✓", label: "任务", command: "taskList", color: "#4c6fff" },
+        { icon: "☑", label: "任务", command: "taskList", color: "#4c6fff" },
         { icon: "▧", label: "图片", command: "image", color: "#ffb800" },
-        { icon: "▷", label: "视频", command: "video", color: "#15b8a6" },
+        { icon: "▶", label: "视频", command: "video", color: "#15b8a6" },
         { icon: "↥", label: "文件附件", command: "file", color: "#64748b" },
         { icon: "▦", label: "表格", command: "table", color: "#00b578", arrow: true },
         { icon: "▥", label: "分栏", command: "columns", color: "#6366f1", arrow: true },
         { icon: "▤", label: "高亮块", command: "highlightBlock", color: "#ff7a45" },
         { icon: "▣", label: "同步块", command: "paragraph", color: "#3b82f6" },
-        { icon: "▻", label: "按钮", command: "button", color: "#5b7cfa", arrow: true },
+        { icon: "▢", label: "按钮", command: "button", color: "#5b7cfa", arrow: true },
         { icon: "fx", label: "公式", command: "codeBlock", color: "#6b7280" },
-        { icon: "◇", label: "模板", command: "template", color: "#f97316", arrow: true }
+        { icon: "✦", label: "模板", command: "template", color: "#f97316", arrow: true }
       ]
     },
     {
       title: "多维表格",
       items: [
         { icon: "▦", label: "表格", command: "table", color: "#2563eb" },
-        { icon: "▥", label: "看板", command: "columns", color: "#22c55e" },
+        { icon: "▧", label: "看板", command: "columns", color: "#22c55e" },
         { icon: "▱", label: "甘特图", command: "paragraph", color: "#ec4899" },
         { icon: "▦", label: "画册", command: "paragraph", color: "#8b5cf6" }
       ]
@@ -1714,30 +1908,74 @@ function getEditorSelectionRect(view) {
 }
 
 function maybeCreateParagraphAtClick(view, event) {
-  if (event.button !== 0 || event.defaultPrevented || !view?.dom) return;
-  if (!view.state.selection.empty) return;
+  if (event.button !== 0 || event.defaultPrevented || !view?.dom) return false;
+  if (!view.state.selection.empty) return false;
 
   const editorRect = view.dom.getBoundingClientRect();
-  if (event.clientY < editorRect.top || event.clientY > editorRect.bottom) return;
+  if (event.clientY < editorRect.top || event.clientY > editorRect.bottom) return false;
 
-  const blocks = Array.from(view.dom.children).filter((child) => child.nodeType === 1);
+  const blocks = editorTopLevelBlocks(view);
   const lastBlock = blocks[blocks.length - 1];
   const lastRect = lastBlock?.getBoundingClientRect();
   const clickedBelowContent = !lastRect || event.clientY > lastRect.bottom + 6;
   const clickedEditorSurface = event.target === view.dom;
-  if (!clickedBelowContent && !clickedEditorSurface) return;
 
+  if (clickedEditorSurface && !clickedBelowContent) {
+    event.preventDefault();
+    return true;
+  }
+  if (!clickedBelowContent) return false;
+
+  return insertParagraphAtDocPosition(view, view.state.doc.content.size, event);
+}
+
+function maybeCreateParagraphBetweenBlocks(view, event) {
+  if (event.button !== 0 || event.defaultPrevented || !view?.dom) return false;
+  if (event.target !== view.dom) return false;
+
+  const editorRect = view.dom.getBoundingClientRect();
+  if (event.clientY < editorRect.top || event.clientY > editorRect.bottom) return false;
+
+  const blocks = editorTopLevelBlocks(view);
+  const gapIndex = blocks.findIndex((block, index) => {
+    const next = blocks[index + 1];
+    if (!next) return false;
+    const currentRect = block.getBoundingClientRect();
+    const nextRect = next.getBoundingClientRect();
+    return event.clientY > currentRect.bottom + 2 && event.clientY < nextRect.top - 2;
+  });
+  if (gapIndex < 0) return false;
+
+  const insertAt = topLevelDocPositionBefore(view, gapIndex + 1);
+  return insertParagraphAtDocPosition(view, insertAt, event);
+}
+
+function editorTopLevelBlocks(view) {
+  return Array.from(view.dom.children).filter((child) => child.nodeType === 1);
+}
+
+function topLevelDocPositionBefore(view, childIndex) {
+  let position = 0;
+  const maxIndex = Math.min(childIndex, view.state.doc.childCount);
+  for (let index = 0; index < maxIndex; index += 1) {
+    position += view.state.doc.child(index).nodeSize;
+  }
+  return position;
+}
+
+function insertParagraphAtDocPosition(view, insertAt, event) {
   const paragraph = view.state.schema.nodes.paragraph?.createAndFill();
-  if (!paragraph) return;
+  if (!paragraph) return false;
 
-  const insertAt = view.state.doc.content.size;
-  const tr = view.state.tr.insert(insertAt, paragraph);
-  const selectionPos = Math.min(tr.doc.content.size, insertAt + 1);
+  event?.preventDefault?.();
+  const safeInsertAt = Math.max(0, Math.min(insertAt, view.state.doc.content.size));
+  const tr = view.state.tr.insert(safeInsertAt, paragraph);
+  const selectionPos = Math.min(tr.doc.content.size, safeInsertAt + 1);
   const selection = view.state.selection.constructor.create(tr.doc, selectionPos);
   view.dispatch(tr.setSelection(selection).scrollIntoView());
   view.focus();
+  return true;
 }
-
 function menuPositionInShell(rect, shell, anchor) {
   const shellRect = shell.getBoundingClientRect();
   const menuWidth = 268;
@@ -2043,6 +2281,10 @@ async function putGitHubFile(settings, path, data, message) {
 }
 
 async function putGitHubBase64File(settings, path, content, message) {
+  return putGitHubBase64FileAttempt(settings, path, content, message, false);
+}
+
+async function putGitHubBase64FileAttempt(settings, path, content, message, retried) {
   const sha = await getGitHubSha(settings, path);
   const body = {
     message,
@@ -2053,15 +2295,101 @@ async function putGitHubBase64File(settings, path, content, message) {
   const response = await fetch(githubContentUrl(settings, path), {
     method: "PUT",
     headers: githubHeaders(settings.token),
+    cache: "no-store",
     body: JSON.stringify(body)
   });
   if (!response.ok) {
     const detail = await safeJson(response);
-    throw new Error(detail?.message || `GitHub 写入失败：${response.status}`);
+    const messageText = detail?.message || `GitHub write failed: ${response.status}`;
+    if (!retried && (response.status === 409 || /sha|does not match/i.test(messageText))) {
+      return putGitHubBase64FileAttempt(settings, path, content, message, true);
+    }
+    throw new Error(messageText);
   }
   return response.json();
 }
 
+async function loadGitHubPublishedIndex(settings) {
+  const data = await getGitHubJsonFile(settings, publishedIndexPath);
+  return data && Array.isArray(data.docs) ? data : { docs: [] };
+}
+
+async function getGitHubJsonFile(settings, path) {
+  const response = await fetch(`${githubContentUrl(settings, path)}?ref=${encodeURIComponent(settings.branch)}&v=${Date.now()}`, {
+    headers: githubHeaders(settings.token),
+    cache: "no-store"
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const detail = await safeJson(response);
+    throw new Error(detail?.message || `GitHub read failed: ${response.status}`);
+  }
+  const data = await response.json();
+  if (!data?.content) return null;
+  return JSON.parse(decodeBase64Utf8(String(data.content).replace(/\s/g, "")));
+}
+
+async function deleteStalePublishedDocs(settings, remoteLibrary, nextNotes) {
+  const nextFiles = new Set(nextNotes.map((note) => trimSlash(note.file)).filter(Boolean));
+  const staleFiles = uniqueValues((remoteLibrary?.docs || [])
+    .map((doc) => trimSlash(doc.file))
+    .filter((file) => file.startsWith("notebooks/docs/") && file !== publishedIndexPath && !nextFiles.has(file)));
+  for (const file of staleFiles) {
+    await deleteGitHubFile(settings, file, `Delete stale notebook: ${file}`);
+  }
+}
+
+async function deleteGitHubFile(settings, path, message) {
+  const sha = await getGitHubSha(settings, path);
+  if (!sha) return null;
+  const response = await fetch(githubContentUrl(settings, path), {
+    method: "DELETE",
+    headers: githubHeaders(settings.token),
+    cache: "no-store",
+    body: JSON.stringify({ message, branch: settings.branch, sha })
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const detail = await safeJson(response);
+    const messageText = detail?.message || `GitHub delete failed: ${response.status}`;
+    if (response.status === 409 || /sha|does not match/i.test(messageText)) {
+      const latestSha = await getGitHubSha(settings, path);
+      if (!latestSha) return null;
+      const retry = await fetch(githubContentUrl(settings, path), {
+        method: "DELETE",
+        headers: githubHeaders(settings.token),
+        cache: "no-store",
+        body: JSON.stringify({ message, branch: settings.branch, sha: latestSha })
+      });
+      if (retry.status === 404) return null;
+      if (retry.ok) return retry.json();
+      const retryDetail = await safeJson(retry);
+      throw new Error(retryDetail?.message || `GitHub delete failed: ${retry.status}`);
+    }
+    throw new Error(messageText);
+  }
+  return response.json();
+}
+
+function assignPublishFiles(notes) {
+  const used = new Set();
+  return notes.map((note) => {
+    const base = slugify(note.title || note.id || "untitled");
+    let candidate = `notebooks/docs/${base}.json`;
+    if (used.has(candidate)) candidate = `notebooks/docs/${base}-${slugify(note.id || Date.now())}.json`;
+    let counter = 2;
+    while (used.has(candidate)) {
+      candidate = `notebooks/docs/${base}-${counter}.json`;
+      counter += 1;
+    }
+    used.add(candidate);
+    return { ...note, file: candidate };
+  });
+}
+
+function uniqueValues(values) {
+  return Array.from(new Set(values));
+}
 async function publishPendingAssets(settings, note) {
   const assets = Array.isArray(note.assets) ? note.assets : [];
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
@@ -2102,18 +2430,18 @@ function replaceLocalAssetUrls(html, assets) {
 }
 
 async function getGitHubSha(settings, path) {
-  const response = await fetch(`${githubContentUrl(settings, path)}?ref=${encodeURIComponent(settings.branch)}`, {
-    headers: githubHeaders(settings.token)
+  const response = await fetch(`${githubContentUrl(settings, path)}?ref=${encodeURIComponent(settings.branch)}&v=${Date.now()}`, {
+    headers: githubHeaders(settings.token),
+    cache: "no-store"
   });
   if (response.status === 404) return "";
   if (!response.ok) {
     const detail = await safeJson(response);
-    throw new Error(detail?.message || `GitHub 读取失败：${response.status}`);
+    throw new Error(detail?.message || `GitHub read failed: ${response.status}`);
   }
   const data = await response.json();
   return data.sha || "";
 }
-
 function githubContentUrl(settings, path) {
   const safePath = trimSlash(path).split("/").map(encodeURIComponent).join("/");
   return `https://api.github.com/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}/contents/${safePath}`;
@@ -2448,6 +2776,14 @@ function encodeBase64Utf8(text) {
   return btoa(binary);
 }
 
+function decodeBase64Utf8(value) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new TextDecoder().decode(bytes);
+}
 function dataUrlToBase64(dataUrl) {
   return String(dataUrl || "").split(",", 2)[1] || "";
 }

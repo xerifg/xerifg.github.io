@@ -832,7 +832,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   font-size: 20px;
   line-height: 1;
   box-shadow: 0 2px 8px rgba(31,35,41,.08);
-  transition: top .16s ease, background .14s ease, color .14s ease, transform .14s ease;
+  transition: background .14s ease, color .14s ease, transform .14s ease;
 }
 
 .feishu-plus:hover {
@@ -1251,5 +1251,244 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   }
   .toolbar {
     justify-content: flex-start;
+  }
+}
+
+.feishu-editor pre.notebook-code-block,
+.tiptap-reader pre.notebook-code-block {
+  display: block;
+  overflow: hidden;
+  margin: 18px 0;
+  padding: 0;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #f7f8fa !important;
+  color: #1f2329 !important;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.72;
+  tab-size: 2;
+  white-space: normal;
+}
+
+.feishu-editor pre.notebook-code-block::before,
+.feishu-editor pre.notebook-code-block::after,
+.tiptap-reader pre.notebook-code-block::before,
+.tiptap-reader pre.notebook-code-block::after {
+  content: none;
+  display: none;
+}
+
+.notebook-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
+  padding: 7px 12px 5px 14px;
+  color: #646a73;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 24px;
+  user-select: none;
+}
+
+.notebook-code-title,
+.notebook-code-actions {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.notebook-code-actions {
+  flex: none;
+  gap: 8px;
+}
+
+.notebook-code-actions button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #646a73;
+  font: inherit;
+  cursor: pointer;
+}
+
+.notebook-code-actions button:hover {
+  color: #245bdb;
+}
+
+.notebook-code-separator {
+  color: #c0c4cc;
+}
+
+.notebook-code-body {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  overflow: auto;
+  padding: 0 16px 16px 0;
+}
+
+.notebook-code-gutter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 0 12px 0 0;
+  color: #6b7280;
+  line-height: 1.72;
+  user-select: none;
+}
+
+.feishu-editor pre.notebook-code-block code.notebook-code-content,
+.tiptap-reader pre.notebook-code-block code.notebook-code-content {
+  display: block;
+  min-width: max-content;
+  padding: 0;
+  border-radius: 0;
+  background: transparent !important;
+  color: inherit !important;
+  font: inherit;
+  white-space: pre;
+}
+
+.feishu-editor pre.notebook-code-block.is-wrapped .notebook-code-body,
+.tiptap-reader pre.notebook-code-block.is-wrapped .notebook-code-body {
+  overflow-x: hidden;
+}
+
+.feishu-editor pre.notebook-code-block.is-wrapped code.notebook-code-content,
+.tiptap-reader pre.notebook-code-block.is-wrapped code.notebook-code-content {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.document-workspace {
+  width: min(1188px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 196px minmax(0, 920px);
+  align-items: start;
+  justify-content: center;
+  gap: 16px;
+}
+
+.document-outline {
+  position: sticky;
+  top: 22px;
+  max-height: calc(100vh - 88px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .72);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .54);
+  color: #62666d;
+  box-shadow:
+    0 14px 36px rgba(31, 35, 41, .07),
+    inset 0 1px 0 rgba(255, 255, 255, .82);
+  backdrop-filter: blur(22px) saturate(150%);
+}
+
+.document-outline-title {
+  margin: 0 0 10px;
+  padding: 0 4px;
+  color: #8b8f96;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.document-outline ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.document-outline-item {
+  margin: 2px 0;
+}
+
+.document-outline-item.level-2 { padding-left: 10px; }
+.document-outline-item.level-3 { padding-left: 20px; }
+
+.document-outline button {
+  width: 100%;
+  min-height: 29px;
+  padding: 5px 9px;
+  border-radius: 9px;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.document-outline-item.level-1 button {
+  color: #303236;
+  font-weight: 700;
+}
+
+.document-outline-item.level-2 button {
+  font-size: 12.5px;
+}
+
+.document-outline-item.level-3 button {
+  color: #858991;
+  font-size: 12px;
+}
+
+.document-outline button:hover,
+.document-outline button:focus-visible {
+  background: rgba(0, 122, 255, .10);
+  color: #005fc7;
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, .08);
+  transform: translateX(1px);
+}
+
+.document-outline button:active {
+  background: rgba(0, 122, 255, .16);
+  transform: translateX(1px) scale(.995);
+}
+
+.document-outline-empty {
+  margin: 0;
+  padding: 4px 6px;
+  color: #a0a3aa;
+  font-size: 13px;
+}
+
+@media (max-width: 1180px) {
+  .document-workspace {
+    grid-template-columns: minmax(0, 920px);
+  }
+
+  .document-outline {
+    position: static;
+    max-height: none;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .document-outline ol {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .document-outline-item,
+  .document-outline-item.level-2,
+  .document-outline-item.level-3 {
+    flex: 0 0 auto;
+    padding-left: 0;
+  }
+
+  .document-outline button {
+    max-width: 180px;
+    background: rgba(255, 255, 255, .46);
   }
 }
