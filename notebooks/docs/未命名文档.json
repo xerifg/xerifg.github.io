@@ -11,7 +11,7 @@
     "chrome"
   ],
   "createdAt": "2026-07-08T06:16:26.143Z",
-  "updatedAt": "2026-07-08T06:17:40.088Z",
+  "updatedAt": "2026-07-08T07:34:35.607Z",
   "assets": [],
   "html": "<p><strong>开启chrome 的gimini功能</strong></p><pre><code>irm https://raw.githubusercontent.com/appsail/Gemini-in-Chrome/main/install.ps1 | iex</code></pre>"
 }
