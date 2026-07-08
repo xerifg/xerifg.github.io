@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-06T14:29:09.019Z",
+  "updatedAt": "2026-07-08T02:58:28.114Z",
   "folders": [
     {
       "id": "folder-writing",
-      "name": "写作台",
+      "name": "个人笔记",
       "parentId": null
     },
     {
@@ -15,16 +15,34 @@
   ],
   "docs": [
     {
+      "id": "note-1783479474463",
+      "title": "笔记说明",
+      "folderId": "folder-writing",
+      "path": "个人笔记",
+      "tags": [],
+      "updatedAt": "2026-07-08T02:57:56.141Z",
+      "file": "notebooks/docs/笔记说明.json"
+    },
+    {
+      "id": "note-1783479447843",
+      "title": "笔记说明",
+      "folderId": "folder-writing",
+      "path": "个人笔记",
+      "tags": [],
+      "updatedAt": "2026-07-08T02:57:27.843Z",
+      "file": "notebooks/docs/笔记说明.json"
+    },
+    {
       "id": "note-welcome",
       "title": "个人知识库起点",
       "folderId": "folder-system",
-      "path": "写作台/使用说明",
+      "path": "个人笔记/使用说明",
       "tags": [
         "知识库",
         "Tiptap",
         "GitHub"
       ],
-      "updatedAt": "2026-07-06T14:14:49.067Z",
+      "updatedAt": "2026-07-06T14:29:09.019Z",
       "file": "notebooks/docs/welcome.json"
     }
   ]
