@@ -1,21 +1,11 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-08T05:20:00.120Z",
+  "updatedAt": "2026-07-08T05:21:16.409Z",
   "folders": [
     {
       "id": "folder-writing",
       "name": "Notebooks",
       "parentId": null
-    },
-    {
-      "id": "folder-system",
-      "name": "使用说明",
-      "parentId": "folder-writing"
-    },
-    {
-      "id": "folder-1783480956351",
-      "name": "123",
-      "parentId": "folder-writing"
     },
     {
       "id": "folder-1783482435818",
@@ -35,12 +25,21 @@
   ],
   "docs": [
     {
+      "id": "note-1783488074324",
+      "title": "未命名文档",
+      "folderId": "folder-writing",
+      "path": "Notebooks",
+      "tags": [],
+      "updatedAt": "2026-07-08T05:21:14.324Z",
+      "file": "notebooks/docs/未命名文档.json"
+    },
+    {
       "id": "note-1783479447843",
       "title": "笔记说明",
       "folderId": "folder-writing",
       "path": "Notebooks",
       "tags": [],
-      "updatedAt": "2026-07-08T05:18:43.511Z",
+      "updatedAt": "2026-07-08T05:20:00.120Z",
       "file": "notebooks/docs/笔记说明.json"
     }
   ]
