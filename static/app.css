@@ -668,11 +668,80 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
 .feishu-editor pre,
 .tiptap-reader pre {
+  position: relative;
   overflow: auto;
-  padding: 16px;
-  background: #1f2329;
-  color: #f7f8fa;
+  margin: 18px 0;
+  padding: 44px 18px 18px 60px;
+  border: 1px solid #3370ff;
   border-radius: 8px;
+  background: #f7f8fa;
+  color: #1f2329;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.78);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.72;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.feishu-editor pre::before,
+.tiptap-reader pre::before {
+  content: "\25BE  \4EE3\7801\5757";
+  position: absolute;
+  top: 9px;
+  left: 14px;
+  right: 14px;
+  height: 24px;
+  color: #646a73;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 24px;
+  pointer-events: none;
+}
+
+.feishu-editor pre::after,
+.tiptap-reader pre::after {
+  content: "Bash  |  \81EA\52A8\6362\884C  \590D\5236";
+  position: absolute;
+  top: 9px;
+  right: 16px;
+  height: 24px;
+  color: #646a73;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 24px;
+  pointer-events: none;
+}
+
+.feishu-editor pre code,
+.tiptap-reader pre code {
+  display: block;
+  min-width: max-content;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.feishu-editor pre,
+.feishu-editor pre:hover,
+.feishu-editor .ProseMirror pre,
+.feishu-editor .ProseMirror pre:hover,
+.tiptap-reader pre,
+.tiptap-reader pre:hover {
+  background: #f7f8fa !important;
+  background-color: #f7f8fa !important;
+  color: #1f2329 !important;
+}
+
+.feishu-editor pre code,
+.feishu-editor pre:hover code,
+.tiptap-reader pre code,
+.tiptap-reader pre:hover code {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: inherit !important;
 }
 
 .feishu-editor img,
@@ -840,13 +909,48 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   gap: 2px;
   min-height: 42px;
   padding: 4px 6px;
-  border: 1px solid #dee0e3;
+  border: 1px solid rgba(31, 35, 41, .12);
   border-radius: 6px;
-  background: rgba(255,255,255,.985);
-  box-shadow: 0 6px 18px rgba(31,35,41,.16);
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 8px 22px rgba(31,35,41,.14), 0 1px 3px rgba(31,35,41,.08);
   transform: translateX(-50%);
+  transform-origin: center bottom;
   backdrop-filter: blur(10px) saturate(150%);
-  animation: menuIn .12s cubic-bezier(.2, .8, .2, 1);
+  animation: bubbleIn .14s cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(.98); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+@keyframes bubbleInBelow {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.98); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.feishu-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ff4f9a;
+  transform: translateX(-50%);
+  box-shadow: 0 1px 3px rgba(255, 79, 154, .32);
+  pointer-events: none;
+}
+
+.feishu-bubble.below {
+  transform-origin: center top;
+  animation-name: bubbleInBelow;
+}
+
+.feishu-bubble.below::after {
+  top: -5px;
+  bottom: auto;
 }
 
 .feishu-bubble button {

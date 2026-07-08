@@ -190,8 +190,9 @@ function App() {
     return () => window.removeEventListener("pointerdown", closeCreateMenu, true);
   }, [state.openCreateMenu, patchState]);
 
+  const hasEditSession = state.authenticated || state.mode === "edit";
   const requireEditPermission = (pendingAuthAction = "edit") => {
-    if (state.authenticated) return true;
+    if (state.authenticated || (pendingAuthAction === "edit" && state.mode === "edit")) return true;
     patchState((draft) => {
       draft.pendingAuthAction = pendingAuthAction;
       draft.modal = "auth";
@@ -222,7 +223,7 @@ function App() {
   };
 
   const updateNote = (noteId, updater) => {
-    if (!state.authenticated) {
+    if (!hasEditSession) {
       requireEditPermission("edit");
       return;
     }
@@ -556,7 +557,7 @@ function App() {
       });
     }
     if (action === "toggle-mode") {
-      if (state.mode !== "edit" && !state.authenticated) {
+      if (state.mode !== "edit" && !hasEditSession) {
         requireEditPermission("edit");
         return;
       }
@@ -1104,6 +1105,23 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
   const [editor, setEditor] = useState(null);
   const [insertMenu, setInsertMenu] = useState(null);
   const [sideButton, setSideButton] = useState({ top: 72 });
+  const [isSelectingText, setIsSelectingText] = useState(false);
+
+  const insertPastedAssets = useCallback(async (files) => {
+    if (!files.length || !editorRef.current) return;
+    try {
+      let html = editorRef.current.getHTML();
+      for (const file of files) {
+        const asset = await cacheNotebookAsset(note, file, normalizeAssetKind("", file.type, file.name));
+        insertAssetNode(editorRef.current, asset);
+        html = editorRef.current.getHTML();
+        onAssetInserted?.(asset, html);
+      }
+      onChange(editorRef.current.getHTML());
+    } catch (error) {
+      window.alert(error.message || "Paste attachment failed");
+    }
+  }, [note, onAssetInserted, onChange]);
 
   useEffect(() => {
     if (!hostRef.current) return undefined;
@@ -1143,6 +1161,33 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
       content: normalizeHtml(note.html || blocksToHtml(note.blocks)),
       editorProps: {
         attributes: { class: "feishu-editor ProseMirror" },
+        handleDOMEvents: {
+          mousedown(view, event) {
+            if (event.button !== 0) return false;
+            setIsSelectingText(true);
+            setInsertMenu(null);
+            return false;
+          },
+          mouseup(view) {
+            window.requestAnimationFrame(() => {
+              setIsSelectingText(false);
+              updateSideButton(editorRef.current || view.editor);
+            });
+            return false;
+          },
+          paste(view, event) {
+            const files = clipboardFilesFromPaste(event);
+            if (!files.length) return false;
+            event.preventDefault();
+            setInsertMenu(null);
+            insertPastedAssets(files);
+            return true;
+          },
+          click(view, event) {
+            maybeCreateParagraphAtClick(view, event);
+            return false;
+          }
+        },
         handleKeyDown(view, event) {
           if (event.key === "/" && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
             window.setTimeout(() => {
@@ -1183,6 +1228,18 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
     };
   }, [note.id]);
 
+  useEffect(() => {
+    const stopSelecting = () => {
+      window.requestAnimationFrame(() => setIsSelectingText(false));
+    };
+    window.addEventListener("mouseup", stopSelecting);
+    window.addEventListener("blur", stopSelecting);
+    return () => {
+      window.removeEventListener("mouseup", stopSelecting);
+      window.removeEventListener("blur", stopSelecting);
+    };
+  }, []);
+
   const run = async (command) => {
     if (!editorRef.current) return;
     if (insertMenu?.slashRange) {
@@ -1214,7 +1271,7 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
   };
 
   return h("div", { className: "feishu-editor-shell", ref: shellRef },
-    editor ? h(FeishuBubbleToolbar, { editor, shellRef, hidden: Boolean(insertMenu) }) : null,
+    editor ? h(FeishuBubbleToolbar, { editor, shellRef, hidden: Boolean(insertMenu) || isSelectingText }) : null,
     h("button", {
       className: "feishu-plus",
       style: { top: `${sideButton.top}px` },
@@ -1238,49 +1295,60 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
 }
 
 function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
+  const [position, setPosition] = useState(null);
+  const [selectionVersion, setSelectionVersion] = useState(0);
   const [, forceUpdate] = useState(0);
+
+  const updatePosition = useCallback(() => {
+    if (hidden || !editor || editor.state.selection.empty || !shellRef.current) {
+      setPosition(null);
+      return;
+    }
+    const rect = getSelectionToolbarRect(editor.view?.dom);
+    setPosition(rect ? getBubbleToolbarPosition(rect, shellRef.current) : null);
+  }, [editor, hidden, shellRef]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(updatePosition);
+    return () => window.cancelAnimationFrame(frame);
+  }, [updatePosition, selectionVersion]);
+
   useEffect(() => {
     if (!editor) return undefined;
-    const update = () => forceUpdate((value) => value + 1);
-    editor.on("selectionUpdate", update);
-    editor.on("transaction", update);
+    const updateSelection = () => setSelectionVersion((value) => value + 1);
+    const updateActiveState = () => forceUpdate((value) => value + 1);
+    editor.on("selectionUpdate", updateSelection);
+    editor.on("transaction", updateActiveState);
     return () => {
-      editor.off("selectionUpdate", update);
-      editor.off("transaction", update);
+      editor.off("selectionUpdate", updateSelection);
+      editor.off("transaction", updateActiveState);
     };
   }, [editor]);
-  if (hidden || !editor || editor.state.selection.empty) return null;
-  const rect = getSelectionRect();
-  if (!rect || !shellRef.current) return null;
-  const shellRect = shellRef.current.getBoundingClientRect();
-  const left = Math.min(
-    Math.max(18, rect.left + rect.width / 2 - shellRect.left),
-    shellRef.current.clientWidth - 18
-  );
-  const top = Math.max(8, rect.top - shellRect.top - 54);
+
+  if (hidden || !editor || editor.state.selection.empty || !position) return null;
   const buttons = [
-    { label: "T", command: "paragraph", title: "正文" },
-    { label: "H1", command: "h1", title: "标题 1", active: editor.isActive("heading", { level: 1 }) },
-    { label: "H2", command: "h2", title: "标题 2", active: editor.isActive("heading", { level: 2 }) },
+    { label: "T", command: "paragraph", title: "\u6b63\u6587" },
+    { label: "H1", command: "h1", title: "\u6807\u9898 1", active: editor.isActive("heading", { level: 1 }) },
+    { label: "H2", command: "h2", title: "\u6807\u9898 2", active: editor.isActive("heading", { level: 2 }) },
     { divider: true },
-    { label: "≡", command: "bulletList", title: "列表", active: editor.isActive("bulletList") },
+    { label: "\u2261", command: "bulletList", title: "\u5217\u8868", active: editor.isActive("bulletList") },
     { divider: true },
     { label: "B", command: "bold", active: editor.isActive("bold") },
     { label: "S", command: "strike", active: editor.isActive("strike") },
     { label: "I", command: "italic", active: editor.isActive("italic") },
     { label: "U", command: "underline", active: editor.isActive("underline") },
-    { label: "↗", command: "link", title: "链接", active: editor.isActive("link") },
-    { label: "</>", command: "code", title: "代码", active: editor.isActive("code") },
-    { label: "A", command: "highlight", title: "高亮", active: editor.isActive("highlight") },
+    { label: "\u2197", command: "link", title: "\u94fe\u63a5", active: editor.isActive("link") },
+    { label: "</>", command: "code", title: "\u4ee3\u7801", active: editor.isActive("code") },
+    { label: "A", command: "highlight", title: "\u9ad8\u4eae", active: editor.isActive("highlight") },
     { divider: true },
-    { label: "▦", command: "table", title: "表格" },
-    { label: "☰", command: "blockquote", title: "引用", active: editor.isActive("blockquote") }
+    { label: "\u25a6", command: "table", title: "\u8868\u683c" },
+    { label: "\u2630", command: "blockquote", title: "\u5f15\u7528", active: editor.isActive("blockquote") }
   ];
   return h("div", {
-    className: "feishu-bubble",
+    className: `feishu-bubble ${position.placement === "below" ? "below" : "above"}`,
     style: {
-      left: `${left}px`,
-      top: `${top}px`
+      left: `${position.left}px`,
+      top: `${position.top}px`
     },
     onMouseDown: (event) => event.preventDefault()
   }, buttons.map((button, index) => button.divider
@@ -1406,6 +1474,27 @@ function commandName(command) {
   return names[command] || command;
 }
 
+function clipboardFilesFromPaste(event) {
+  const clipboard = event.clipboardData;
+  if (!clipboard) return [];
+  const files = [];
+  const seen = new Set();
+  const addFile = (file) => {
+    if (!file) return;
+    const key = (file.name || "clipboard") + "-" + (file.type || "file") + "-" + file.size;
+    if (seen.has(key)) return;
+    seen.add(key);
+    files.push(file);
+  };
+
+  Array.from(clipboard.items || []).forEach((item) => {
+    if (item.kind !== "file") return;
+    addFile(item.getAsFile());
+  });
+  Array.from(clipboard.files || []).forEach(addFile);
+  return files;
+}
+
 function openAssetPicker({ fileInputRef, pendingAssetKindRef }, kind) {
   if (!fileInputRef?.current) return;
   pendingAssetKindRef.current = kind;
@@ -1414,11 +1503,11 @@ function openAssetPicker({ fileInputRef, pendingAssetKindRef }, kind) {
 }
 
 async function cacheNotebookAsset(note, file, requestedKind) {
-  const kind = normalizeAssetKind(requestedKind, file.type);
+  const kind = normalizeAssetKind(requestedKind, file.type, file.name);
   validateAssetFile(file, kind);
   const dataUrl = await readFileAsDataUrl(file);
   const content = dataUrlToBase64(dataUrl);
-  const fileName = uniqueAssetFileName(file.name);
+  const fileName = uniqueAssetFileName(file.name, file.type);
   const noteSegment = safeSegment(note.id || "note");
   const remotePath = `${assetRootPath}/${noteSegment}/${fileName}`;
   let localUrl = dataUrl;
@@ -1484,10 +1573,12 @@ function insertAssetNode(editor, asset) {
   }).run();
 }
 
-function normalizeAssetKind(kind, mimeType) {
+function normalizeAssetKind(kind, mimeType, name = "") {
   if (kind === "image" || kind === "video") return kind;
-  if (String(mimeType || "").startsWith("image/")) return "image";
-  if (String(mimeType || "").startsWith("video/")) return "video";
+  const type = String(mimeType || "").toLowerCase();
+  const fileName = String(name || "").toLowerCase();
+  if (type.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg|avif|ico)$/.test(fileName)) return "image";
+  if (type.startsWith("video/") || /\.(mp4|webm|mov|m4v|avi|mkv|ogv)$/.test(fileName)) return "video";
   return "file";
 }
 
@@ -1507,14 +1598,33 @@ function safeSegment(value) {
   return slugify(String(value || "asset")).replace(/^-+|-+$/g, "") || "asset";
 }
 
-function uniqueAssetFileName(name) {
-  const cleaned = String(name || "attachment").replace(/[/\\:*?"<>|]+/g, "-").replace(/\s+/g, "-");
+function uniqueAssetFileName(name, mimeType = "") {
+  const cleaned = String(name || "attachment").replace(/[/\:*?"<>|]+/g, "-").replace(/\s+/g, "-");
   const dot = cleaned.lastIndexOf(".");
   const base = dot > 0 ? cleaned.slice(0, dot) : cleaned;
-  const ext = dot > 0 ? cleaned.slice(dot).toLowerCase() : "";
+  const inferredExt = extensionFromMimeType(mimeType);
+  const ext = dot > 0 ? cleaned.slice(dot).toLowerCase() : inferredExt;
   const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
   const suffix = Math.random().toString(36).slice(2, 7);
   return `${safeSegment(base).slice(0, 64) || "attachment"}-${stamp}-${suffix}${ext}`;
+}
+
+function extensionFromMimeType(mimeType) {
+  const type = String(mimeType || "").toLowerCase();
+  const map = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+    "image/bmp": ".bmp",
+    "image/svg+xml": ".svg",
+    "image/avif": ".avif",
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "video/quicktime": ".mov",
+    "video/x-m4v": ".m4v"
+  };
+  return map[type] || "";
 }
 
 function formatBytes(bytes) {
@@ -1534,6 +1644,57 @@ function getSelectionRect() {
   return rects[0] || null;
 }
 
+function getSelectionToolbarRect(editorDom) {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+  const range = selection.getRangeAt(0);
+  const editorRect = editorDom?.getBoundingClientRect?.() || null;
+  const rects = Array.from(range.getClientRects())
+    .filter((rect) => rect.width || rect.height)
+    .filter((rect) => !editorRect || (
+      rect.bottom >= editorRect.top
+      && rect.top <= editorRect.bottom
+      && rect.right >= editorRect.left
+      && rect.left <= editorRect.right
+    ));
+
+  if (!rects.length) return getSelectionRect();
+
+  const left = Math.min(...rects.map((rect) => rect.left));
+  const right = Math.max(...rects.map((rect) => rect.right));
+  const top = Math.min(...rects.map((rect) => rect.top));
+  const bottom = Math.max(...rects.map((rect) => rect.bottom));
+  return {
+    left,
+    right,
+    top,
+    bottom,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top)
+  };
+}
+
+function getBubbleToolbarPosition(rect, shell) {
+  const shellRect = shell.getBoundingClientRect();
+  const toolbarHeight = 50;
+  const toolbarHalfWidth = Math.min(196, Math.max(18, shell.clientWidth / 2 - 18));
+  const gap = 12;
+  const rawLeft = rect.left + rect.width / 2 - shellRect.left;
+  const left = Math.min(
+    Math.max(toolbarHalfWidth, rawLeft),
+    Math.max(toolbarHalfWidth, shell.clientWidth - toolbarHalfWidth)
+  );
+  const topAbove = rect.top - shellRect.top - toolbarHeight - gap;
+  if (topAbove >= 8) {
+    return { left, top: topAbove, placement: "above" };
+  }
+  return {
+    left,
+    top: Math.max(8, rect.bottom - shellRect.top + gap),
+    placement: "below"
+  };
+}
+
 function getEditorSelectionRect(view) {
   const rect = getSelectionRect();
   if (rect) return rect;
@@ -1550,6 +1711,31 @@ function getEditorSelectionRect(view) {
   } catch {
     return null;
   }
+}
+
+function maybeCreateParagraphAtClick(view, event) {
+  if (event.button !== 0 || event.defaultPrevented || !view?.dom) return;
+  if (!view.state.selection.empty) return;
+
+  const editorRect = view.dom.getBoundingClientRect();
+  if (event.clientY < editorRect.top || event.clientY > editorRect.bottom) return;
+
+  const blocks = Array.from(view.dom.children).filter((child) => child.nodeType === 1);
+  const lastBlock = blocks[blocks.length - 1];
+  const lastRect = lastBlock?.getBoundingClientRect();
+  const clickedBelowContent = !lastRect || event.clientY > lastRect.bottom + 6;
+  const clickedEditorSurface = event.target === view.dom;
+  if (!clickedBelowContent && !clickedEditorSurface) return;
+
+  const paragraph = view.state.schema.nodes.paragraph?.createAndFill();
+  if (!paragraph) return;
+
+  const insertAt = view.state.doc.content.size;
+  const tr = view.state.tr.insert(insertAt, paragraph);
+  const selectionPos = Math.min(tr.doc.content.size, insertAt + 1);
+  const selection = view.state.selection.constructor.create(tr.doc, selectionPos);
+  view.dispatch(tr.setSelection(selection).scrollIntoView());
+  view.focus();
 }
 
 function menuPositionInShell(rect, shell, anchor) {
