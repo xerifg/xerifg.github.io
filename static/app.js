@@ -346,8 +346,8 @@ function App() {
       draft.query = "";
       draft.view = "library";
       draft.mode = "read";
-      const first = draft.notes.find((item) => !tag || (item.tags || []).includes(tag));
-      if (first) draft.activeId = first.id;
+      const matches = draft.notes.filter((item) => !tag || (item.tags || []).includes(tag));
+      draft.activeId = tag && matches.length === 1 ? matches[0].id : "";
     });
   };
 
@@ -834,7 +834,7 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
     const links = buildTagLinks(state.notes, sourceTags.map((tag) => tag.name));
     let nodes = [];
     let hoveredName = "";
-    let selectedName = sourceTags[0]?.name || "";
+    let selectedName = sourceTags[0]?.name === "Notes" ? "" : sourceTags[0]?.name || "";
     let detailRect = null;
     let detailActionRect = null;
     let disposed = false;
@@ -876,7 +876,7 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
 
       drawLinks();
       nodes.forEach(drawNode);
-      if (selectedName) drawDetailPanel();
+      if (selectedName && selectedName !== "Notes") drawDetailPanel();
     }
 
     function drawBackdropTexture(width, height) {
@@ -1151,6 +1151,10 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
       if (inside(detailRect, x, y)) return;
       const hit = hitNode(x, y);
       if (hit) {
+        if (hit.name === "Notes") {
+          onEnterTag("");
+          return;
+        }
         selectedName = hit.name;
         draw();
         return;
@@ -2622,7 +2626,8 @@ function ensureDefaultTags(tags) {
   return next.length ? next : ["Notes"];
 }
 function currentNote(state) {
-  return state.notes.find((item) => item.id === state.activeId) || state.notes[0] || null;
+  if (!state.activeId) return null;
+  return state.notes.find((item) => item.id === state.activeId) || null;
 }
 
 function filteredNotes(state) {
