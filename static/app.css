@@ -473,6 +473,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
 .paper {
   position: relative;
+  width: 100%;
   max-width: 920px;
   min-height: calc(100vh - 150px);
   margin: 0 auto;
@@ -1377,7 +1378,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   width: min(1180px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: fit-content(320px) minmax(0, 920px);
+  grid-template-columns: 168px minmax(0, 920px);
   align-items: stretch;
   justify-content: center;
   gap: 16px;
@@ -1488,7 +1489,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
   .document-outline {
     position: static;
-    width: 100%;
+    width: 100% !important;
     max-width: none;
     height: auto;
     overflow: hidden;

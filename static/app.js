@@ -23,6 +23,7 @@ const legacyStorageKey = "personal-notebook-v2";
 const publishedIndexPath = "notebooks/index.json";
 const localAssetPrefix = "/api/local-assets/";
 const assetRootPath = "notebooks/assets";
+const documentOutlinePanelWidth = 168;
 const now = () => new Date().toISOString();
 
 
@@ -1246,11 +1247,10 @@ function DocumentPaper({ note, state, editable, updateNote }) {
 }
 
 function DocumentOutline({ noteId, outline }) {
-  const outlineWidth = documentOutlineWidth(outline);
   return h("nav", {
     className: "document-outline",
     "aria-label": "\u6587\u6863\u76ee\u5f55",
-    style: { width: `${outlineWidth}px` }
+    style: { width: `${documentOutlinePanelWidth}px` }
   },
     h("div", { className: "document-outline-title" }, "\u6587\u6863\u76ee\u5f55"),
     outline.length
@@ -1266,29 +1266,6 @@ function DocumentOutline({ noteId, outline }) {
         )))
       : h("p", { className: "document-outline-empty" }, "\u6682\u65e0\u6807\u9898")
   );
-}
-
-function documentOutlineWidth(outline) {
-  const items = outline.length ? outline : [{ level: 1, text: "\u6587\u6863\u76ee\u5f55" }];
-  const widest = items.reduce((max, item) => {
-    const textWidth = estimatedTextWidth(item.text || "");
-    const levelIndent = Math.max(0, (Number(item.level) || 1) - 1) * 10;
-    return Math.max(max, textWidth + levelIndent + 44);
-  }, 0);
-  return Math.round(clampNumber(widest, 132, 320));
-}
-
-function estimatedTextWidth(text) {
-  return Array.from(String(text || "")).reduce((width, char) => {
-    if (/[^\x00-\xff]/.test(char)) return width + 13;
-    if (/[A-Z0-9]/.test(char)) return width + 8;
-    if (/\s/.test(char)) return width + 4;
-    return width + 7;
-  }, 0);
-}
-
-function clampNumber(value, min, max) {
-  return Math.min(max, Math.max(min, value));
 }
 function documentOutlineFromHtml(html) {
   if (!html || typeof DOMParser === "undefined") return [];
