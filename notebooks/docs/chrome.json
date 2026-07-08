@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "id": "note-1783491238556",
+  "title": "chrome",
+  "folderId": "folder-1783482449804",
+  "path": "Notebooks/工具",
+  "tags": [
+    "Notes",
+    "AI",
+    "gemini",
+    "chrome"
+  ],
+  "createdAt": "2026-07-08T12:26:06.241Z",
+  "updatedAt": "2026-07-08T12:26:51.134Z",
+  "assets": [],
+  "html": "<h2><strong>开启gimini功能</strong></h2><pre><code>irm https://raw.githubusercontent.com/appsail/Gemini-in-Chrome/main/install.ps1 | iex</code></pre><p></p><p></p>"
+}
