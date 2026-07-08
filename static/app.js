@@ -94,7 +94,7 @@ const seedHtml = [
 const seed = {
   query: "",
   networkQuery: "",
-  view: "network",
+  view: "library",
   selectedTag: "",
   authenticated: false,
   pendingAuthAction: "",
@@ -165,6 +165,7 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+
   const note = currentNote(state);
   const visibleNotes = useMemo(() => filteredNotes(state), [state]);
   const tagStats = useMemo(() => filteredTagStats(state), [state]);
@@ -176,6 +177,17 @@ function App() {
       return next;
     });
   }, []);
+  useEffect(() => {
+    if (!state.openCreateMenu) return undefined;
+    const closeCreateMenu = (event) => {
+      if (event.target.closest?.(".create-menu, .mini-action")) return;
+      patchState((draft) => {
+        draft.openCreateMenu = null;
+      });
+    };
+    window.addEventListener("pointerdown", closeCreateMenu, true);
+    return () => window.removeEventListener("pointerdown", closeCreateMenu, true);
+  }, [state.openCreateMenu, patchState]);
 
   const requireEditPermission = (pendingAuthAction = "edit") => {
     if (state.authenticated) return true;
@@ -183,7 +195,6 @@ function App() {
       draft.pendingAuthAction = pendingAuthAction;
       draft.modal = "auth";
       draft.openCreateMenu = null;
-      draft.message = "没有编辑权限，请先打开编辑权限";
     });
     setToast("没有编辑权限，请先打开编辑权限");
     return false;
@@ -297,19 +308,50 @@ function App() {
     setToast("文档已重命名");
   };
 
-  const deleteNote = () => {
+  const deleteNote = (noteId = state.activeId) => {
     if (!requireEditPermission("edit")) return;
     if (state.notes.length <= 1) {
       setToast("至少保留一篇笔记");
       return;
     }
     patchState((draft) => {
-      draft.notes = draft.notes.filter((item) => item.id !== draft.activeId);
-      draft.activeId = draft.notes[0]?.id || "";
+      draft.notes = draft.notes.filter((item) => item.id !== noteId);
+      draft.activeId = draft.activeId === noteId ? draft.notes[0]?.id || "" : draft.activeId;
       draft.mode = "read";
+      draft.openCreateMenu = null;
       draft.message = "删除已保存到本地，发表任意文档后目录会更新";
     });
     setToast("文档已移入本地草稿变更");
+  };
+
+  const deleteFolder = (folderId) => {
+    if (!requireEditPermission("edit")) return;
+    const folderIds = new Set([folderId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      state.folders.forEach((folder) => {
+        if (folder.parentId && folderIds.has(folder.parentId) && !folderIds.has(folder.id)) {
+          folderIds.add(folder.id);
+          changed = true;
+        }
+      });
+    }
+    const noteIds = new Set(state.notes.filter((item) => folderIds.has(item.folderId)).map((item) => item.id));
+    if (noteIds.size >= state.notes.length) {
+      setToast("至少保留一篇笔记");
+      return;
+    }
+    patchState((draft) => {
+      draft.folders = draft.folders.filter((folder) => !folderIds.has(folder.id));
+      draft.notes = draft.notes.filter((item) => !noteIds.has(item.id));
+      if (noteIds.has(draft.activeId)) draft.activeId = draft.notes[0]?.id || "";
+      folderIds.forEach((id) => delete draft.collapsedFolders?.[id]);
+      draft.openCreateMenu = null;
+      draft.mode = "read";
+      draft.message = "删除已保存到本地，发表任意文档后目录会更新";
+    });
+    setToast("文件夹已移入本地草稿变更");
   };
 
   const confirmAuth = () => {
@@ -489,7 +531,8 @@ function App() {
     if (action === "confirm-rename-folder") renameFolder();
     if (action === "confirm-rename-note") renameNote();
     if (action === "confirm-auth") confirmAuth();
-    if (action === "delete-note") deleteNote();
+    if (action === "delete-note") deleteNote(targetFolderId || state.activeId);
+    if (action === "delete-folder") deleteFolder(targetFolderId);
     if (action === "rename-folder") {
       if (!requireEditPermission("edit")) return;
       patchState((draft) => {
@@ -1465,7 +1508,7 @@ function renderTopbar(state, note, handleAction) {
     h("div", { className: "crumb" },
       h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "未归档" : "没有笔记"),
       h("strong", null, note ? note.title : "创建第一篇笔记"),
-      h("em", null, state.message || "编辑内容会先保存在本地，点击发表后写入 GitHub")
+      h("em", null, documentStatusText(state, note))
     ),
     h("div", { className: "toolbar" },
       h("button", { className: "ghost-btn", onClick: () => handleAction("back-network") }, "知识网络"),
@@ -1477,12 +1520,26 @@ function renderTopbar(state, note, handleAction) {
         className: "primary-btn",
         disabled: state.syncStatus === "publishing",
         onClick: () => handleAction("publish")
-      }, state.syncStatus === "publishing" ? "发表中" : "发表") : null,
-      note ? h("button", { className: "danger-btn", onClick: () => handleAction("delete-note") }, "删除") : null
+      }, state.syncStatus === "publishing" ? "发表中" : "发表") : null
     )
   );
 }
 
+function documentStatusText(state, note) {
+  if (!note) return "选择或新建一篇文档开始记录。";
+  if (state.syncStatus === "publishing") return "正在发表到 GitHub，请稍候。";
+  if (note.dirty || !note.publishedAt) return "当前内容已临时保存在本地，点击「发表」后会推送到 GitHub。";
+  const path = note.file || `notebooks/docs/${slugify(note.title || note.id)}.json`;
+  return `已发表，GitHub 保存地址：${githubBrowserUrl(state.settings, path)}`;
+}
+
+function githubBrowserUrl(settings, path) {
+  const owner = settings?.owner || inferOwner();
+  const repo = settings?.repo || inferRepo();
+  const branch = settings?.branch || "main";
+  if (!owner || !repo || !path) return path || "notebooks/index.json";
+  return `https://github.com/${owner}/${repo}/blob/${branch}/${trimSlash(path)}`;
+}
 function renderTree(state, visibleNotes, selectNote, handleAction) {
   const rootFolders = state.folders.filter((folder) => !folder.parentId);
   const orphanNotes = visibleNotes.filter((note) => !note.folderId);
@@ -1530,8 +1587,9 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
     ),
     state.openCreateMenu === folder.id
       ? h("div", { className: "create-menu" },
-          h("button", { onClick: () => handleAction("new-folder-in-folder", folder.id) }, "文件夹"),
-          h("button", { onClick: () => handleAction("new-note-in-folder", folder.id) }, "文档")
+          h("button", { onClick: () => handleAction("new-folder-in-folder", folder.id) }, "新建文件夹"),
+          h("button", { onClick: () => handleAction("new-note-in-folder", folder.id) }, "新建文档"),
+          h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-folder", folder.id) }, "删除文件夹")
         )
       : null,
     isCollapsed ? null : notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction)),
@@ -1540,14 +1598,28 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
 }
 
 function renderNoteItem(state, note, depth, selectNote, handleAction) {
-  return h("button", {
-    className: `tree-note indent-${Math.min(depth, 3)} ${note.id === state.activeId ? "active" : ""}`,
-    key: note.id,
-    onClick: () => selectNote(note.id),
-    onDoubleClick: () => handleAction("rename-note", note.id)
-  },
-    h("span", null, note.dirty ? "●" : "◦"),
-    h("strong", null, note.title || "未命名笔记")
+  return h("div", { className: "tree-section", key: note.id },
+    h("button", {
+      className: `tree-note indent-${Math.min(depth, 3)} ${note.id === state.activeId ? "active" : ""}`,
+      onClick: () => selectNote(note.id),
+      onDoubleClick: () => handleAction("rename-note", note.id)
+    },
+      h("span", null, note.dirty ? "●" : "◦"),
+      h("strong", null, note.title || "未命名笔记"),
+      h("span", {
+        className: "mini-action",
+        title: "更多",
+        onClick: (event) => {
+          event.stopPropagation();
+          handleAction("toggle-create-menu", note.id);
+        }
+      }, "+")
+    ),
+    state.openCreateMenu === note.id
+      ? h("div", { className: "create-menu" },
+          h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-note", note.id) }, "删除文档")
+        )
+      : null
   );
 }
 
@@ -1796,6 +1868,11 @@ function migrate(data) {
     merged.selectedTag = "";
     merged.query = "";
   }
+  if (isNotebookRoute()) {
+    merged.view = "library";
+    merged.selectedTag = "";
+    merged.query = "";
+  }
   merged.networkQuery = merged.networkQuery || "";
   merged.networkRestored = true;
   merged.authenticated = false;
@@ -1837,6 +1914,9 @@ function migrateLegacy(legacy) {
   };
 }
 
+function isNotebookRoute() {
+  return new URLSearchParams(window.location.search).get("v") === "notebook";
+}
 function currentNote(state) {
   return state.notes.find((item) => item.id === state.activeId) || state.notes[0] || null;
 }
