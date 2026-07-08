@@ -1,91 +1,49 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-08T09:09:30.426Z",
+  "updatedAt": "2026-07-08T12:26:51.134Z",
   "folders": [
     {
       "id": "folder-writing",
-      "name": "写作台",
+      "name": "Notebooks",
       "parentId": null
     },
     {
-      "id": "folder-system",
-      "name": "使用说明",
+      "id": "folder-1783482449804",
+      "name": "工具",
       "parentId": "folder-writing"
     },
     {
-      "id": "folder-1783480307067",
-      "name": "123",
+      "id": "folder-1783482462216",
+      "name": "个人项目",
       "parentId": "folder-writing"
     }
   ],
   "docs": [
     {
-      "id": "note-1783480779023",
-      "title": "未命名文档",
-      "folderId": "folder-writing",
-      "path": "写作台",
+      "id": "note-1783502059122",
+      "title": "docker",
+      "folderId": "folder-1783482449804",
+      "path": "Notebooks/工具",
       "tags": [
-        "Notes"
+        "Notes",
+        "docker"
       ],
-      "updatedAt": "2026-07-08T09:09:30.426Z",
-      "file": "notebooks/docs/未命名文档.json"
+      "updatedAt": "2026-07-08T12:26:51.134Z",
+      "file": "notebooks/docs/docker.json"
     },
     {
-      "id": "note-1783480775699",
-      "title": "未命名文档",
-      "folderId": "folder-system",
-      "path": "写作台/使用说明",
+      "id": "note-1783491238556",
+      "title": "chrome",
+      "folderId": "folder-1783482449804",
+      "path": "Notebooks/工具",
       "tags": [
-        "Notes"
+        "Notes",
+        "AI",
+        "gemini",
+        "chrome"
       ],
-      "updatedAt": "2026-07-08T09:09:30.426Z",
-      "file": "notebooks/docs/未命名文档-note-1783480775699.json"
-    },
-    {
-      "id": "note-1783480770490",
-      "title": "未命名文档",
-      "folderId": "folder-1783480307067",
-      "path": "写作台/123",
-      "tags": [
-        "Notes"
-      ],
-      "updatedAt": "2026-07-08T09:09:30.426Z",
-      "file": "notebooks/docs/未命名文档-note-1783480770490.json"
-    },
-    {
-      "id": "note-1783480763162",
-      "title": "未命名文档",
-      "folderId": "folder-1783480307067",
-      "path": "写作台/123",
-      "tags": [
-        "Notes"
-      ],
-      "updatedAt": "2026-07-08T09:09:30.426Z",
-      "file": "notebooks/docs/未命名文档-note-1783480763162.json"
-    },
-    {
-      "id": "note-1783480320288",
-      "title": "测试",
-      "folderId": "folder-1783480307067",
-      "path": "写作台/123",
-      "tags": [
-        "Notes"
-      ],
-      "updatedAt": "2026-07-08T09:09:30.426Z",
-      "file": "notebooks/docs/测试.json"
-    },
-    {
-      "id": "note-welcome",
-      "title": "个人知识库起点",
-      "folderId": "folder-system",
-      "path": "写作台/使用说明",
-      "tags": [
-        "知识库",
-        "Tiptap",
-        "GitHub"
-      ],
-      "updatedAt": "2026-07-08T09:09:30.426Z",
-      "file": "notebooks/docs/welcome.json"
+      "updatedAt": "2026-07-08T12:26:51.134Z",
+      "file": "notebooks/docs/chrome.json"
     }
   ]
 }
