@@ -276,7 +276,15 @@ function App() {
         const local = migrate(loadLocalState() || {});
         const shouldKeepLocal = local.notes?.some((note) => note.dirty);
         if (!shouldKeepLocal) {
-          setState((current) => migrate({ ...published, settings: { ...current.settings, token: current.settings.token } }));
+          setState((current) => migrate({
+            ...published,
+            view: current.view,
+            selectedTag: current.selectedTag,
+            query: current.query,
+            networkQuery: current.networkQuery,
+            networkRestored: current.networkRestored,
+            settings: { ...current.settings, token: current.settings.token }
+          }));
         }
       })
       .catch((error) => console.warn("Published library load failed", error));
@@ -2548,7 +2556,7 @@ function migrate(data) {
     merged.selectedTag = "";
     merged.query = "";
   }
-  if (isNotebookRoute()) {
+  if (!data.view && isNotebookRoute()) {
     merged.view = "library";
     merged.selectedTag = "";
     merged.query = "";
