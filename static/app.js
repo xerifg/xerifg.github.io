@@ -104,6 +104,7 @@ const seed = {
   modalContext: null,
   openCreateMenu: null,
   collapsedFolders: {},
+  deletedTags: [],
   syncStatus: "ready",
   networkRestored: true,
   message: "",
@@ -258,7 +259,7 @@ function App() {
         id,
         title,
         folderId,
-        tags: [],
+        tags: ["Notes"],
         date: now(),
         file: `notebooks/docs/${slugify(title)}.json`,
         dirty: true,
@@ -379,11 +380,64 @@ function App() {
     });
     setToast("验证已通过");
     if (action === "publish") {
-      publishCurrentNote(authSettings);
+      preparePublish(authSettings);
     }
   };
 
-  const publishCurrentNote = async (overrideSettings) => {
+  const openPublishTagModal = () => {
+    if (!note) return;
+    patchState((draft) => {
+      draft.modal = "publish-tags";
+      draft.modalContext = { noteId: note.id };
+      draft.openCreateMenu = null;
+    });
+  };
+
+  const confirmPublishTags = () => {
+    if (!note) return;
+    const renameMap = new Map();
+    const deletedTags = new Set();
+    const selected = [];
+    document.querySelectorAll("[data-tag-row]").forEach((row) => {
+      const original = row.getAttribute("data-tag-row") || "";
+      const isDeleted = original !== "Notes" && Boolean(row.querySelector("[data-tag-delete]")?.checked);
+      const renamed = row.querySelector("[data-tag-name]")?.value.trim() || original;
+      if (isDeleted) {
+        deletedTags.add(original);
+        return;
+      }
+      if (original && renamed && original !== renamed) renameMap.set(original, renamed);
+      if (row.querySelector("[data-tag-selected]")?.checked && renamed) selected.push(renamed);
+    });
+    const extraTags = parseTagInput(document.querySelector("[data-tag-new]")?.value || "");
+    const nextTags = ensureDefaultTags(uniqueTags([...selected, ...extraTags]).filter((tag) => !deletedTags.has(tag)));
+    const noteId = state.modalContext?.noteId || note.id;
+    const updatedNotes = state.notes.map((item) => {
+      const renamedTags = ensureDefaultTags(item.tags)
+        .filter((tag) => !deletedTags.has(tag))
+        .map((tag) => renameMap.get(tag) || tag);
+      return {
+        ...item,
+        tags: item.id === noteId ? nextTags : ensureDefaultTags(renamedTags)
+      };
+    });
+    patchState((draft) => {
+      draft.notes = updatedNotes;
+      draft.deletedTags = uniqueTags([...(draft.deletedTags || []), ...deletedTags]);
+      draft.modal = null;
+      draft.modalContext = null;
+    });
+        patchState((draft) => {
+      draft.modal = "publish-summary";
+      draft.modalContext = {
+        notes: updatedNotes,
+        settings: null,
+        summary: buildPublishSummary({ ...state, notes: updatedNotes, deletedTags: uniqueTags([...(state.deletedTags || []), ...deletedTags]) }, updatedNotes)
+      };
+      draft.openCreateMenu = null;
+    });
+  };
+  const preparePublish = (overrideSettings, skipTagModal = false) => {
     if (!note) return;
     const settings = {
       ...(overrideSettings || state.settings),
@@ -401,62 +455,83 @@ function App() {
       setToast("请先完成验证");
       return;
     }
+    if (!skipTagModal) {
+      openPublishTagModal();
+      return;
+    }
+    patchState((draft) => {
+      draft.modal = "publish-summary";
+      draft.modalContext = {
+        notes: draft.notes,
+        settings,
+        summary: buildPublishSummary(draft, draft.notes)
+      };
+      draft.openCreateMenu = null;
+    });
+  };
+
+  const publishAllNotes = async (overrideSettings, overrideNotes) => {
+    if (!note) return;
+    const settings = {
+      ...(overrideSettings || state.settings),
+      branch: "main"
+    };
+    const sourceNotes = overrideNotes || state.notes;
     patchState((draft) => {
       draft.syncStatus = "publishing";
-      draft.message = "正在发表到 GitHub";
+      draft.message = "正在发表全部改动到 GitHub";
+      draft.modal = null;
+      draft.modalContext = null;
     });
     try {
       const publishedAt = now();
-      const current = currentNote(state);
-      const docPath = current.file || `notebooks/docs/${slugify(current.title)}.json`;
-      const publishedAssets = await publishPendingAssets(settings, current);
-      const publishedHtml = replaceLocalAssetUrls(
-        normalizeHtml(current.html || blocksToHtml(current.blocks)),
-        publishedAssets
-      );
-      const nextNotes = state.notes.map((item) => (
-        item.id === current.id ? {
+      const nextNotes = [];
+      const publishState = { ...state, notes: sourceNotes };
+      for (const item of sourceNotes) {
+        const docPath = item.file || `notebooks/docs/${slugify(item.title)}.json`;
+        const publishTags = ensureDefaultTags(item.tags);
+        const publishedAssets = await publishPendingAssets(settings, item);
+        const publishedHtml = replaceLocalAssetUrls(
+          normalizeHtml(item.html || blocksToHtml(item.blocks)),
+          publishedAssets
+        );
+        const publishedNote = {
           ...item,
           file: docPath,
           dirty: false,
           publishedAt,
+          date: publishedAt,
           html: publishedHtml,
-          assets: publishedAssets
-        } : item
-      ));
+          assets: publishedAssets.map(({ content, dataUrl, ...asset }) => asset),
+          tags: publishTags
+        };
+        const documentData = {
+          version: 1,
+          id: item.id,
+          title: item.title,
+          folderId: item.folderId,
+          path: folderPath(publishState, item.folderId),
+          tags: publishTags,
+          createdAt: item.createdAt || item.date || publishedAt,
+          updatedAt: publishedAt,
+          assets: publishedNote.assets,
+          html: publishedHtml
+        };
+        await putGitHubFile(settings, docPath, documentData, `Publish notebook: ${item.title}`);
+        nextNotes.push(publishedNote);
+      }
       const library = buildPublishedIndex({ ...state, notes: nextNotes }, publishedAt);
-      const documentData = {
-        version: 1,
-        id: current.id,
-        title: current.title,
-        folderId: current.folderId,
-        path: folderPath(state, current.folderId),
-        tags: current.tags || [],
-        createdAt: current.createdAt || current.date || publishedAt,
-        updatedAt: publishedAt,
-        assets: publishedAssets.map(({ content, dataUrl, ...asset }) => asset),
-        html: publishedHtml
-      };
-
-      await putGitHubFile(settings, docPath, documentData, `Publish notebook: ${current.title}`);
       await putGitHubFile(settings, publishedIndexPath, library, "Publish notebook index");
 
       setState((latest) => {
         const next = structuredClone(latest);
-        const target = next.notes.find((item) => item.id === current.id);
-        if (target) {
-          target.file = docPath;
-          target.dirty = false;
-          target.publishedAt = publishedAt;
-          target.date = publishedAt;
-          target.html = publishedHtml;
-          target.assets = publishedAssets.map(({ content, dataUrl, ...asset }) => asset);
-        }
+        next.notes = nextNotes;
+        next.deletedTags = [];
         next.syncStatus = "ready";
-        next.message = "已发表到 GitHub 仓库";
+        next.message = "已发表全部改动到 GitHub 仓库";
         return next;
       });
-      setToast("已发表到 GitHub");
+      setToast("已发表全部改动到 GitHub");
     } catch (error) {
       console.error(error);
       patchState((draft) => {
@@ -466,7 +541,6 @@ function App() {
       setToast(error.message || "发表失败，请检查 token 和仓库权限");
     }
   };
-
   const handleAction = (action, targetFolderId) => {
     if (action === "back-network") {
       patchState((draft) => {
@@ -490,7 +564,7 @@ function App() {
         draft.mode = draft.mode === "edit" ? "read" : "edit";
       });
     }
-    if (action === "publish") publishCurrentNote();
+    if (action === "publish") preparePublish();
     if (action === "toggle-create-menu") {
       if (!requireEditPermission("edit")) return;
       patchState((draft) => {
@@ -531,6 +605,8 @@ function App() {
     if (action === "confirm-rename-folder") renameFolder();
     if (action === "confirm-rename-note") renameNote();
     if (action === "confirm-auth") confirmAuth();
+    if (action === "confirm-publish-tags") confirmPublishTags();
+    if (action === "confirm-publish-all") publishAllNotes(state.modalContext?.settings, state.modalContext?.notes);
     if (action === "delete-note") deleteNote(targetFolderId || state.activeId);
     if (action === "delete-folder") deleteFolder(targetFolderId);
     if (action === "rename-folder") {
@@ -993,16 +1069,7 @@ function DocumentPaper({ note, state, editable, updateNote }) {
       : h("h1", { className: "doc-title" }, note.title),
     h("div", { className: "doc-meta" },
       h("span", { className: "pill" }, folderPath(state, note.folderId) || "未归档"),
-      editable
-        ? h("input", {
-            className: "tag-input",
-            value: (note.tags || []).join(", "),
-            placeholder: "标签，用逗号分隔",
-            onChange: (event) => updateNote(note.id, (item) => {
-              item.tags = event.target.value.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
-            })
-          })
-        : (note.tags || []).map((tag) => h("span", { className: "pill", key: tag }, tag)),
+      ensureDefaultTags(note.tags).map((tag) => h("span", { className: "pill", key: tag }, tag)),
       h("span", { className: `pill ${note.dirty ? "dirty" : ""}` }, note.dirty ? "本地草稿" : "已发表"),
       h("span", { className: "pill" }, formatDate(note.date))
     ),
@@ -1623,6 +1690,30 @@ function renderNoteItem(state, note, depth, selectNote, handleAction) {
   );
 }
 
+function buildPublishSummary(state, notes = state.notes) {
+  const dirtyNotes = notes.filter((item) => item.dirty || !item.publishedAt);
+  const renamedOrMovedNotes = notes.filter((item) => !item.dirty && item.publishedAt);
+  const folders = state.folders || [];
+  const tagNames = uniqueTags(notes.flatMap((item) => ensureDefaultTags(item.tags)));
+  const deletedTags = state.deletedTags || [];
+  return {
+    totalNotes: notes.length,
+    dirtyNotes: dirtyNotes.map((item) => item.title || "未命名文档"),
+    existingNotes: renamedOrMovedNotes.map((item) => item.title || "未命名文档"),
+    folderCount: folders.length,
+    folderNames: folders.map((item) => item.name || "未命名文件夹"),
+    tagNames,
+    deletedTags
+  };
+}
+
+function summaryList(items, emptyText) {
+  const values = (items || []).filter(Boolean);
+  if (!values.length) return h("p", { className: "empty" }, emptyText);
+  return h("ul", { className: "publish-summary-list" }, values.slice(0, 12).map((item) => h("li", { key: item }, item)),
+    values.length > 12 ? h("li", { key: "more" }, `还有 ${values.length - 12} 项...`) : null
+  );
+}
 function renderModal(state, handleAction) {
   if (!state.modal) return null;
   if (state.modal === "name-folder") {
@@ -1646,6 +1737,50 @@ function renderModal(state, handleAction) {
     return modalShell("重命名文档", "修改后，发表时会同步到文档索引。",
       h("div", { className: "field" }, h("label", null, "文档名"), h("input", { "data-modal-input": "renameNote", defaultValue: note?.title || "", placeholder: "文档名" })),
       "保存", "confirm-rename-note", handleAction);
+  }
+  if (state.modal === "publish-tags") {
+    const note = state.notes.find((item) => item.id === state.modalContext?.noteId) || currentNote(state);
+    const selectedTags = new Set(ensureDefaultTags(note?.tags));
+    const tags = tagCatalog(state);
+    return modalShell("选择发表标签", "选择一个或多个标签后再发表。可以新增标签，也可以直接修改已有标签名称；改名会同步更新所有使用该标签的文档。",
+      h("div", { className: "tag-publish-panel" },
+        h("details", { className: "tag-dropdown" },
+          h("summary", null, `管理标签（已选 ${selectedTags.size} 个）`),
+          h("div", { className: "tag-choice-list" },
+            tags.map((tag) => h("div", { className: "tag-choice", key: tag, "data-tag-row": tag },
+              h("label", { className: "tag-check" },
+                h("input", { type: "checkbox", "data-tag-selected": "", defaultChecked: selectedTags.has(tag) }),
+                h("span", null, "选择")
+              ),
+              h("input", { "data-tag-name": "", defaultValue: tag, title: "修改标签名称" }),
+              h("label", { className: "tag-delete" },
+                h("input", { type: "checkbox", "data-tag-delete": "", disabled: tag === "Notes" }),
+                h("span", null, tag === "Notes" ? "默认" : "删除")
+              )
+            ))
+          )
+        ),
+        h("div", { className: "field" },
+          h("label", null, "新增标签"),
+          h("input", { "data-tag-new": "", placeholder: "多个标签用逗号分隔" })
+        )
+      ),
+      "确认并发表", "confirm-publish-tags", handleAction);
+  }
+  if (state.modal === "publish-summary") {
+    const summary = state.modalContext?.summary || buildPublishSummary(state, state.modalContext?.notes || state.notes);
+    return modalShell("确认发表全部改动", "这次会把本地所有文档、目录、标签和索引一起写入 GitHub。确认后，下次打开网页会读取这次发表后的结果。",
+      h("div", { className: "publish-summary" },
+        h("div", { className: "summary-row" }, h("strong", null, "将写入文档"), h("span", null, `${summary.totalNotes} 篇`)),
+        h("div", { className: "summary-row" }, h("strong", null, "目录"), h("span", null, `${summary.folderCount} 个文件夹`)),
+        h("div", { className: "summary-row" }, h("strong", null, "标签"), h("span", null, `${summary.tagNames.length} 个标签`)),
+        summary.deletedTags.length ? h("div", { className: "summary-row danger" }, h("strong", null, "删除标签"), h("span", null, summary.deletedTags.join("、"))) : null,
+        h("h3", null, "本地草稿 / 新文档"),
+        summaryList(summary.dirtyNotes, "没有未发表草稿，但仍会重新同步全部文档。"),
+        h("h3", null, "将同步的文件夹"),
+        summaryList(summary.folderNames, "没有文件夹。")
+      ),
+      "确认发表全部", "confirm-publish-all", handleAction);
   }
   if (state.modal === "auth") {
     return modalShell("编辑验证", "验证通过后，文档会发表到当前笔记本 GitHub 仓库的 main 分支。",
@@ -1684,7 +1819,7 @@ async function loadPublishedLibrary() {
       id: documentData.id || doc.id,
       title: documentData.title || doc.title,
       folderId: doc.folderId || documentData.folderId || null,
-      tags: documentData.tags || doc.tags || [],
+      tags: ensureDefaultTags(documentData.tags || doc.tags),
       date: documentData.updatedAt || doc.updatedAt || now(),
       file: doc.file,
       dirty: false,
@@ -1710,7 +1845,7 @@ function buildPublishedIndex(state, updatedAt) {
       title: note.title,
       folderId: note.folderId,
       path: folderPath(state, note.folderId),
-      tags: note.tags || [],
+      tags: ensureDefaultTags(note.tags),
       updatedAt: note.date || updatedAt,
       file: note.file || `notebooks/docs/${slugify(note.title)}.json`
     }))
@@ -1854,7 +1989,7 @@ function migrate(data) {
     id: note.id || `note-${Date.now()}`,
     title: note.title || "未命名文档",
     folderId: note.folderId || null,
-    tags: note.tags || [],
+    tags: ensureDefaultTags(note.tags),
     date: note.date || note.updatedAt || now(),
     file: note.file || `notebooks/docs/${slugify(note.title || "untitled")}.json`,
     dirty: Boolean(note.dirty),
@@ -1890,6 +2025,7 @@ function migrate(data) {
   merged.collapsedFolders = merged.collapsedFolders && typeof merged.collapsedFolders === "object" && !Array.isArray(merged.collapsedFolders)
     ? merged.collapsedFolders
     : {};
+  merged.deletedTags = uniqueTags(merged.deletedTags || []);
   merged.syncStatus = merged.syncStatus === "publishing" ? "ready" : merged.syncStatus || "ready";
   return merged;
 }
@@ -1903,7 +2039,7 @@ function migrateLegacy(legacy) {
       id: note.id,
       title: note.title,
       folderId: note.folderId,
-      tags: note.tags || [],
+      tags: ensureDefaultTags(note.tags),
       date: note.date || now(),
       file: `notebooks/docs/${slugify(note.title || note.id)}.json`,
       dirty: true,
@@ -1916,6 +2052,33 @@ function migrateLegacy(legacy) {
 
 function isNotebookRoute() {
   return new URLSearchParams(window.location.search).get("v") === "notebook";
+}
+const defaultTagOptions = ["Notes", "AI", "工具", "模型", "自动驾驶", "机器人"];
+
+function tagCatalog(state) {
+  const deleted = new Set(uniqueTags(state.deletedTags || []));
+  return uniqueTags([
+    ...defaultTagOptions,
+    ...state.notes.flatMap((note) => ensureDefaultTags(note.tags))
+  ]).filter((tag) => !deleted.has(tag));
+}
+
+function parseTagInput(value) {
+  return String(value || "").split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
+}
+
+function normalizeTagName(tag) {
+  const text = String(tag || "").trim();
+  if (/^notes?$/i.test(text)) return "Notes";
+  return text;
+}
+
+function uniqueTags(tags) {
+  return Array.from(new Set((tags || []).map(normalizeTagName).filter(Boolean)));
+}
+function ensureDefaultTags(tags) {
+  const next = uniqueTags(Array.isArray(tags) ? tags : []);
+  return next.length ? next : ["Notes"];
 }
 function currentNote(state) {
   return state.notes.find((item) => item.id === state.activeId) || state.notes[0] || null;

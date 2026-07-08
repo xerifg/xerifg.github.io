@@ -971,6 +971,129 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   padding: 0 12px;
 }
 
+.tag-publish-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.tag-dropdown {
+  position: relative;
+}
+
+.tag-dropdown summary {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .78);
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.tag-dropdown summary::after {
+  content: "v";
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tag-dropdown[open] summary::after {
+  content: "^";
+}
+
+.tag-choice-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+  margin-top: 8px;
+  padding: 8px 4px 2px 0;
+}
+
+.tag-choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, .06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .62);
+}
+
+.tag-check, .tag-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tag-delete {
+  color: #c03535;
+}
+
+.tag-choice input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+}
+
+.tag-delete input[type="checkbox"] {
+  accent-color: #c03535;
+}
+
+.tag-choice input[data-tag-name] {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.publish-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .72);
+}
+
+.summary-row.danger {
+  color: #c03535;
+  border-color: rgba(192, 53, 53, .28);
+  background: rgba(192, 53, 53, .06);
+}
+
+.publish-summary h3 {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.publish-summary-list {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 150px;
+  overflow: auto;
+  color: var(--muted);
+}
+
+.publish-summary-list li {
+  margin: 4px 0;
+}
 .modal-actions {
   display: flex;
   justify-content: flex-end;
