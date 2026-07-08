@@ -578,11 +578,12 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
       ctx.clearRect(0, 0, width, height);
 
       const glow = ctx.createRadialGradient(cx, height * .52, 0, cx, height * .52, Math.min(width, height) * .48);
-      glow.addColorStop(0, "rgba(255,255,255,.86)");
-      glow.addColorStop(.54, "rgba(255,255,255,.26)");
+      glow.addColorStop(0, "rgba(255,255,255,.30)");
+      glow.addColorStop(.54, "rgba(255,255,255,.07)");
       glow.addColorStop(1, "rgba(255,255,255,0)");
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, width, height);
+      drawBackdropTexture(width, height);
 
       if (!nodes.length) {
         drawEmptyState(width, height);
@@ -594,6 +595,91 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
       if (selectedName) drawDetailPanel();
     }
 
+    function drawBackdropTexture(width, height) {
+      const scale = Math.min(width, height);
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      const curves = [
+        {
+          points: [-0.06, 0.15, 0.07, 0.08, 0.18, 0.08, 0.28, 0.21, 0.40, 0.38, 0.45, 0.54, 0.56, 0.60],
+          color: "rgba(255, 255, 255, .26)",
+          width: .9
+        },
+        {
+          points: [-0.08, 0.80, 0.10, 0.67, 0.22, 0.84, 0.38, 0.78, 0.50, 0.70, 0.55, 0.74, 0.63, 0.86],
+          color: "rgba(255, 255, 255, .34)",
+          width: 1
+        },
+        {
+          points: [0.70, 0.44, 0.82, 0.32, 0.96, 0.30, 1.05, 0.42, 0.93, 0.55, 0.88, 0.72, 0.76, 0.96],
+          color: "rgba(255, 255, 255, .24)",
+          width: .9
+        },
+        {
+          points: [0.38, -0.04, 0.52, 0.08, 0.63, 0.04, 0.74, -0.02, 0.86, 0.04, 1.02, 0.00, 1.12, 0.12],
+          color: "rgba(255, 255, 255, .18)",
+          width: .8
+        },
+        {
+          points: [0.78, 1.06, 0.90, 0.88, 0.84, 0.72, 0.95, 0.56, 1.06, 0.40, 0.91, 0.30, 0.78, 0.38],
+          color: "rgba(190, 218, 246, .18)",
+          width: .8
+        }
+      ];
+
+      curves.forEach((curve) => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(curve.points[0] * width, curve.points[1] * height);
+        for (let index = 2; index < curve.points.length; index += 6) {
+          ctx.bezierCurveTo(
+            curve.points[index] * width,
+            curve.points[index + 1] * height,
+            curve.points[index + 2] * width,
+            curve.points[index + 3] * height,
+            curve.points[index + 4] * width,
+            curve.points[index + 5] * height
+          );
+        }
+        ctx.strokeStyle = curve.color;
+        ctx.lineWidth = curve.width;
+        ctx.shadowColor = "rgba(255,255,255,.30)";
+        ctx.shadowBlur = 5;
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      const dots = [
+        [.07, .13, 2.2, .52], [.14, .18, 1.8, .42], [.20, .28, 2.0, .44],
+        [.31, .16, 1.4, .34], [.38, .44, 2.1, .46], [.52, .34, 1.5, .34],
+        [.66, .40, 1.5, .34], [.84, .28, 2.1, .44], [.90, .08, 2.2, .50],
+        [.92, .74, 2.0, .42], [.74, .86, 1.6, .34], [.21, .88, 1.9, .44]
+      ];
+      dots.forEach(([x, y, radius, alpha]) => {
+        ctx.beginPath();
+        ctx.arc(x * width, y * height, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.shadowColor = "rgba(255,255,255,.48)";
+        ctx.shadowBlur = radius * 4;
+        ctx.fill();
+      });
+
+      const clusters = [[.05, .84], [.92, .07]];
+      clusters.forEach(([baseX, baseY]) => {
+        for (let index = 0; index < 5; index += 1) {
+          const x = (baseX + (index % 2) * .012 + index * .004) * width;
+          const y = (baseY + Math.floor(index / 2) * .014) * height;
+          ctx.beginPath();
+          ctx.arc(x, y, Math.max(1, scale * .0016), 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255,255,255,.48)";
+          ctx.shadowBlur = 4;
+          ctx.fill();
+        }
+      });
+      ctx.restore();
+    }
     function drawLinks() {
       const lookup = nodeByName();
       const active = activeName();
