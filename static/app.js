@@ -177,6 +177,17 @@ function App() {
     });
   }, []);
 
+  const requireEditPermission = (pendingAuthAction = "edit") => {
+    if (state.authenticated) return true;
+    patchState((draft) => {
+      draft.pendingAuthAction = pendingAuthAction;
+      draft.modal = "auth";
+      draft.openCreateMenu = null;
+      draft.message = "没有编辑权限，请先打开编辑权限";
+    });
+    setToast("没有编辑权限，请先打开编辑权限");
+    return false;
+  };
   const selectNote = (noteId) => {
     patchState((draft) => {
       draft.activeId = noteId;
@@ -199,6 +210,10 @@ function App() {
   };
 
   const updateNote = (noteId, updater) => {
+    if (!state.authenticated) {
+      requireEditPermission("edit");
+      return;
+    }
     patchState((draft) => {
       const item = draft.notes.find((candidate) => candidate.id === noteId);
       if (!item) return;
@@ -210,6 +225,7 @@ function App() {
   };
 
   const createFolder = () => {
+    if (!requireEditPermission("edit")) return;
     const name = document.querySelector("[data-modal-input='folderName']")?.value.trim() || "新文件夹";
     patchState((draft) => {
       const parentId = draft.modalContext?.folderId || null;
@@ -221,11 +237,12 @@ function App() {
     setToast("文件夹已创建");
   };
 
-  const createNote = () => {
+  const createNote = (targetFolderId) => {
+    if (!requireEditPermission("edit")) return;
     const title = document.querySelector("[data-modal-input='noteTitle']")?.value.trim() || "未命名文档";
     patchState((draft) => {
       const id = `note-${Date.now()}`;
-      const folderId = draft.modalContext?.folderId || null;
+      const folderId = targetFolderId ?? draft.modalContext?.folderId ?? null;
       draft.notes.unshift({
         id,
         title,
@@ -241,6 +258,10 @@ function App() {
       if (folderId) delete draft.collapsedFolders?.[folderId];
       draft.activeId = id;
       draft.mode = "edit";
+      draft.view = "library";
+      draft.selectedTag = "";
+      draft.query = "";
+      draft.openCreateMenu = null;
       draft.modal = null;
       draft.modalContext = null;
       draft.message = "新文档已保存为本地草稿";
@@ -249,6 +270,7 @@ function App() {
   };
 
   const renameFolder = () => {
+    if (!requireEditPermission("edit")) return;
     const name = document.querySelector("[data-modal-input='renameFolder']")?.value.trim() || "未命名文件夹";
     patchState((draft) => {
       const folder = draft.folders.find((item) => item.id === draft.modalContext?.folderId);
@@ -260,6 +282,7 @@ function App() {
   };
 
   const renameNote = () => {
+    if (!requireEditPermission("edit")) return;
     const title = document.querySelector("[data-modal-input='renameNote']")?.value.trim() || "未命名文档";
     const noteId = state.modalContext?.noteId;
     if (!noteId) return;
@@ -275,6 +298,7 @@ function App() {
   };
 
   const deleteNote = () => {
+    if (!requireEditPermission("edit")) return;
     if (state.notes.length <= 1) {
       setToast("至少保留一篇笔记");
       return;
@@ -324,10 +348,7 @@ function App() {
       branch: "main"
     };
     if (!overrideSettings && !state.authenticated) {
-      patchState((draft) => {
-        draft.pendingAuthAction = "publish";
-        draft.modal = "auth";
-      });
+      requireEditPermission("publish");
       return;
     }
     if (!settings.token || !settings.owner || !settings.repo) {
@@ -420,10 +441,7 @@ function App() {
     }
     if (action === "toggle-mode") {
       if (state.mode !== "edit" && !state.authenticated) {
-        patchState((draft) => {
-          draft.pendingAuthAction = "edit";
-          draft.modal = "auth";
-        });
+        requireEditPermission("edit");
         return;
       }
       patchState((draft) => {
@@ -432,6 +450,7 @@ function App() {
     }
     if (action === "publish") publishCurrentNote();
     if (action === "toggle-create-menu") {
+      if (!requireEditPermission("edit")) return;
       patchState((draft) => {
         draft.openCreateMenu = draft.openCreateMenu === targetFolderId ? null : targetFolderId;
       });
@@ -448,6 +467,7 @@ function App() {
       });
     }
     if (action === "new-folder-in-folder") {
+      if (!requireEditPermission("edit")) return;
       patchState((draft) => {
         draft.modalContext = { folderId: targetFolderId };
         draft.openCreateMenu = null;
@@ -455,11 +475,7 @@ function App() {
       });
     }
     if (action === "new-note-in-folder") {
-      patchState((draft) => {
-        draft.modalContext = { folderId: targetFolderId };
-        draft.openCreateMenu = null;
-        draft.modal = "name-note";
-      });
+      createNote(targetFolderId);
     }
     if (action === "close-modal") {
       patchState((draft) => {
@@ -474,6 +490,22 @@ function App() {
     if (action === "confirm-rename-note") renameNote();
     if (action === "confirm-auth") confirmAuth();
     if (action === "delete-note") deleteNote();
+    if (action === "rename-folder") {
+      if (!requireEditPermission("edit")) return;
+      patchState((draft) => {
+        draft.modalContext = { folderId: targetFolderId };
+        draft.openCreateMenu = null;
+        draft.modal = "rename-folder";
+      });
+    }
+    if (action === "rename-note") {
+      if (!requireEditPermission("edit")) return;
+      patchState((draft) => {
+        draft.modalContext = { noteId: targetFolderId };
+        draft.openCreateMenu = null;
+        draft.modal = "rename-note";
+      });
+    }
   };
 
   if (state.view === "network") {
@@ -513,7 +545,7 @@ function App() {
           })
         ),
         h("div", { className: "tree" },
-          renderTree(state, visibleNotes, selectNote, handleAction, patchState)
+          renderTree(state, visibleNotes, selectNote, handleAction)
         )
       ),
       h("main", { className: "content" },
@@ -1451,12 +1483,12 @@ function renderTopbar(state, note, handleAction) {
   );
 }
 
-function renderTree(state, visibleNotes, selectNote, handleAction, patchState) {
+function renderTree(state, visibleNotes, selectNote, handleAction) {
   const rootFolders = state.folders.filter((folder) => !folder.parentId);
   const orphanNotes = visibleNotes.filter((note) => !note.folderId);
   const children = [
-    ...rootFolders.map((folder) => renderFolder(state, folder, 0, visibleNotes, selectNote, handleAction, patchState)),
-    ...orphanNotes.map((note) => renderNoteItem(state, note, 0, selectNote, patchState))
+    ...rootFolders.map((folder) => renderFolder(state, folder, 0, visibleNotes, selectNote, handleAction)),
+    ...orphanNotes.map((note) => renderNoteItem(state, note, 0, selectNote, handleAction))
   ];
   if (!visibleNotes.length) {
     children.push(h("div", { className: "empty", key: "empty" }, h("div", null, h("strong", null, "没有找到笔记"), h("p", null, "换个关键词试试。"))));
@@ -1464,7 +1496,7 @@ function renderTree(state, visibleNotes, selectNote, handleAction, patchState) {
   return children;
 }
 
-function renderFolder(state, folder, depth, visibleNotes, selectNote, handleAction, patchState) {
+function renderFolder(state, folder, depth, visibleNotes, selectNote, handleAction) {
   const children = state.folders.filter((item) => item.parentId === folder.id);
   const notes = visibleNotes.filter((note) => note.folderId === folder.id);
   const count = countNotes(state, folder.id, visibleNotes);
@@ -1477,11 +1509,7 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
       "aria-expanded": !isCollapsed,
       title: isCollapsed ? "展开目录" : "收起目录",
       onClick: () => handleAction("toggle-folder", folder.id),
-      onDoubleClick: () => patchState((draft) => {
-        draft.modalContext = { folderId: folder.id };
-        draft.openCreateMenu = null;
-        draft.modal = "rename-folder";
-      })
+      onDoubleClick: () => handleAction("rename-folder", folder.id)
     },
       h("span", {
         className: "folder-toggle",
@@ -1506,21 +1534,17 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
           h("button", { onClick: () => handleAction("new-note-in-folder", folder.id) }, "文档")
         )
       : null,
-    isCollapsed ? null : notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, patchState)),
-    isCollapsed ? null : children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, patchState))
+    isCollapsed ? null : notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction)),
+    isCollapsed ? null : children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction))
   );
 }
 
-function renderNoteItem(state, note, depth, selectNote, patchState) {
+function renderNoteItem(state, note, depth, selectNote, handleAction) {
   return h("button", {
     className: `tree-note indent-${Math.min(depth, 3)} ${note.id === state.activeId ? "active" : ""}`,
     key: note.id,
     onClick: () => selectNote(note.id),
-    onDoubleClick: () => patchState((draft) => {
-      draft.modalContext = { noteId: note.id };
-      draft.openCreateMenu = null;
-      draft.modal = "rename-note";
-    })
+    onDoubleClick: () => handleAction("rename-note", note.id)
   },
     h("span", null, note.dirty ? "●" : "◦"),
     h("strong", null, note.title || "未命名笔记")
