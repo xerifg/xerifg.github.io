@@ -1,17 +1,14 @@
 {
   "version": 1,
-  "id": "note-1783491238556",
-  "title": "chrome 相关",
-  "folderId": "folder-1783482449804",
-  "path": "Notebooks/工具",
+  "id": "note-1783480779023",
+  "title": "未命名文档",
+  "folderId": "folder-writing",
+  "path": "写作台",
   "tags": [
-    "Notes",
-    "AI",
-    "gemini",
-    "chrome"
+    "Notes"
   ],
-  "createdAt": "2026-07-08T06:16:26.143Z",
-  "updatedAt": "2026-07-08T07:34:35.607Z",
+  "createdAt": "2026-07-08T03:52:01.209Z",
+  "updatedAt": "2026-07-08T07:39:05.764Z",
   "assets": [],
-  "html": "<p><strong>开启chrome 的gimini功能</strong></p><pre><code>irm https://raw.githubusercontent.com/appsail/Gemini-in-Chrome/main/install.ps1 | iex</code></pre>"
+  "html": "<p></p>"
 }
