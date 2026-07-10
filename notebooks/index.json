@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-10T08:30:05.924Z",
+  "updatedAt": "2026-07-10T08:30:54.684Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -39,7 +39,7 @@
         "工具",
         "gsutil"
       ],
-      "updatedAt": "2026-07-10T08:30:05.924Z",
+      "updatedAt": "2026-07-10T08:30:54.684Z",
       "file": "notebooks/docs/google-cloud-sdk.json"
     },
     {
@@ -53,7 +53,7 @@
         "运动模型",
         "matlab"
       ],
-      "updatedAt": "2026-07-10T08:30:05.924Z",
+      "updatedAt": "2026-07-10T08:30:54.684Z",
       "file": "notebooks/docs/运动模型.json"
     },
     {
@@ -66,7 +66,7 @@
         "自动标注",
         "DetZero"
       ],
-      "updatedAt": "2026-07-10T08:30:05.924Z",
+      "updatedAt": "2026-07-10T08:30:54.684Z",
       "file": "notebooks/docs/detzero-离线-3d-目标检测.json"
     },
     {
@@ -79,7 +79,7 @@
         "工具",
         "docker"
       ],
-      "updatedAt": "2026-07-10T08:30:05.924Z",
+      "updatedAt": "2026-07-10T08:30:54.684Z",
       "file": "notebooks/docs/docker.json"
     },
     {
@@ -90,10 +90,11 @@
       "tags": [
         "Notes",
         "AI",
+        "工具",
         "gemini",
         "chrome"
       ],
-      "updatedAt": "2026-07-10T08:30:05.924Z",
+      "updatedAt": "2026-07-10T08:30:54.684Z",
       "file": "notebooks/docs/chrome.json"
     }
   ]
