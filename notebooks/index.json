@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-08T12:26:51.134Z",
+  "updatedAt": "2026-07-10T08:18:09.325Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -16,9 +16,27 @@
       "id": "folder-1783482462216",
       "name": "个人项目",
       "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1783668421369",
+      "name": "自动标注",
+      "parentId": "folder-writing"
     }
   ],
   "docs": [
+    {
+      "id": "note-1783668556887",
+      "title": "DetZero - 离线 3D 目标检测",
+      "folderId": "folder-1783668421369",
+      "path": "Notebooks/自动标注",
+      "tags": [
+        "Notes",
+        "自动标注",
+        "DetZero"
+      ],
+      "updatedAt": "2026-07-10T08:18:09.325Z",
+      "file": "notebooks/docs/detzero-离线-3d-目标检测.json"
+    },
     {
       "id": "note-1783502059122",
       "title": "docker",
@@ -28,7 +46,7 @@
         "Notes",
         "docker"
       ],
-      "updatedAt": "2026-07-08T12:26:51.134Z",
+      "updatedAt": "2026-07-10T08:18:09.325Z",
       "file": "notebooks/docs/docker.json"
     },
     {
@@ -42,7 +60,7 @@
         "gemini",
         "chrome"
       ],
-      "updatedAt": "2026-07-08T12:26:51.134Z",
+      "updatedAt": "2026-07-10T08:18:09.325Z",
       "file": "notebooks/docs/chrome.json"
     }
   ]
