@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-10T08:18:09.325Z",
+  "updatedAt": "2026-07-10T08:22:01.765Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -21,9 +21,28 @@
       "id": "folder-1783668421369",
       "name": "自动标注",
       "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1783671607062",
+      "name": "机器人",
+      "parentId": "folder-writing"
     }
   ],
   "docs": [
+    {
+      "id": "note-1783671620181",
+      "title": "运动模型",
+      "folderId": "folder-1783671607062",
+      "path": "Notebooks/机器人",
+      "tags": [
+        "Notes",
+        "机器人",
+        "运动模型",
+        "matlab"
+      ],
+      "updatedAt": "2026-07-10T08:22:01.765Z",
+      "file": "notebooks/docs/运动模型.json"
+    },
     {
       "id": "note-1783668556887",
       "title": "DetZero - 离线 3D 目标检测",
@@ -34,7 +53,7 @@
         "自动标注",
         "DetZero"
       ],
-      "updatedAt": "2026-07-10T08:18:09.325Z",
+      "updatedAt": "2026-07-10T08:22:01.765Z",
       "file": "notebooks/docs/detzero-离线-3d-目标检测.json"
     },
     {
@@ -46,7 +65,7 @@
         "Notes",
         "docker"
       ],
-      "updatedAt": "2026-07-10T08:18:09.325Z",
+      "updatedAt": "2026-07-10T08:22:01.765Z",
       "file": "notebooks/docs/docker.json"
     },
     {
@@ -60,7 +79,7 @@
         "gemini",
         "chrome"
       ],
-      "updatedAt": "2026-07-10T08:18:09.325Z",
+      "updatedAt": "2026-07-10T08:22:01.765Z",
       "file": "notebooks/docs/chrome.json"
     }
   ]
