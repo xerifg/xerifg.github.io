@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-10T08:22:01.765Z",
+  "updatedAt": "2026-07-10T08:29:40.733Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -30,6 +30,19 @@
   ],
   "docs": [
     {
+      "id": "note-1783672095340",
+      "title": "google cloud sdk",
+      "folderId": "folder-1783482449804",
+      "path": "Notebooks/工具",
+      "tags": [
+        "Notes",
+        "工具",
+        "gsutil"
+      ],
+      "updatedAt": "2026-07-10T08:29:40.733Z",
+      "file": "notebooks/docs/google-cloud-sdk.json"
+    },
+    {
       "id": "note-1783671620181",
       "title": "运动模型",
       "folderId": "folder-1783671607062",
@@ -40,7 +53,7 @@
         "运动模型",
         "matlab"
       ],
-      "updatedAt": "2026-07-10T08:22:01.765Z",
+      "updatedAt": "2026-07-10T08:29:40.733Z",
       "file": "notebooks/docs/运动模型.json"
     },
     {
@@ -53,7 +66,7 @@
         "自动标注",
         "DetZero"
       ],
-      "updatedAt": "2026-07-10T08:22:01.765Z",
+      "updatedAt": "2026-07-10T08:29:40.733Z",
       "file": "notebooks/docs/detzero-离线-3d-目标检测.json"
     },
     {
@@ -65,7 +78,7 @@
         "Notes",
         "docker"
       ],
-      "updatedAt": "2026-07-10T08:22:01.765Z",
+      "updatedAt": "2026-07-10T08:29:40.733Z",
       "file": "notebooks/docs/docker.json"
     },
     {
@@ -79,7 +92,7 @@
         "gemini",
         "chrome"
       ],
-      "updatedAt": "2026-07-10T08:22:01.765Z",
+      "updatedAt": "2026-07-10T08:29:40.733Z",
       "file": "notebooks/docs/chrome.json"
     }
   ]
