@@ -1299,7 +1299,7 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
 
 function DocumentPaper({ note, state, editable, updateNote }) {
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
-  const outline = documentOutlineFromHtml(html);
+  const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
   return h("div", { className: `document-workspace ${outline.length ? "has-outline" : "has-empty-outline"}` },
     h(DocumentOutline, { noteId: note.id, outline }),
     h("article", { className: `paper ${editable ? "is-editing" : ""}`, "data-note-id": note.id },
@@ -1343,6 +1343,48 @@ function DocumentPaper({ note, state, editable, updateNote }) {
 }
 
 function DocumentOutline({ noteId, outline }) {
+  const activeButtonRef = useRef(null);
+  const [activeHeadingIndex, setActiveHeadingIndex] = useState(outline[0]?.index ?? -1);
+
+  useEffect(() => {
+    setActiveHeadingIndex(outline[0]?.index ?? -1);
+  }, [noteId, outline]);
+
+  useEffect(() => {
+    if (!outline.length) return undefined;
+    const selector = `[data-note-id="${cssEscape(noteId)}"]`;
+    const paper = document.querySelector(selector);
+    const scrollRoot = paper?.closest(".paper-scroll");
+    if (!paper || !scrollRoot) return undefined;
+
+    const updateActiveHeading = () => {
+      const headings = documentHeadingsForPaper(paper);
+      if (!headings.length) return;
+      const viewport = scrollRoot.getBoundingClientRect();
+      const centerY = viewport.top + viewport.height / 2;
+      let activeIndex = 0;
+
+      headings.forEach((heading, index) => {
+        if (heading.getBoundingClientRect().top <= centerY) activeIndex = index;
+      });
+      setActiveHeadingIndex(activeIndex);
+    };
+
+    updateActiveHeading();
+    scrollRoot.addEventListener("scroll", updateActiveHeading, { passive: true });
+    window.addEventListener("resize", updateActiveHeading);
+    return () => {
+      scrollRoot.removeEventListener("scroll", updateActiveHeading);
+      window.removeEventListener("resize", updateActiveHeading);
+    };
+  }, [noteId, outline]);
+
+  useEffect(() => {
+    const activeButton = activeButtonRef.current;
+    if (!activeButton) return;
+    activeButton.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeHeadingIndex]);
+
   return h("nav", {
     className: "document-outline",
     "aria-label": "\u6587\u6863\u76ee\u5f55",
@@ -1352,11 +1394,13 @@ function DocumentOutline({ noteId, outline }) {
     outline.length
       ? h("ol", null, outline.map((item) => h("li", {
           key: item.key,
-          className: `document-outline-item level-${item.level}`
+          className: `document-outline-item level-${item.level} ${item.index === activeHeadingIndex ? "is-active" : ""}`.trim()
         },
           h("button", {
+            ref: item.index === activeHeadingIndex ? activeButtonRef : null,
             type: "button",
             title: item.text,
+            "aria-current": item.index === activeHeadingIndex ? "location" : undefined,
             onClick: () => scrollToDocumentHeading(noteId, item.index)
           }, item.text)
         )))
@@ -1379,10 +1423,14 @@ function documentOutlineFromHtml(html) {
 function scrollToDocumentHeading(noteId, headingIndex) {
   const selector = `[data-note-id="${cssEscape(noteId)}"]`;
   const paper = document.querySelector(selector);
-  const headings = paper ? paper.querySelectorAll(".tiptap-reader h1, .tiptap-reader h2, .tiptap-reader h3, .feishu-editor h1, .feishu-editor h2, .feishu-editor h3") : [];
+  const headings = paper ? documentHeadingsForPaper(paper) : [];
   const heading = headings[headingIndex];
   if (!heading) return;
   heading.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function documentHeadingsForPaper(paper) {
+  return paper.querySelectorAll(".tiptap-reader h1, .tiptap-reader h2, .tiptap-reader h3, .feishu-editor h1, .feishu-editor h2, .feishu-editor h3");
 }
 
 function cssEscape(value) {
