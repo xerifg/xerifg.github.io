@@ -15,6 +15,8 @@ import TableCell from "https://esm.sh/@tiptap/extension-table-cell@2.11.7";
 import TaskList from "https://esm.sh/@tiptap/extension-task-list@2.11.7";
 import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
+import { applyTreeDrop } from "./tree-dnd.mjs";
+import { sortTableRows } from "./table-model.mjs";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -25,6 +27,36 @@ const localAssetPrefix = "/api/local-assets/";
 const assetRootPath = "notebooks/assets";
 const documentOutlinePanelWidth = 168;
 const now = () => new Date().toISOString();
+
+const tableCellStyleAttributes = {
+  backgroundColor: {
+    default: null,
+    parseHTML: (element) => element.style.backgroundColor || null,
+    renderHTML: (attributes) => attributes.backgroundColor ? { style: `background-color: ${attributes.backgroundColor}` } : {}
+  },
+  textAlign: {
+    default: "left",
+    parseHTML: (element) => element.style.textAlign || "left",
+    renderHTML: (attributes) => attributes.textAlign && attributes.textAlign !== "left" ? { style: `text-align: ${attributes.textAlign}` } : {}
+  },
+  verticalAlign: {
+    default: "top",
+    parseHTML: (element) => element.style.verticalAlign || "top",
+    renderHTML: (attributes) => attributes.verticalAlign && attributes.verticalAlign !== "top" ? { style: `vertical-align: ${attributes.verticalAlign}` } : {}
+  }
+};
+
+const StyledTableCell = TableCell.extend({
+  addAttributes() {
+    return { ...this.parent?.(), ...tableCellStyleAttributes };
+  }
+});
+
+const StyledTableHeader = TableHeader.extend({
+  addAttributes() {
+    return { ...this.parent?.(), ...tableCellStyleAttributes };
+  }
+});
 
 
 const NotebookCodeBlock = CodeBlock.extend({
@@ -268,6 +300,8 @@ const seed = {
 function App() {
   const [state, setState] = useState(() => migrate(loadLocalState() || seed));
   const [toast, setToast] = useState("");
+  const [dragTarget, setDragTarget] = useState(null);
+  const [draggedTreeItem, setDraggedTreeItem] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -347,6 +381,68 @@ function App() {
       draft.modal = null;
       draft.openCreateMenu = null;
     });
+  };
+
+  const treeDragDisabled = Boolean(state.query.trim());
+  const targetForTreeEvent = (event, item) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const offset = (event.clientY - bounds.top) / Math.max(bounds.height, 1);
+    if (draggedTreeItem?.type === "note" && item.type === "folder" && offset > .25 && offset < .75) {
+      return { ...item, position: "inside" };
+    }
+    return { ...item, position: offset < .5 ? "before" : "after" };
+  };
+  const treeDrag = {
+    disabled: treeDragDisabled,
+    start: (event, item) => {
+      if (treeDragDisabled) return;
+      setDraggedTreeItem(item);
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("application/x-notebook-tree-item", JSON.stringify(item));
+      event.dataTransfer.setData("text/plain", item.id);
+    },
+    over: (event, item) => {
+      if (treeDragDisabled) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      setDragTarget(targetForTreeEvent(event, item));
+    },
+    leave: (event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setDragTarget(null);
+    },
+    end: () => {
+      setDragTarget(null);
+      setDraggedTreeItem(null);
+    },
+    drop: (event, item) => {
+      event.preventDefault();
+      setDragTarget(null);
+      setDraggedTreeItem(null);
+      if (treeDragDisabled || !requireEditPermission("edit")) return;
+      try {
+        const dragged = JSON.parse(event.dataTransfer.getData("application/x-notebook-tree-item"));
+        const target = targetForTreeEvent(event, item);
+        const result = applyTreeDrop(state, dragged, target);
+        if (!result.changed) {
+          if (result.reason === "descendant-folder") setToast("文件夹不能拖入自身的子目录");
+          return;
+        }
+        patchState((draft) => {
+          const next = applyTreeDrop({ folders: draft.folders, notes: draft.notes }, dragged, target);
+          if (!next.changed) return;
+          draft.folders = next.folders;
+          draft.notes = next.notes;
+          draft.openCreateMenu = null;
+          if (target.type === "folder" && target.position === "inside") {
+            delete draft.collapsedFolders?.[target.id];
+          }
+          draft.message = "目录位置已更新，发表后同步";
+        });
+        setToast("目录位置已更新，发表后同步");
+      } catch {
+        setToast("拖拽位置无效");
+      }
+    }
   };
 
   const enterTag = (tag) => {
@@ -806,7 +902,7 @@ function App() {
           })
         ),
         h("div", { className: "tree" },
-          renderTree(state, visibleNotes, selectNote, handleAction)
+          renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget)
         )
       ),
       h("main", { className: "content" },
@@ -1304,6 +1400,7 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
   const pendingAssetKindRef = useRef("file");
   const [editor, setEditor] = useState(null);
   const [insertMenu, setInsertMenu] = useState(null);
+  const [tablePicker, setTablePicker] = useState(null);
   const [sideButton, setSideButton] = useState({ top: 72 });
   const [isSelectingText, setIsSelectingText] = useState(false);
 
@@ -1358,10 +1455,10 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
         Image,
         Video,
         FileAttachment,
-        Table.configure({ resizable: false }),
+        Table.configure({ resizable: true, cellMinWidth: 96, lastColumnResizable: false }),
         TableRow,
-        TableHeader,
-        TableCell,
+        StyledTableHeader,
+        StyledTableCell,
         TaskList,
         TaskItem.configure({ nested: true })
       ],
@@ -1398,6 +1495,21 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
           }
         },
         handleKeyDown(view, event) {
+          const tableLineKind = tableSelectionKind(editorRef.current);
+          if ((event.key === "Backspace" || event.key === "Delete") && tableLineKind) {
+            event.preventDefault();
+            applyTableCommand(editorRef.current, tableLineKind === "row" ? "delete-row" : "delete-column");
+            return true;
+          }
+          if (event.key === "Tab" && editorRef.current?.isActive("table")) {
+            event.preventDefault();
+            const command = event.shiftKey ? "goToPreviousCell" : "goToNextCell";
+            const moved = editorRef.current.chain().focus()[command]().run();
+            if (!moved && !event.shiftKey) {
+              editorRef.current.chain().focus().addRowAfter().goToNextCell().run();
+            }
+            return true;
+          }
           if (event.key === "/" && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
             window.setTimeout(() => {
               const rect = getEditorSelectionRect(view);
@@ -1458,6 +1570,11 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
         editorRef.current.chain().focus().deleteRange({ from, to }).run();
       }
     }
+    if (command === "table") {
+      setTablePicker(insertMenu || { left: 52, top: sideButton.top + 28 });
+      setInsertMenu(null);
+      return;
+    }
     await applyEditorCommand(editorRef.current, command, {
       note,
       fileInputRef,
@@ -1482,6 +1599,7 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
 
   return h("div", { className: "feishu-editor-shell", ref: shellRef },
     editor ? h(FeishuBubbleToolbar, { editor, shellRef, hidden: Boolean(insertMenu) || isSelectingText }) : null,
+    editor ? h(FeishuTableControls, { editor, shellRef }) : null,
     h("button", {
       className: "feishu-plus",
       style: { top: `${sideButton.top}px` },
@@ -1500,7 +1618,16 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
       className: "hidden-file-input",
       onChange: handleFileInput
     }),
-    insertMenu ? h(FeishuInsertMenu, { position: insertMenu, run }) : null
+    insertMenu ? h(FeishuInsertMenu, { position: insertMenu, run }) : null,
+    tablePicker ? h(TableInsertGrid, {
+      position: tablePicker,
+      onSelect: (rows, cols) => {
+        editorRef.current?.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+        setTablePicker(null);
+        if (editorRef.current) onChange(editorRef.current.getHTML());
+      },
+      onClose: () => setTablePicker(null)
+    }) : null
   );
 }
 
@@ -1535,7 +1662,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
     };
   }, [editor]);
 
-  if (hidden || !editor || editor.state.selection.empty || !position) return null;
+  if (hidden || !editor || editor.state.selection.empty || tableSelectionInfo(editor) || !position) return null;
   const buttons = [
     { label: "T", command: "paragraph", title: "\u6b63\u6587" },
     { label: "H1", command: "h1", title: "\u6807\u9898 1", active: editor.isActive("heading", { level: 1 }) },
@@ -2047,12 +2174,12 @@ function githubBrowserUrl(settings, path) {
   if (!owner || !repo || !path) return path || "notebooks/index.json";
   return `https://github.com/${owner}/${repo}/blob/${branch}/${trimSlash(path)}`;
 }
-function renderTree(state, visibleNotes, selectNote, handleAction) {
+function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget) {
   const rootFolders = state.folders.filter((folder) => !folder.parentId);
   const orphanNotes = visibleNotes.filter((note) => !note.folderId);
   const children = [
-    ...rootFolders.map((folder) => renderFolder(state, folder, 0, visibleNotes, selectNote, handleAction)),
-    ...orphanNotes.map((note) => renderNoteItem(state, note, 0, selectNote, handleAction))
+    ...rootFolders.map((folder) => renderFolder(state, folder, 0, visibleNotes, selectNote, handleAction, treeDrag, dragTarget)),
+    ...orphanNotes.map((note) => renderNoteItem(state, note, 0, selectNote, handleAction, treeDrag, dragTarget))
   ];
   if (!visibleNotes.length) {
     children.push(h("div", { className: "empty", key: "empty" }, h("div", null, h("strong", null, "没有找到笔记"), h("p", null, "换个关键词试试。"))));
@@ -2060,7 +2187,7 @@ function renderTree(state, visibleNotes, selectNote, handleAction) {
   return children;
 }
 
-function renderFolder(state, folder, depth, visibleNotes, selectNote, handleAction) {
+function renderFolder(state, folder, depth, visibleNotes, selectNote, handleAction, treeDrag, dragTarget) {
   const children = state.folders.filter((item) => item.parentId === folder.id);
   const notes = visibleNotes.filter((note) => note.folderId === folder.id);
   const count = countNotes(state, folder.id, visibleNotes);
@@ -2069,9 +2196,15 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
   if (state.query.trim() && count === 0) return null;
   return h("div", { className: "tree-section", key: folder.id },
     h("button", {
-      className: `tree-folder indent-${Math.min(depth, 3)} ${isCollapsed ? "collapsed" : ""}`,
+      className: `tree-folder indent-${Math.min(depth, 3)} ${isCollapsed ? "collapsed" : ""} ${dragTarget?.type === "folder" && dragTarget.id === folder.id ? `drop-${dragTarget.position}` : ""}`,
       "aria-expanded": !isCollapsed,
       title: isCollapsed ? "展开目录" : "收起目录",
+      draggable: !treeDrag.disabled,
+      onDragStart: (event) => treeDrag.start(event, { type: "folder", id: folder.id }),
+      onDragOver: (event) => treeDrag.over(event, { type: "folder", id: folder.id }),
+      onDragLeave: treeDrag.leave,
+      onDragEnd: treeDrag.end,
+      onDrop: (event) => treeDrag.drop(event, { type: "folder", id: folder.id }),
       onClick: () => handleAction("toggle-folder", folder.id),
       onDoubleClick: () => handleAction("rename-folder", folder.id)
     },
@@ -2099,15 +2232,575 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
           h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-folder", folder.id) }, "删除文件夹")
         )
       : null,
-    isCollapsed ? null : notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction)),
-    isCollapsed ? null : children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction))
+    isCollapsed ? null : notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction, treeDrag, dragTarget)),
+    isCollapsed ? null : children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, treeDrag, dragTarget))
   );
 }
 
-function renderNoteItem(state, note, depth, selectNote, handleAction) {
+function tableSelectionInfo(editor) {
+  const selection = editor?.state?.selection;
+  if (selection?.$anchorCell) {
+    const $cell = selection.$anchorCell;
+    const rowDepth = $cell.depth;
+    const tableDepth = rowDepth - 1;
+    return {
+      table: $cell.node(tableDepth),
+      tablePos: $cell.before(tableDepth),
+      cellPos: $cell.pos,
+      rowIndex: $cell.index(tableDepth),
+      columnIndex: $cell.index(rowDepth)
+    };
+  }
+  const $from = selection?.$from;
+  if (!$from) return null;
+  let tableDepth = -1;
+  let rowDepth = -1;
+  let cellDepth = -1;
+  for (let depth = $from.depth; depth > 0; depth -= 1) {
+    const name = $from.node(depth).type.name;
+    if (name === "table" && tableDepth < 0) tableDepth = depth;
+    if (name === "tableRow" && rowDepth < 0) rowDepth = depth;
+    if ((name === "tableCell" || name === "tableHeader") && cellDepth < 0) cellDepth = depth;
+  }
+  if (tableDepth < 0 || rowDepth < 0 || cellDepth < 0) return null;
+  const table = $from.node(tableDepth);
+  const row = $from.node(rowDepth);
+  const cell = $from.node(cellDepth);
+  return {
+    table,
+    tablePos: $from.before(tableDepth),
+    cellPos: $from.before(cellDepth),
+    rowIndex: table.content.content.findIndex((item) => item === row),
+    columnIndex: row.content.content.findIndex((item) => item === cell)
+  };
+}
+
+function tableSelectionKind(editor) {
+  const selection = editor?.state?.selection;
+  if (!selection?.$anchorCell || !selection?.$headCell) return null;
+  const coordinates = ($cell) => {
+    const rowDepth = $cell.depth;
+    const tableDepth = rowDepth - 1;
+    return { row: $cell.index(tableDepth), column: $cell.index(rowDepth) };
+  };
+  const anchor = coordinates(selection.$anchorCell);
+  const head = coordinates(selection.$headCell);
+  if (anchor.row === head.row) return "row";
+  if (anchor.column === head.column) return "column";
+  return null;
+}
+
+function sortActiveTable(editor, direction) {
+  const info = tableSelectionInfo(editor);
+  if (!info || info.columnIndex < 0) return false;
+  const rows = info.table.content.content.map((row, index) => ({
+    id: index,
+    row,
+    values: row.content.content.map((cell) => cell.textContent)
+  }));
+  const orderedRows = sortTableRows(rows, info.columnIndex, direction).map((item) => item.row);
+  let content = info.table.content;
+  orderedRows.forEach((row, index) => {
+    content = content.replaceChild(index, row);
+  });
+  const transaction = editor.state.tr.replaceWith(info.tablePos, info.tablePos + info.table.nodeSize, info.table.copy(content));
+  editor.view.dispatch(transaction.scrollIntoView());
+  return true;
+}
+
+function applyTableCommand(editor, command) {
+  if (!editor) return false;
+  const chain = editor.chain().focus();
+  const tableInfo = tableSelectionInfo(editor);
+  if (command === "paragraph") return chain.setParagraph().run();
+  if (command === "h1") return chain.toggleHeading({ level: 1 }).run();
+  if (command === "h2") return chain.toggleHeading({ level: 2 }).run();
+  if (command === "h3") return chain.toggleHeading({ level: 3 }).run();
+  if (command === "add-row-before") return chain.addRowBefore().run();
+  if (command === "add-row-after") return chain.addRowAfter().run();
+  if (command === "delete-row" && tableInfo?.table.childCount === 1) return chain.deleteTable().run();
+  if (command === "delete-row") return chain.deleteRow().run();
+  if (command === "add-column-before") return chain.addColumnBefore().run();
+  if (command === "add-column-after") return chain.addColumnAfter().run();
+  if (command === "delete-column") return chain.deleteColumn().run();
+  if (command === "toggle-header-row") return chain.toggleHeaderRow().run();
+  if (command === "toggle-header-column") return chain.toggleHeaderColumn().run();
+  if (command === "merge-or-split") return chain.mergeOrSplit().run();
+  if (command === "bold") return chain.toggleBold().run();
+  if (command === "strike") return chain.toggleStrike().run();
+  if (command === "italic") return chain.toggleItalic().run();
+  if (command === "underline") return chain.toggleUnderline().run();
+  if (command === "code") return chain.toggleCode().run();
+  if (command === "bullet-list") return chain.toggleBulletList().run();
+  if (command === "ordered-list") return chain.toggleOrderedList().run();
+  if (command === "task-list") return chain.toggleTaskList().run();
+  if (command === "code-block") return chain.toggleCodeBlock().run();
+  if (command === "link") {
+    const previous = editor.getAttributes("link").href || "";
+    const url = window.prompt("链接地址", previous);
+    if (url === null) return false;
+    return url ? chain.extendMarkRange("link").setLink({ href: url }).run() : chain.unsetLink().run();
+  }
+  if (command.startsWith("highlight-")) return chain.setHighlight({ color: command.slice(10) }).run();
+  if (command.startsWith("align-")) return chain.setCellAttribute("textAlign", command.slice(6)).run();
+  if (command.startsWith("vertical-align-")) return chain.setCellAttribute("verticalAlign", command.slice(15)).run();
+  if (command.startsWith("background-")) return chain.setCellAttribute("backgroundColor", command.slice(11)).run();
+  if (command === "sort-ascending") return sortActiveTable(editor, "asc");
+  if (command === "sort-descending") return sortActiveTable(editor, "desc");
+  if (command === "delete-table") return chain.deleteTable().run();
+  return false;
+}
+
+function highlightTableLine(table, kind, index) {
+  if (!table) return;
+  table.querySelectorAll(".table-line-selected").forEach((cell) => cell.classList.remove("table-line-selected"));
+  const cells = kind === "row"
+    ? Array.from(table.rows[index]?.cells || [])
+    : Array.from(table.rows).map((row) => row.cells[index]).filter(Boolean);
+  cells.forEach((cell) => cell.classList.add("table-line-selected"));
+}
+
+function tableCellPosition(editor, cell) {
+  if (!cell) return null;
+  const position = editor.view.posAtDOM(cell, 0);
+  const $position = editor.state.doc.resolve(position);
+  const nextRole = $position.nodeAfter?.type?.spec?.tableRole;
+  if (nextRole === "cell" || nextRole === "header_cell") return $position.pos;
+  for (let depth = $position.depth; depth > 0; depth -= 1) {
+    const role = $position.node(depth).type.spec.tableRole;
+    if (role === "cell" || role === "header_cell") return $position.before(depth);
+  }
+  return null;
+}
+
+function tableColumnTargets(table) {
+  const tableRect = table.getBoundingClientRect();
+  const cells = Array.from(table.querySelectorAll("td, th"));
+  const edges = Array.from(new Set(cells.flatMap((cell) => {
+    const rect = cell.getBoundingClientRect();
+    return [rect.left, rect.right];
+  }).filter((edge) => edge >= tableRect.left - 1 && edge <= tableRect.right + 1)))
+    .sort((left, right) => left - right);
+  return edges.slice(0, -1).map((left, index) => {
+    const right = edges[index + 1];
+    const midpoint = (left + right) / 2;
+    const lineCells = Array.from(table.rows).map((row) => Array.from(row.cells).find((cell) => {
+      const rect = cell.getBoundingClientRect();
+      return rect.left <= midpoint + 1 && rect.right >= midpoint - 1;
+    })).filter(Boolean);
+    return {
+      cell: lineCells[0] || null,
+      cells: lineCells,
+      left: left - tableRect.left,
+      width: right - left
+    };
+  }).filter((target) => target.cell && target.width > 1);
+}
+
+function persistTableColumnWidth(editor, cells, width) {
+  const roundedWidth = Math.round(width);
+  const updatedPositions = new Set();
+  let transaction = editor.state.tr;
+  let changed = false;
+  cells.forEach((cell) => {
+    const position = tableCellPosition(editor, cell);
+    if (position === null || updatedPositions.has(position)) return;
+    const node = transaction.doc.nodeAt(position);
+    if (!node) return;
+    updatedPositions.add(position);
+    const colspan = node.attrs.colspan || 1;
+    const colwidth = Array.isArray(node.attrs.colwidth) && node.attrs.colwidth.length === colspan
+      ? [...node.attrs.colwidth]
+      : Array.from({ length: colspan }, () => 0);
+    if (colwidth[0] === roundedWidth) return;
+    colwidth[0] = roundedWidth;
+    transaction = transaction.setNodeMarkup(position, undefined, { ...node.attrs, colwidth });
+    changed = true;
+  });
+  if (changed) editor.view.dispatch(transaction);
+  return changed;
+}
+
+function selectNativeTableLine(editor, cells, kind, fallbackCell) {
+  const anchor = tableCellPosition(editor, cells[0]);
+  const head = tableCellPosition(editor, cells.at(-1));
+  if (anchor !== null && head !== null) {
+    editor.commands.focus();
+    if (editor.commands.setCellSelection({ anchor, head })) return true;
+  }
+  if (!fallbackCell) return false;
+  try {
+    const paragraph = fallbackCell.querySelector("p") || fallbackCell;
+    const position = editor.view.posAtDOM(paragraph, 0);
+    if (!editor.commands.setTextSelection(position)) return false;
+    return kind === "row" ? editor.commands.selectRow() : editor.commands.selectColumn();
+  } catch {
+    return false;
+  }
+}
+
+function FeishuTableControls({ editor, shellRef }) {
+  const [version, setVersion] = useState(0);
+  const [hoverTarget, setHoverTarget] = useState(null);
+  const [activeTable, setActiveTable] = useState(null);
+  const [selectedLine, setSelectedLine] = useState(null);
+  const [toolbarMenu, setToolbarMenu] = useState(null);
+  useEffect(() => {
+    const refresh = () => {
+      setVersion((value) => value + 1);
+      const nextTableInfo = tableSelectionInfo(editor);
+      if (!nextTableInfo || !tableSelectionKind(editor)) setSelectedLine(null);
+    };
+    editor.on("selectionUpdate", refresh);
+    editor.on("transaction", refresh);
+    return () => {
+      editor.off("selectionUpdate", refresh);
+      editor.off("transaction", refresh);
+    };
+  }, [editor]);
+
+  useEffect(() => {
+    const lineThreshold = 8;
+    const clearHover = () => setHoverTarget(null);
+    const updateHover = (event) => {
+      const element = event.target instanceof Element ? event.target.closest("td, th") : null;
+      if (!element || !editor.view.dom.contains(element)) {
+        clearHover();
+        return;
+      }
+      setActiveTable(element.closest("table"));
+      const rect = element.getBoundingClientRect();
+      const columnEdge = Math.abs(event.clientX - rect.left) <= Math.abs(event.clientX - rect.right) ? "before" : "after";
+      const rowEdge = Math.abs(event.clientY - rect.top) <= Math.abs(event.clientY - rect.bottom) ? "before" : "after";
+      const nearColumnLine = Math.abs(event.clientX - rect[columnEdge === "before" ? "left" : "right"]) <= lineThreshold;
+      const nearRowLine = Math.abs(event.clientY - rect[rowEdge === "before" ? "top" : "bottom"]) <= lineThreshold;
+      setHoverTarget((previous) => previous?.element === element
+        && previous.nearColumnLine === nearColumnLine
+        && previous.nearRowLine === nearRowLine
+        && previous.columnEdge === columnEdge
+        && previous.rowEdge === rowEdge
+        ? previous
+        : { element, nearColumnLine, nearRowLine, columnEdge, rowEdge });
+    };
+    editor.view.dom.addEventListener("mousemove", updateHover);
+    return () => editor.view.dom.removeEventListener("mousemove", updateHover);
+  }, [editor]);
+
+  useEffect(() => {
+    const shell = shellRef.current;
+    if (!shell || !activeTable) return undefined;
+    const railHoverPadding = 32;
+    const updateShellHover = (event) => {
+      const rect = activeTable.getBoundingClientRect();
+      const isInsideTableOrRail = event.clientX >= rect.left - railHoverPadding
+        && event.clientX <= rect.right + railHoverPadding
+        && event.clientY >= rect.top - railHoverPadding
+        && event.clientY <= rect.bottom + railHoverPadding;
+      if (isInsideTableOrRail) return;
+      setActiveTable(null);
+      setHoverTarget(null);
+    };
+    shell.addEventListener("mousemove", updateShellHover);
+    return () => shell.removeEventListener("mousemove", updateShellHover);
+  }, [activeTable, shellRef]);
+
+  useEffect(() => {
+    if (!selectedLine?.table) return undefined;
+    highlightTableLine(selectedLine.table, selectedLine.kind, selectedLine.index);
+    return () => selectedLine.table.querySelectorAll(".table-line-selected").forEach((cell) => cell.classList.remove("table-line-selected"));
+  }, [selectedLine, version]);
+
+  const tableInfo = tableSelectionInfo(editor);
+  const selectedCell = tableInfo ? editor.view.nodeDOM(tableInfo.cellPos) : null;
+  const hoveredCell = hoverTarget?.element || null;
+  const shell = shellRef.current;
+  const hoveredTable = activeTable || hoveredCell?.closest("table") || null;
+  const selectedTable = selectedCell?.closest?.("table") || null;
+  const table = hoveredTable || selectedLine?.table || selectedTable;
+  if (!shell || !table) return null;
+  const hoveredCellRect = hoveredCell?.getBoundingClientRect() || null;
+  const tableRect = table?.getBoundingClientRect() || null;
+  const shellRect = shell.getBoundingClientRect();
+  if (!tableRect) return null;
+
+  const focusCell = (cell) => {
+    if (!cell) return;
+    try {
+      const paragraph = cell.querySelector("p") || cell;
+      editor.chain().focus().setTextSelection(editor.view.posAtDOM(paragraph, 0)).run();
+    } catch {
+      // Table commands remain available for the existing table selection.
+    }
+  };
+
+  const selectLine = (kind, index, cell, cells) => {
+    if (!selectNativeTableLine(editor, cells, kind, cell)) return;
+    highlightTableLine(table, kind, index);
+    setSelectedLine({ kind, index, table, cell });
+  };
+  const run = (command, context = {}) => {
+    if (context.focusCell) focusCell(context.cell || hoveredCell);
+    const applied = applyTableCommand(editor, command);
+    if (applied) setVersion((value) => value + 1);
+    if (command === "delete-row" || command === "delete-column") setSelectedLine(null);
+    return applied;
+  };
+  const tableLeft = tableRect.left - shellRect.left;
+  const tableTop = tableRect.top - shellRect.top;
+  const tableWidth = tableRect.width;
+  const tableHeight = tableRect.height;
+  const railViewportRect = table.closest(".tableWrapper")?.getBoundingClientRect() || tableRect;
+  const visibleTableLeft = Math.max(tableRect.left, railViewportRect.left);
+  const visibleTableRight = Math.min(tableRect.right, railViewportRect.right);
+  const visibleTableWidth = Math.max(0, visibleTableRight - visibleTableLeft);
+  const visibleTableOffset = visibleTableLeft - tableRect.left;
+  const columnLineLeft = hoveredCellRect ? (hoverTarget?.columnEdge === "before" ? hoveredCellRect.left : hoveredCellRect.right) - shellRect.left : 0;
+  const rowLineTop = hoveredCellRect ? (hoverTarget?.rowEdge === "before" ? hoveredCellRect.top : hoveredCellRect.bottom) - shellRect.top : 0;
+  const columnTargets = tableColumnTargets(table);
+  const rowCells = Array.from(table.rows).map((row) => row.cells[0]).filter(Boolean);
+  const startColumnResize = (event, index) => {
+    const leftTarget = columnTargets[index];
+    const rightTarget = columnTargets[index + 1];
+    if (!leftTarget || !rightTarget) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const state = {
+      table,
+      index,
+      leftCells: leftTarget.cells,
+      rightCells: rightTarget.cells,
+      leftWidth: leftTarget.width,
+      rightWidth: rightTarget.width,
+      startX: event.clientX
+    };
+    const updatePreview = (moveEvent) => {
+      const requestedDelta = moveEvent.clientX - state.startX;
+      const delta = Math.min(state.rightWidth - 96, Math.max(96 - state.leftWidth, requestedDelta));
+      const currentWidth = Math.max(96, state.leftWidth + delta);
+      const nextWidth = Math.max(96, state.rightWidth - delta);
+      const columns = state.table.querySelectorAll("colgroup col");
+      if (columns[state.index]) columns[state.index].style.width = `${currentWidth}px`;
+      if (columns[state.index + 1]) columns[state.index + 1].style.width = `${nextWidth}px`;
+      state.currentWidth = currentWidth;
+      state.nextWidth = nextWidth;
+    };
+    const finishResize = (upEvent) => {
+      updatePreview(upEvent);
+      persistTableColumnWidth(editor, state.leftCells, state.currentWidth);
+      persistTableColumnWidth(editor, state.rightCells, state.nextWidth);
+      setVersion((value) => value + 1);
+      window.removeEventListener("pointermove", updatePreview);
+      window.removeEventListener("pointerup", finishResize);
+    };
+    window.addEventListener("pointermove", updatePreview);
+    window.addEventListener("pointerup", finishResize);
+  };
+  const nativeLineKind = tableSelectionKind(editor);
+  const activeLine = nativeLineKind ? { kind: nativeLineKind, table, cell: selectedCell } : selectedLine;
+  const hasTableTextSelection = Boolean(tableInfo && !editor.state.selection.empty && !nativeLineKind);
+  const openToolbarMenu = (event, type) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const left = event.currentTarget.offsetLeft;
+    setToolbarMenu((current) => current?.type === type ? null : { type, left });
+  };
+  const activate = (event, command, context = {}) => {
+    event.preventDefault();
+    event.stopPropagation();
+    run(command, context);
+    setToolbarMenu(null);
+  };
+  const formatActions = [["bold", "B", "加粗"], ["strike", "S", "删除线"], ["italic", "I", "斜体"], ["underline", "U", "下划线"], ["link", "↗", "链接"], ["code", "</>", "行内代码"]];
+
+  return h("div", { className: "feishu-table-controls", onMouseDown: (event) => event.preventDefault() },
+    hoveredTable ? h(React.Fragment, null,
+      h("div", {
+        className: "table-top-rail",
+        style: { left: `${visibleTableLeft - shellRect.left}px`, top: `${tableTop - 24}px`, width: `${visibleTableWidth}px` }
+      }, columnTargets.map((target, index) => {
+        const { cell } = target;
+        const selectorLeft = target.left - visibleTableOffset;
+        const selectorRight = selectorLeft + target.width;
+        if (selectorRight <= 0 || selectorLeft >= visibleTableWidth) return null;
+        return h("button", {
+          className: "table-column-selector",
+          key: `column-${index}`,
+          title: "选中列",
+          style: { left: `${Math.max(0, selectorLeft)}px`, width: `${Math.min(selectorRight, visibleTableWidth) - Math.max(0, selectorLeft)}px` },
+          onPointerDown: (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            selectLine("column", index, cell, target.cells);
+          }
+        }, h("span", {
+          className: "table-rail-dot column",
+          title: "在右侧插入列",
+          onPointerDown: (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            run("add-column-after", { cell, focusCell: true });
+          }
+        }));
+      })),
+      h("div", {
+        className: "table-left-rail",
+        style: { left: `${tableLeft - 24}px`, top: `${tableTop}px`, height: `${tableHeight}px` }
+      }, rowCells.map((cell, index) => {
+        const rect = cell.getBoundingClientRect();
+        const cells = Array.from(table.rows[index]?.cells || []);
+        return h("button", {
+          className: "table-row-selector",
+          key: `row-${index}`,
+          title: "选中行",
+          style: { top: `${rect.top - tableRect.top}px`, height: `${rect.height}px` },
+          onPointerDown: (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            selectLine("row", index, cell, cells);
+          }
+        }, h("span", {
+          className: "table-rail-dot row",
+          title: "在下方插入行",
+          onPointerDown: (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            run("add-row-after", { cell, focusCell: true });
+          }
+        }));
+      })),
+      columnTargets.slice(0, -1).map((target, index) => {
+        const handleLeft = tableLeft + target.left + target.width - 3;
+        if (handleLeft < visibleTableLeft - shellRect.left - 3 || handleLeft > visibleTableRight - shellRect.left + 3) return null;
+        return h("div", {
+          className: "table-column-drag-handle",
+          key: `resize-${index}`,
+          title: "拖拽调整列宽",
+          style: {
+            left: `${handleLeft}px`,
+            top: `${tableTop}px`,
+            height: `${tableHeight}px`
+          },
+          onPointerDown: (event) => startColumnResize(event, index)
+        });
+      })
+    ) : null,
+    activeLine || hasTableTextSelection ? (() => {
+      const lineRect = activeLine?.cell?.getBoundingClientRect() || null;
+      const textRect = hasTableTextSelection ? getSelectionToolbarRect(editor.view.dom) : null;
+      const toolbarAnchorRect = textRect || lineRect || tableRect;
+      const menuItems = toolbarMenu?.type === "style"
+        ? [
+          { command: "paragraph", icon: "T", label: "正文" },
+          { command: "h1", icon: "H1", label: "一级标题" },
+          { command: "h2", icon: "H2", label: "二级标题" },
+          { command: "h3", icon: "H3", label: "三级标题" },
+          { divider: true },
+          { command: "ordered-list", icon: "1.", label: "有序列表" },
+          { command: "bullet-list", icon: "•", label: "无序列表" },
+          { command: "task-list", icon: "☑", label: "任务" },
+          { command: "code-block", icon: "{}", label: "代码块" }
+        ]
+        : toolbarMenu?.type === "align"
+          ? [
+            { command: "align-left", icon: "≡", label: "左对齐" },
+            { command: "align-center", icon: "≡", label: "居中对齐" },
+            { command: "align-right", icon: "≡", label: "右对齐" },
+            { divider: true },
+            { command: "vertical-align-top", icon: "↑", label: "顶部对齐" },
+            { command: "vertical-align-middle", icon: "↕", label: "垂直居中" },
+            { command: "vertical-align-bottom", icon: "↓", label: "底部对齐" }
+          ]
+          : toolbarMenu?.type === "highlight"
+            ? [
+              { command: "highlight-#fff36d", icon: "■", label: "黄色高亮" },
+              { command: "highlight-#d3f9d8", icon: "■", label: "绿色高亮" },
+              { command: "highlight-#dbeafe", icon: "■", label: "蓝色高亮" }
+            ]
+            : [];
+      return h("div", {
+      className: "table-selection-toolbar",
+      style: {
+        left: `${Math.max(8, toolbarAnchorRect.left - shellRect.left)}px`,
+        top: `${Math.max(4, toolbarAnchorRect.top - shellRect.top - 48)}px`
+      }
+    },
+      h("button", {
+        className: "table-toolbar-menu-trigger",
+        title: "文本样式",
+        onPointerDown: (event) => openToolbarMenu(event, "style")
+      }, "T⌄"),
+      h("button", {
+        className: "table-toolbar-menu-trigger",
+        title: "对齐",
+        onPointerDown: (event) => openToolbarMenu(event, "align")
+      }, "≡⌄"),
+      h("span", { className: "table-toolbar-divider" }),
+      formatActions.map(([command, label, title]) => h("button", {
+        key: command,
+        title,
+        onPointerDown: (event) => activate(event, command, activeLine || {})
+      }, label)),
+      h("button", {
+        className: "table-toolbar-menu-trigger table-highlight-trigger",
+        title: "高亮颜色",
+        onPointerDown: (event) => openToolbarMenu(event, "highlight")
+      }, "A⌄"),
+      activeLine ? h("span", { className: "table-toolbar-divider" }) : null,
+      activeLine ? h("button", { title: "合并或拆分单元格", onPointerDown: (event) => activate(event, "merge-or-split", activeLine) }, "▦") : null,
+      activeLine ? h("button", {
+        className: "table-delete-action",
+        title: activeLine.kind === "row" ? "删除行" : "删除列",
+        onPointerDown: (event) => activate(event, activeLine.kind === "row" ? "delete-row" : "delete-column", activeLine)
+      }, "⌫") : null,
+      toolbarMenu ? h("div", {
+        className: "table-toolbar-popover",
+        style: { left: `${toolbarMenu.left}px` }
+      }, menuItems.map((item, index) => item.divider
+        ? h("span", { className: "table-toolbar-popover-divider", key: `divider-${index}` })
+        : h("button", {
+          key: item.command,
+          onPointerDown: (event) => activate(event, item.command, activeLine || {})
+        }, h("span", { className: "table-toolbar-menu-icon" }, item.icon), item.label))) : null
+    ); })() : null
+  );
+}
+
+function TableInsertGrid({ position, onSelect, onClose }) {
+  const [selected, setSelected] = useState({ rows: 3, cols: 3 });
+  const cells = [];
+  for (let rows = 1; rows <= 6; rows += 1) {
+    for (let cols = 1; cols <= 6; cols += 1) {
+      const active = rows <= selected.rows && cols <= selected.cols;
+      cells.push(h("button", {
+        key: `${rows}-${cols}`,
+        className: active ? "active" : "",
+        title: `${rows} 行 ${cols} 列`,
+        onMouseEnter: () => setSelected({ rows, cols }),
+        onClick: () => onSelect(rows, cols)
+      }));
+    }
+  }
+  return h("div", {
+    className: "table-insert-grid",
+    style: { left: `${position.left}px`, top: `${position.top}px` },
+    onMouseDown: (event) => event.preventDefault(),
+    onMouseLeave: onClose
+  },
+    h("div", { className: "table-grid-cells" }, cells),
+    h("div", { className: "table-grid-size" }, `${selected.rows} × ${selected.cols}`)
+  );
+}
+
+function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, dragTarget) {
   return h("div", { className: "tree-section", key: note.id },
     h("button", {
-      className: `tree-note indent-${Math.min(depth, 3)} ${note.id === state.activeId ? "active" : ""}`,
+      className: `tree-note indent-${Math.min(depth, 3)} ${note.id === state.activeId ? "active" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
+      draggable: !treeDrag.disabled,
+      onDragStart: (event) => treeDrag.start(event, { type: "note", id: note.id }),
+      onDragOver: (event) => treeDrag.over(event, { type: "note", id: note.id }),
+      onDragLeave: treeDrag.leave,
+      onDragEnd: treeDrag.end,
+      onDrop: (event) => treeDrag.drop(event, { type: "note", id: note.id }),
       onClick: () => selectNote(note.id),
       onDoubleClick: () => handleAction("rename-note", note.id)
     },
