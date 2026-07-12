@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-10T08:38:53.358Z",
+  "updatedAt": "2026-07-12T08:44:33.895Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -44,7 +44,7 @@
         "自动驾驶",
         "融合后处理"
       ],
-      "updatedAt": "2026-07-10T08:38:53.358Z",
+      "updatedAt": "2026-07-12T08:44:33.895Z",
       "file": "notebooks/docs/6v融合后处理方案总结.json"
     },
     {
@@ -57,7 +57,7 @@
         "工具",
         "gsutil"
       ],
-      "updatedAt": "2026-07-10T08:38:53.358Z",
+      "updatedAt": "2026-07-12T08:44:33.895Z",
       "file": "notebooks/docs/google-cloud-sdk.json"
     },
     {
@@ -71,7 +71,7 @@
         "运动模型",
         "matlab"
       ],
-      "updatedAt": "2026-07-10T08:38:53.358Z",
+      "updatedAt": "2026-07-12T08:44:33.895Z",
       "file": "notebooks/docs/运动模型.json"
     },
     {
@@ -84,7 +84,7 @@
         "自动标注",
         "DetZero"
       ],
-      "updatedAt": "2026-07-10T08:38:53.358Z",
+      "updatedAt": "2026-07-12T08:44:33.895Z",
       "file": "notebooks/docs/detzero-离线-3d-目标检测.json"
     },
     {
@@ -97,7 +97,7 @@
         "工具",
         "docker"
       ],
-      "updatedAt": "2026-07-10T08:38:53.358Z",
+      "updatedAt": "2026-07-12T08:44:33.895Z",
       "file": "notebooks/docs/docker.json"
     },
     {
@@ -112,7 +112,7 @@
         "gemini",
         "chrome"
       ],
-      "updatedAt": "2026-07-10T08:38:53.358Z",
+      "updatedAt": "2026-07-12T08:44:33.895Z",
       "file": "notebooks/docs/chrome.json"
     }
   ]
