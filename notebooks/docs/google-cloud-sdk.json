@@ -9,8 +9,8 @@
     "工具",
     "gsutil"
   ],
-  "createdAt": "2026-07-10T08:38:53.358Z",
-  "updatedAt": "2026-07-12T08:44:33.895Z",
+  "createdAt": "2026-07-12T08:44:33.895Z",
+  "updatedAt": "2026-07-13T02:43:59.107Z",
   "assets": [],
   "html": "<h2>gsutil 命令使用</h2><ol><li><p>首先需要确保你的终端是可以连接外网的</p></li></ol><ol start=\"2\"><li><p>安装google cloud sdk工具（安装了这个才能使用gsutil命令进行数据下载）</p></li></ol><p>官网地址：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://cloud.google.com/sdk/docs/install?hl=zh-cn#linux\">https://cloud.google.com/sdk/docs/install?hl=zh-cn#linux</a></p><p>按照指示进行正常下载安装就行，比较简单，<strong>注意</strong>：一定要重启终端才会生效，或者使用source .bashrc命令</p><ol start=\"3\"><li><p>安装完成后，还不能直接使用gsutil命令，需要进行配置</p></li></ol><p>使用命令进行初始化配置：gcloud init</p><ul><li><p>首先会出现一个链接，使用浏览器登陆，然后把验证码copy进来</p></li><li><p>然后是选择自己已有的项目（找到需要下载数据集的项目）</p></li></ul><ol start=\"4\"><li><p>接下来就可以使用gsutil命令进行下载了</p></li></ol><p></p><p></p>"
 }
