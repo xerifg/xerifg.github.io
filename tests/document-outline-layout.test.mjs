@@ -18,8 +18,14 @@ assert.doesNotMatch(
 
 assert.match(
   cssSource,
-  /\.document-workspace\s*\{[\s\S]*grid-template-columns:\s*168px minmax\(0,\s*920px\);/,
+  /\.document-workspace\s*\{[\s\S]*grid-template-columns:\s*168px minmax\(0,\s*1120px\);/,
   "document workspace should reserve the same outline column in read and edit mode"
+);
+
+assert.match(
+  cssSource,
+  /\.paper\s*\{[\s\S]*max-width:\s*1120px;/,
+  "document paper should use the wider content column"
 );
 
 assert.match(

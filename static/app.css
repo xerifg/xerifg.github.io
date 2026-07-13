@@ -507,7 +507,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 .paper {
   position: relative;
   width: 100%;
-  max-width: 920px;
+  max-width: 1120px;
   min-height: calc(100vh - 150px);
   margin: 0 auto;
   background: var(--sheet-solid);
@@ -1847,10 +1847,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .document-workspace {
-  width: min(1180px, 100%);
+  width: min(1380px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 168px minmax(0, 920px);
+  grid-template-columns: 168px minmax(0, 1120px);
   align-items: stretch;
   justify-content: center;
   gap: 16px;
@@ -1984,7 +1984,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
 @media (max-width: 1500px) {
   .document-workspace {
-    grid-template-columns: minmax(0, 920px);
+    grid-template-columns: minmax(0, 1120px);
   }
 
   .document-outline {
@@ -2028,7 +2028,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 @container (max-width: 1260px) {
   .document-workspace {
-    grid-template-columns: minmax(0, 920px);
+    grid-template-columns: minmax(0, 1120px);
   }
 
   .document-outline {
