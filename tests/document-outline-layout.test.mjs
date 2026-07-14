@@ -6,7 +6,7 @@ const cssSource = readFileSync(new URL("../static/app.css", import.meta.url), "u
 
 assert.match(
   appSource,
-  /const documentOutlinePanelWidth = 168;/,
+  /const documentOutlinePanelWidth = 196;/,
   "document outline should use a stable panel width so mode switches do not change the content gap"
 );
 
@@ -18,7 +18,7 @@ assert.doesNotMatch(
 
 assert.match(
   cssSource,
-  /\.document-workspace\s*\{[\s\S]*grid-template-columns:\s*168px minmax\(0,\s*1120px\);/,
+  /\.document-workspace\s*\{[\s\S]*grid-template-columns:\s*196px minmax\(0,\s*1120px\);/,
   "document workspace should reserve the same outline column in read and edit mode"
 );
 
@@ -80,4 +80,35 @@ assert.match(
   cssSource,
   /\.document-outline-item\.is-active button::before\s*\{[\s\S]*width:\s*3px;[\s\S]*background:\s*var\(--blue\);/,
   "document outline should mark the active heading with a slim reading rail indicator"
+);
+
+
+assert.match(
+  cssSource,
+  /\.document-outline button\s*\{[\s\S]*min-height:\s*40px;[\s\S]*padding:\s*6px 9px 7px 12px;[\s\S]*line-height:\s*1\.45;/,
+  "document outline buttons should give two-line headings enough vertical room"
+);
+
+assert.match(
+  cssSource,
+  /\.document-outline-item\.level-3 button\s*\{[\s\S]*font-size:\s*12px;[\s\S]*line-height:\s*1\.45;/,
+  "level-three outline items should use the same unclipped two-line rhythm"
+);
+
+assert.match(
+  appSource,
+  /h\("span", \{ className: "document-outline-text" \}, item\.text\)/,
+  "document outline should render heading text in a dedicated clamp span"
+);
+
+assert.match(
+  cssSource,
+  /\.document-outline-text\s*\{[\s\S]*display:\s*-webkit-box;[\s\S]*-webkit-line-clamp:\s*2;[\s\S]*-webkit-box-orient:\s*vertical;[\s\S]*overflow:\s*hidden;[\s\S]*text-overflow:\s*ellipsis;/,
+  "document outline should clamp heading text in a nested text span"
+);
+
+assert.doesNotMatch(
+  cssSource,
+  /\.document-outline button\s*\{[^}]*display:\s*-webkit-box;[^}]*-webkit-line-clamp:\s*2;/,
+  "document outline button should not own line clamping because it can reveal a clipped third line"
 );

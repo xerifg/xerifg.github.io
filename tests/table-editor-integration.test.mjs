@@ -26,7 +26,7 @@ assert.match(appSource, /function FeishuTableControls/, "the editor should rende
 assert.match(appSource, /function TableInsertGrid/, "table insertion should support selecting a grid size");
 assert.match(appSource, /merge-or-split/, "the table toolbar should merge and split selected cells");
 assert.match(appSource, /sort-ascending/, "the table toolbar should sort the active column");
-assert.match(indexSource, /app\.js\?v=20260714-text-color-toolbar-v1/, "the page should request the updated table editor module instead of a cached script");
+assert.match(indexSource, /app\.js\?v=20260714-outline-clamp-v2/, "the page should request the updated table editor module instead of a cached script");
 assert.match(bubbleToolbarSource, /tableSelectionInfo\(editor\)/, "the normal text toolbar should stay hidden for table selections");
 assert.match(bubbleToolbarSource, /\{ label: "H3", command: "h3"/, "the selected-text toolbar should expose a level-three heading button");
 assert.match(bubbleToolbarSource, /command: "textColor"/, "the selected-text toolbar should expose a text color palette trigger");

@@ -27,7 +27,7 @@ const legacyStorageKey = "personal-notebook-v2";
 const publishedIndexPath = "notebooks/index.json";
 const localAssetPrefix = "/api/local-assets/";
 const assetRootPath = "notebooks/assets";
-const documentOutlinePanelWidth = 168;
+const documentOutlinePanelWidth = 196;
 const now = () => new Date().toISOString();
 
 const tableCellStyleAttributes = {
@@ -1404,7 +1404,7 @@ function DocumentOutline({ noteId, outline }) {
             title: item.text,
             "aria-current": item.index === activeHeadingIndex ? "location" : undefined,
             onClick: () => scrollToDocumentHeading(noteId, item.index)
-          }, item.text)
+          }, h("span", { className: "document-outline-text" }, item.text))
         )))
       : h("p", { className: "document-outline-empty" }, "\u6682\u65e0\u6807\u9898")
   );
