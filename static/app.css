@@ -1449,11 +1449,90 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   background: #fff36d;
 }
 
+
 .feishu-bubble-divider {
   width: 1px;
   height: 24px;
   margin: 0 4px;
   background: #dee0e3;
+}
+
+.feishu-color-panel {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 228px;
+  padding: 10px 12px 12px;
+  border: 1px solid #dee0e3;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(31,35,41,.16), 0 1px 3px rgba(31,35,41,.08);
+  color: #1f2329;
+}
+
+.feishu-color-section + .feishu-color-section {
+  margin-top: 8px;
+}
+
+.feishu-color-title {
+  margin-bottom: 6px;
+  color: #4e5969;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.feishu-color-row,
+.feishu-color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.feishu-color-panel .feishu-text-color-swatch,
+.feishu-color-panel .feishu-bg-color-swatch {
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #e5e6eb;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  background: #fff;
+}
+
+.feishu-color-panel .feishu-text-color-swatch:hover,
+.feishu-color-panel .feishu-bg-color-swatch:hover {
+  border-color: #3370ff;
+  box-shadow: 0 0 0 1px rgba(51, 112, 255, .18);
+}
+
+.feishu-color-panel .feishu-bg-color-swatch.empty {
+  background:
+    linear-gradient(135deg, transparent calc(50% - 1px), #3370ff calc(50% - 1px), #3370ff calc(50% + 1px), transparent calc(50% + 1px)),
+    #fff !important;
+  border-color: #3370ff;
+}
+
+.feishu-color-reset {
+  width: 100%;
+  min-width: 0 !important;
+  height: 24px !important;
+  margin-top: 10px;
+  padding: 0 !important;
+  border: 1px solid #dee0e3;
+  border-radius: 0 !important;
+  color: #1f2329 !important;
+  background: #fff;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+}
+
+.feishu-color-reset:hover {
+  background: #f7f8fa !important;
 }
 
 .tiptap-reader hr,

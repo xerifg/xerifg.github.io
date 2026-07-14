@@ -6,6 +6,8 @@ import CodeBlock from "https://esm.sh/@tiptap/extension-code-block@2.11.7";
 import Underline from "https://esm.sh/@tiptap/extension-underline@2.11.7";
 import Link from "https://esm.sh/@tiptap/extension-link@2.11.7";
 import Highlight from "https://esm.sh/@tiptap/extension-highlight@2.11.7";
+import TextStyle from "https://esm.sh/@tiptap/extension-text-style@2.11.7";
+import Color from "https://esm.sh/@tiptap/extension-color@2.11.7";
 import Image from "https://esm.sh/@tiptap/extension-image@2.11.7";
 import Placeholder from "https://esm.sh/@tiptap/extension-placeholder@2.11.7";
 import Table from "https://esm.sh/@tiptap/extension-table@2.11.7";
@@ -1499,6 +1501,8 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
         }),
         Underline,
         Link.configure({ openOnClick: false, HTMLAttributes: { target: "_blank", rel: "noreferrer" } }),
+        TextStyle,
+        Color.configure({ types: ["textStyle"] }),
         Highlight.configure({ multicolor: true }),
         Image,
         Video,
@@ -1682,11 +1686,13 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
 function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
   const [position, setPosition] = useState(null);
   const [selectionVersion, setSelectionVersion] = useState(0);
+  const [colorPanelOpen, setColorPanelOpen] = useState(false);
   const [, forceUpdate] = useState(0);
 
   const updatePosition = useCallback(() => {
     if (hidden || !editor || editor.state.selection.empty || !shellRef.current) {
       setPosition(null);
+      setColorPanelOpen(false);
       return;
     }
     const rect = getSelectionToolbarRect(editor.view?.dom);
@@ -1700,7 +1706,10 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
 
   useEffect(() => {
     if (!editor) return undefined;
-    const updateSelection = () => setSelectionVersion((value) => value + 1);
+    const updateSelection = () => {
+      setColorPanelOpen(false);
+      setSelectionVersion((value) => value + 1);
+    };
     const updateActiveState = () => forceUpdate((value) => value + 1);
     editor.on("selectionUpdate", updateSelection);
     editor.on("transaction", updateActiveState);
@@ -1715,6 +1724,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
     { label: "T", command: "paragraph", title: "\u6b63\u6587" },
     { label: "H1", command: "h1", title: "\u6807\u9898 1", active: editor.isActive("heading", { level: 1 }) },
     { label: "H2", command: "h2", title: "\u6807\u9898 2", active: editor.isActive("heading", { level: 2 }) },
+    { label: "H3", command: "h3", title: "\u6807\u9898 3", active: editor.isActive("heading", { level: 3 }) },
     { divider: true },
     { label: "\u2261", command: "bulletList", title: "\u5217\u8868", active: editor.isActive("bulletList") },
     { divider: true },
@@ -1724,26 +1734,67 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
     { label: "U", command: "underline", active: editor.isActive("underline") },
     { label: "\u2197", command: "link", title: "\u94fe\u63a5", active: editor.isActive("link") },
     { label: "</>", command: "code", title: "\u4ee3\u7801", active: editor.isActive("code") },
-    { label: "A", command: "highlight", title: "\u9ad8\u4eae", active: editor.isActive("highlight") },
+    { label: "A", command: "textColor", title: "\u6587\u5b57\u989c\u8272", active: colorPanelOpen || Boolean(editor.getAttributes("textStyle").color), panel: true },
     { divider: true },
     { label: "\u25a6", command: "table", title: "\u8868\u683c" },
     { label: "\u2630", command: "blockquote", title: "\u5f15\u7528", active: editor.isActive("blockquote") }
   ];
+  const textColors = ["#245bdb", "#1f2329", "#f54a45", "#f59f00", "#de7b00", "#2f9e44", "#2563eb", "#7c3aed"];
+  const backgroundColors = ["transparent", "#f2f3f5", "#ffe8e8", "#ffe8c2", "#fff4b8", "#d9f7d8", "#dbe7ff", "#e8dcff", "#e4e7eb", "#c9cdd4", "#ff6b5f", "#ff9f43", "#ffd43b", "#51cf66", "#91a7ff", "#b197fc"];
+  const renderColorPanel = () => h("div", {
+    className: "feishu-color-panel",
+    onMouseDown: (event) => event.preventDefault()
+  },
+    h("div", { className: "feishu-color-section" },
+      h("div", { className: "feishu-color-title" }, "\u5b57\u4f53\u989c\u8272"),
+      h("div", { className: "feishu-color-row" }, textColors.map((color) => h("button", {
+        key: "text-" + color,
+        className: "feishu-text-color-swatch",
+        style: { color },
+        title: color,
+        onClick: () => {
+          applyEditorCommand(editor, "text-color-" + color);
+          setColorPanelOpen(false);
+        }
+      }, "A")))
+    ),
+    h("div", { className: "feishu-color-section" },
+      h("div", { className: "feishu-color-title" }, "\u80cc\u666f\u989c\u8272"),
+      h("div", { className: "feishu-color-grid" }, backgroundColors.map((color) => h("button", {
+        key: "background-" + color,
+        className: "feishu-bg-color-swatch " + (color === "transparent" ? "empty" : ""),
+        style: { background: color === "transparent" ? "#ffffff" : color },
+        title: color === "transparent" ? "\u65e0\u80cc\u666f" : color,
+        onClick: () => {
+          applyEditorCommand(editor, color === "transparent" ? "highlight-reset" : "highlight-" + color);
+          setColorPanelOpen(false);
+        }
+      })))
+    ),
+    h("button", {
+      className: "feishu-color-reset",
+      onClick: () => {
+        applyEditorCommand(editor, "text-color-reset");
+        applyEditorCommand(editor, "highlight-reset");
+        setColorPanelOpen(false);
+      }
+    }, "\u6062\u590d\u9ed8\u8ba4")
+  );
   return h("div", {
-    className: `feishu-bubble ${position.placement === "below" ? "below" : "above"}`,
+    className: "feishu-bubble " + (position.placement === "below" ? "below" : "above"),
     style: {
-      left: `${position.left}px`,
-      top: `${position.top}px`
+      left: position.left + "px",
+      top: position.top + "px"
     },
     onMouseDown: (event) => event.preventDefault()
   }, buttons.map((button, index) => button.divider
-    ? h("span", { className: "feishu-bubble-divider", key: `divider-${index}` })
+    ? h("span", { className: "feishu-bubble-divider", key: "divider-" + index })
     : h("button", {
-    key: `${button.command}-${index}`,
-    className: button.active ? "active" : "",
+    key: button.command + "-" + index,
+    className: [button.active ? "active" : "", button.className || ""].filter(Boolean).join(" "),
     title: button.title || button.command,
-    onClick: () => applyEditorCommand(editor, button.command)
-  }, button.label)));
+    onClick: () => button.panel ? setColorPanelOpen((open) => !open) : applyEditorCommand(editor, button.command)
+  }, button.label)), colorPanelOpen ? renderColorPanel() : null);
 }
 
 function FeishuInsertMenu({ position, run }) {
@@ -1815,6 +1866,10 @@ async function applyEditorCommand(editor, command, context = {}) {
   if (command === "underline") chain.toggleUnderline().run();
   if (command === "code") chain.toggleCode().run();
   if (command === "highlight") chain.toggleHighlight({ color: "#fff36d" }).run();
+  if (command === "text-color-reset") return chain.unsetColor().run();
+  if (command === "highlight-reset") return chain.unsetHighlight().run();
+  if (command.startsWith("text-color-")) return chain.setColor(command.slice(11)).run();
+  if (command.startsWith("highlight-")) return chain.setHighlight({ color: command.slice(10) }).run();
   if (command === "bulletList") chain.toggleBulletList().run();
   if (command === "orderedList") chain.toggleOrderedList().run();
   if (command === "taskList") chain.toggleTaskList().run();
