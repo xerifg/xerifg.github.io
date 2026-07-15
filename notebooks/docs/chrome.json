@@ -11,8 +11,8 @@
     "gemini",
     "chrome"
   ],
-  "createdAt": "2026-07-13T02:43:59.107Z",
-  "updatedAt": "2026-07-14T07:12:08.010Z",
+  "createdAt": "2026-07-14T07:12:08.010Z",
+  "updatedAt": "2026-07-15T03:41:10.809Z",
   "assets": [],
   "html": "<h2><strong>开启gimini功能</strong></h2><ol><li><p>chrome语言改成英文</p></li><li><p>chrome里的账号地址改到美国</p></li><li><p>执行下面的命令</p></li></ol><pre><code># windows电脑\nirm https://raw.githubusercontent.com/appsail/Gemini-in-Chrome/main/install.ps1 | iex\n\n# mac 电脑\ncurl -fsSL https://raw.githubusercontent.com/appsail/Gemini-in-Chrome/main/install.sh | bash</code></pre><p></p><p></p>"
 }
