@@ -1793,7 +1793,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
     height: 100dvh;
     min-height: 100vh;
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(148px, 30dvh) minmax(0, 1fr);
+    grid-template-rows: minmax(260px, 42dvh) minmax(0, 1fr);
     overflow: hidden;
   }
 
@@ -1809,8 +1809,11 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   }
 
   .tree {
-    overflow: auto;
+    overflow: scroll;
     overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: auto;
+    scrollbar-color: rgba(126, 126, 126, .78) rgba(245, 249, 250, .92);
     -webkit-overflow-scrolling: touch;
   }
 
@@ -1830,8 +1833,11 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
   .paper-scroll {
     min-height: 0;
-    overflow: auto;
+    overflow: scroll;
     overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-width: auto;
+    scrollbar-color: rgba(126, 126, 126, .78) rgba(245, 249, 250, .92);
     -webkit-overflow-scrolling: touch;
   }
 
@@ -1845,6 +1851,42 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
     min-width: 720px;
   }
 
+
+  .tree::-webkit-scrollbar,
+  .paper-scroll::-webkit-scrollbar,
+  .document-outline ol::-webkit-scrollbar {
+    width: 16px;
+    height: 16px;
+  }
+
+  .tree::-webkit-scrollbar-track,
+  .paper-scroll::-webkit-scrollbar-track,
+  .document-outline ol::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: rgba(245, 249, 250, .92);
+  }
+
+  .tree::-webkit-scrollbar-thumb,
+  .paper-scroll::-webkit-scrollbar-thumb,
+  .document-outline ol::-webkit-scrollbar-thumb {
+    min-height: 72px;
+    min-width: 72px;
+    border: 4px solid rgba(245, 249, 250, .92);
+    border-radius: 999px;
+    background: rgba(126, 126, 126, .78);
+  }
+
+  .tree::-webkit-scrollbar-thumb:hover,
+  .paper-scroll::-webkit-scrollbar-thumb:hover,
+  .document-outline ol::-webkit-scrollbar-thumb:hover {
+    background: rgba(96, 96, 96, .86);
+  }
+
+  .tree::-webkit-scrollbar-corner,
+  .paper-scroll::-webkit-scrollbar-corner,
+  .document-outline ol::-webkit-scrollbar-corner {
+    background: rgba(245, 249, 250, .92);
+  }
   .network-toggle {
     display: none;
   }
@@ -2225,9 +2267,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
     max-width: none;
     display: flex;
     gap: 6px;
-    overflow-x: auto;
+    overflow-x: scroll;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
+    scrollbar-gutter: stable;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x proximity;
   }
