@@ -1446,7 +1446,7 @@ function DocumentOutline({ noteId, outline }) {
   useEffect(() => {
     const activeButton = activeButtonRef.current;
     if (!activeButton) return;
-    activeButton.scrollIntoView({ block: "nearest", inline: "nearest" });
+    scrollElementIntoNearestView(activeButton);
   }, [activeHeadingIndex]);
 
   return h("nav", {
@@ -1490,13 +1490,38 @@ function scrollToDocumentHeading(noteId, headingIndex) {
   const headings = paper ? documentHeadingsForPaper(paper) : [];
   const heading = headings[headingIndex];
   if (!heading) return;
-  heading.scrollIntoView({ behavior: "smooth", block: "start" });
+  const scrollRoot = paper.closest(".paper-scroll");
+  if (!scrollRoot) return;
+  const viewport = scrollRoot.getBoundingClientRect();
+  const target = heading.getBoundingClientRect();
+  scrollRoot.scrollTo({
+    top: scrollRoot.scrollTop + target.top - viewport.top - 16,
+    behavior: "smooth"
+  });
 }
 
 function documentHeadingsForPaper(paper) {
   return paper.querySelectorAll(".tiptap-reader h1, .tiptap-reader h2, .tiptap-reader h3, .feishu-editor h1, .feishu-editor h2, .feishu-editor h3");
 }
 
+function scrollElementIntoNearestView(element) {
+  const scroller = element.closest("ol");
+  if (!scroller) return;
+  const scrollerRect = scroller.getBoundingClientRect();
+  const elementRect = element.getBoundingClientRect();
+
+  if (elementRect.left < scrollerRect.left) {
+    scroller.scrollLeft -= scrollerRect.left - elementRect.left;
+  } else if (elementRect.right > scrollerRect.right) {
+    scroller.scrollLeft += elementRect.right - scrollerRect.right;
+  }
+
+  if (elementRect.top < scrollerRect.top) {
+    scroller.scrollTop -= scrollerRect.top - elementRect.top;
+  } else if (elementRect.bottom > scrollerRect.bottom) {
+    scroller.scrollTop += elementRect.bottom - scrollerRect.bottom;
+  }
+}
 function cssEscape(value) {
   if (window.CSS?.escape) return window.CSS.escape(String(value));
   return String(value).replace(/["\\]/g, "\\$&");

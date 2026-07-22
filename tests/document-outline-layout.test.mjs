@@ -48,8 +48,14 @@ assert.match(
 
 assert.match(
   appSource,
-  /activeButton\.scrollIntoView\(\{ block: "nearest", inline: "nearest" \}\);/,
-  "document outline should scroll itself to keep the active heading visible"
+  /scrollElementIntoNearestView\(activeButton\);/,
+  "document outline should keep the active heading visible without scrolling the document"
+);
+
+assert.match(
+  appSource,
+  /scrollRoot\.scrollTo\(\{[\s\S]*top:\s*scrollRoot\.scrollTop \+ target\.top - viewport\.top - 16,[\s\S]*behavior:\s*"smooth"/,
+  "document outline clicks should scroll the paper container instead of the page"
 );
 
 assert.match(

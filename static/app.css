@@ -1789,25 +1789,40 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 @media (max-width: 900px) {
-  body { overflow: auto; }
   .app-shell {
-    height: auto;
+    height: 100dvh;
     min-height: 100vh;
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(148px, 30dvh) minmax(0, 1fr);
+    overflow: hidden;
   }
-  .sidebar, .content {
+
+  .sidebar,
+  .content {
+    min-height: 0;
     height: auto;
   }
+
   .sidebar {
-    max-height: 52vh;
+    max-width: none;
+    max-height: none;
   }
+
   .content {
-    min-height: 80vh;
+    min-height: 0;
   }
+
+  .paper-scroll {
+    min-height: 0;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .topbar {
     align-items: flex-start;
     flex-direction: column;
   }
+
   .toolbar {
     justify-content: flex-start;
   }
