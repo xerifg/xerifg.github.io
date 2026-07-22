@@ -498,6 +498,20 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   justify-content: flex-end;
 }
 
+.paper-scroll-shell {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.paper-scroll-shell .paper-scroll {
+  width: 100%;
+  height: 100%;
+}
+
+.paper-scrollbar {
+  display: none;
+}
 .paper-scroll {
   container-type: inline-size;
   overflow: auto;
@@ -1831,6 +1845,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
     min-height: 0;
   }
 
+  .paper-scroll-shell {
+    min-height: 0;
+  }
+
   .paper-scroll {
     min-height: 0;
     overflow: scroll;
@@ -1886,6 +1904,56 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   .paper-scroll::-webkit-scrollbar-corner,
   .document-outline ol::-webkit-scrollbar-corner {
     background: rgba(245, 249, 250, .92);
+  }
+  .paper-scrollbar {
+    position: absolute;
+    z-index: 20;
+    display: block;
+    border-radius: 999px;
+    background: rgba(245, 249, 250, .94);
+    box-shadow:
+      inset 0 0 0 1px rgba(124, 132, 142, .10),
+      0 2px 8px rgba(78, 86, 98, .10);
+    pointer-events: auto;
+  }
+
+  .paper-scrollbar-y {
+    top: 10px;
+    right: 5px;
+    bottom: 24px;
+    width: 18px;
+  }
+
+  .paper-scrollbar-x {
+    left: 10px;
+    right: 24px;
+    bottom: 5px;
+    height: 18px;
+  }
+
+  .paper-scrollbar-thumb {
+    position: absolute;
+    display: block;
+    border-radius: 999px;
+    background: rgba(124, 124, 124, .82);
+    box-shadow: 0 1px 4px rgba(60, 60, 67, .18);
+    touch-action: none;
+  }
+
+  .paper-scrollbar-y .paper-scrollbar-thumb {
+    left: 4px;
+    right: 4px;
+    min-height: 76px;
+  }
+
+  .paper-scrollbar-x .paper-scrollbar-thumb {
+    top: 4px;
+    bottom: 4px;
+    min-width: 76px;
+  }
+
+  .paper-scrollbar-thumb:active {
+    background: rgba(92, 92, 92, .90);
   }
   .network-toggle {
     display: none;

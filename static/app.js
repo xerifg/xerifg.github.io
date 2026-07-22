@@ -973,7 +973,7 @@ function App() {
       ),
       h("main", { className: "content" },
         renderTopbar(state, note, handleAction),
-        h("section", { className: "paper-scroll" },
+        h(PaperScroll, null,
           note
             ? h(DocumentPaper, {
                 key: `${note.id}-${state.mode}`,
@@ -992,6 +992,115 @@ function App() {
   );
 }
 
+function PaperScroll({ children }) {
+  const scrollRef = useRef(null);
+  const dragRef = useRef(null);
+  const [metrics, setMetrics] = useState({
+    clientWidth: 1,
+    clientHeight: 1,
+    scrollWidth: 1,
+    scrollHeight: 1,
+    scrollLeft: 0,
+    scrollTop: 0
+  });
+
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return undefined;
+
+    const update = () => {
+      setMetrics({
+        clientWidth: Math.max(1, element.clientWidth),
+        clientHeight: Math.max(1, element.clientHeight),
+        scrollWidth: Math.max(1, element.scrollWidth),
+        scrollHeight: Math.max(1, element.scrollHeight),
+        scrollLeft: element.scrollLeft,
+        scrollTop: element.scrollTop
+      });
+    };
+
+    update();
+    element.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    observer?.observe(element);
+    if (element.firstElementChild) observer?.observe(element.firstElementChild);
+    return () => {
+      element.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      observer?.disconnect();
+    };
+  }, [children]);
+
+  const vertical = customScrollbarGeometry(metrics.scrollTop, metrics.clientHeight, metrics.scrollHeight);
+  const horizontal = customScrollbarGeometry(metrics.scrollLeft, metrics.clientWidth, metrics.scrollWidth);
+
+  const beginDrag = (axis) => (event) => {
+    const element = scrollRef.current;
+    if (!element) return;
+    const track = event.currentTarget.parentElement;
+    const trackSize = axis === "y" ? track.clientHeight : track.clientWidth;
+    const thumbSize = axis === "y" ? event.currentTarget.offsetHeight : event.currentTarget.offsetWidth;
+    dragRef.current = {
+      axis,
+      pointerId: event.pointerId,
+      startPointer: axis === "y" ? event.clientY : event.clientX,
+      startScroll: axis === "y" ? element.scrollTop : element.scrollLeft,
+      maxScroll: axis === "y" ? element.scrollHeight - element.clientHeight : element.scrollWidth - element.clientWidth,
+      travel: Math.max(1, trackSize - thumbSize)
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  };
+
+  const handleDrag = (event) => {
+    const drag = dragRef.current;
+    const element = scrollRef.current;
+    if (!drag || !element || drag.pointerId !== event.pointerId) return;
+    const pointer = drag.axis === "y" ? event.clientY : event.clientX;
+    const next = drag.startScroll + ((pointer - drag.startPointer) / drag.travel) * drag.maxScroll;
+    if (drag.axis === "y") element.scrollTop = next;
+    else element.scrollLeft = next;
+    event.preventDefault();
+  };
+
+  const endDrag = (event) => {
+    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+  };
+
+  return h("div", { className: "paper-scroll-shell" },
+    h("section", { className: "paper-scroll", ref: scrollRef }, children),
+    vertical.visible ? h("div", { className: "paper-scrollbar paper-scrollbar-y", "aria-hidden": "true" },
+      h("span", {
+        className: "paper-scrollbar-thumb",
+        style: { top: `${vertical.offset}%`, height: `${vertical.size}%` },
+        onPointerDown: beginDrag("y"),
+        onPointerMove: handleDrag,
+        onPointerUp: endDrag,
+        onPointerCancel: endDrag
+      })
+    ) : null,
+    horizontal.visible ? h("div", { className: "paper-scrollbar paper-scrollbar-x", "aria-hidden": "true" },
+      h("span", {
+        className: "paper-scrollbar-thumb",
+        style: { left: `${horizontal.offset}%`, width: `${horizontal.size}%` },
+        onPointerDown: beginDrag("x"),
+        onPointerMove: handleDrag,
+        onPointerUp: endDrag,
+        onPointerCancel: endDrag
+      })
+    ) : null
+  );
+}
+
+function customScrollbarGeometry(scrollOffset, clientSize, scrollSize) {
+  const visible = scrollSize > clientSize + 1;
+  if (!visible) return { visible: false, size: 100, offset: 0 };
+  const size = Math.max(18, Math.min(100, (clientSize / scrollSize) * 100));
+  const maxOffset = 100 - size;
+  const offset = Math.max(0, Math.min(maxOffset, (scrollOffset / Math.max(1, scrollSize - clientSize)) * maxOffset));
+  return { visible, size, offset };
+}
 function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
   const canvasRef = useRef(null);
 
