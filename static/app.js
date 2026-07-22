@@ -331,7 +331,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    persist(state);
+    try {
+      persist(state);
+    } catch (error) {
+      console.error("Draft persistence failed", error);
+      setToast("本地草稿保存失败，请减少图片大小后重试");
+    }
   }, [state]);
 
   useEffect(() => {
@@ -1384,7 +1389,7 @@ function DocumentPaper({ note, state, editable, updateNote }) {
               key: note.id,
               note,
               onChange: (nextHtml) => updateNote(note.id, (item) => {
-                item.html = normalizeHtml(nextHtml);
+                item.html = normalizeDraftHtml(nextHtml, item.html, item.assets);
               }),
               onAssetInserted: (asset, nextHtml) => updateNote(note.id, (item) => {
                 const assets = Array.isArray(item.assets) ? item.assets : [];
@@ -2041,6 +2046,7 @@ async function cacheNotebookAsset(note, file, requestedKind) {
     localPath: `.notebook-cache/assets/${noteSegment}/${fileName}`,
     remotePath,
     remoteUrl: remotePath,
+    createdAt: Date.now(),
     cached,
     content: cached ? "" : content,
     dataUrl: cached ? "" : dataUrl,
@@ -3645,6 +3651,26 @@ function blocksToHtml(blocks) {
 
 function normalizeHtml(html) {
   return sanitizeHtml(html || "<p></p>");
+}
+
+function normalizeDraftHtml(nextHtml, currentHtml, assets = []) {
+  const normalizedNext = normalizeHtml(nextHtml);
+  const normalizedCurrent = normalizeHtml(currentHtml || "<p></p>");
+  const recentAssets = (Array.isArray(assets) ? assets : []).filter((asset) => {
+    const createdAt = Number(asset.createdAt || 0);
+    return createdAt && Date.now() - createdAt < 5000;
+  });
+  const droppedRecentAsset = recentAssets.some((asset) => {
+    const urls = assetReferenceUrls(asset);
+    return urls.some((url) => normalizedCurrent.includes(url))
+      && !urls.some((url) => normalizedNext.includes(url));
+  });
+  return droppedRecentAsset ? normalizedCurrent : normalizedNext;
+}
+
+function assetReferenceUrls(asset) {
+  return [asset?.localUrl, asset?.remoteUrl, asset?.remotePath, asset?.dataUrl]
+    .filter((url) => typeof url === "string" && url);
 }
 
 function sanitizeHtml(html) {
