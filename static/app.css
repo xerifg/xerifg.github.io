@@ -1808,14 +1808,45 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
     max-height: none;
   }
 
+  .tree {
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tree-folder,
+  .tree-note {
+    min-width: max-content;
+  }
+
+  .tree-folder strong,
+  .tree-note strong {
+    max-width: none;
+  }
+
   .content {
     min-height: 0;
   }
 
   .paper-scroll {
     min-height: 0;
+    overflow: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .document-workspace {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .paper {
+    width: min(1120px, max(720px, calc(100vw - 30px)));
+    min-width: 720px;
+  }
+
+  .network-toggle {
+    display: none;
   }
 
   .topbar {
@@ -2166,6 +2197,62 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
     white-space: nowrap;
     display: block;
     overflow-wrap: normal;
+    -webkit-line-clamp: unset;
+  }
+}
+
+@media (max-width: 900px) {
+  .document-workspace {
+    width: max-content;
+    min-width: 720px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .document-outline {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    width: min(1120px, max(720px, calc(100vw - 30px))) !important;
+    min-width: 720px;
+    max-width: none;
+    padding: 10px;
+  }
+
+  .document-outline ol {
+    min-width: max-content;
+    max-width: none;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+
+  .document-outline-item,
+  .document-outline-item.level-2,
+  .document-outline-item.level-3 {
+    flex: 0 0 auto;
+    padding-left: 0;
+    scroll-snap-align: start;
+  }
+
+  .document-outline button {
+    width: max-content;
+    min-width: 96px;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  .document-outline-text {
+    display: block;
+    max-width: none;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
     -webkit-line-clamp: unset;
   }
 }

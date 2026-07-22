@@ -929,7 +929,9 @@ function App() {
     }
   };
 
-  if (state.view === "network") {
+  const showNetworkView = state.view === "network" && !isSmallScreen();
+
+  if (showNetworkView) {
     return h(React.Fragment, null,
       h(NetworkView, {
         state,
@@ -2336,7 +2338,7 @@ function renderTopbar(state, note, handleAction) {
       h("em", null, documentStatusText(state, note))
     ),
     h("div", { className: "toolbar" },
-      h("button", { className: "ghost-btn", onClick: () => handleAction("back-network") }, "知识网络"),
+      h("button", { className: "ghost-btn network-toggle", onClick: () => handleAction("back-network") }, "知识网络"),
       note ? h("button", {
         className: `ghost-btn ${state.mode === "edit" ? "active" : ""}`,
         onClick: () => handleAction("toggle-mode")
@@ -3461,6 +3463,10 @@ function persist(state) {
   localStorage.setItem(storageKey, JSON.stringify(state));
 }
 
+function isSmallScreen() {
+  return typeof window !== "undefined" && window.matchMedia?.("(max-width: 900px)").matches;
+}
+
 function migrate(data) {
   const shouldRestoreNetwork = data.networkRestored !== true;
   const merged = {
@@ -3483,7 +3489,7 @@ function migrate(data) {
     html: normalizeHtml(note.html || blocksToHtml(note.blocks))
   }));
   if (!merged.notes.some((note) => note.id === merged.activeId)) merged.activeId = merged.notes[0]?.id || "";
-  if (shouldRestoreNetwork) {
+  if (shouldRestoreNetwork && !isSmallScreen()) {
     merged.view = "network";
     merged.selectedTag = "";
     merged.query = "";
