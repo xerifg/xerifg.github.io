@@ -592,6 +592,61 @@ function App() {
     setToast("文件夹已移入本地草稿变更");
   };
 
+  const openDeleteDraftsModal = async () => {
+    if (!note) return;
+    patchState((draft) => {
+      draft.message = "正在检查本地草稿和已发表版本";
+      draft.openCreateMenu = null;
+    });
+    try {
+      const published = await loadPublishedLibrary();
+      if (!published?.notes?.length) {
+        setToast("没有读取到已发表版本，暂时不能删除草稿");
+        return;
+      }
+      const summary = buildDraftDeletionSummary(state, published);
+      patchState((draft) => {
+        draft.modal = "delete-drafts";
+        draft.modalContext = { published, summary };
+        draft.openCreateMenu = null;
+        draft.message = "删除草稿前请确认将丢弃的本地内容";
+      });
+    } catch (error) {
+      console.error(error);
+      setToast(error.message || "读取已发表版本失败");
+    }
+  };
+
+  const confirmDeleteDrafts = () => {
+    const published = state.modalContext?.published;
+    if (!published?.notes?.length) {
+      setToast("没有可恢复的已发表版本");
+      return;
+    }
+    localStorage.removeItem(blockNoteStorageKey);
+    localStorage.removeItem(legacyStorageKey);
+    setState((latest) => {
+      const preferredActiveId = published.notes.some((item) => item.id === latest.activeId)
+        ? latest.activeId
+        : published.notes[0]?.id || "";
+      return migrate({
+        ...published,
+        activeId: preferredActiveId,
+        view: latest.view,
+        selectedTag: latest.selectedTag,
+        query: latest.query,
+        networkQuery: latest.networkQuery,
+        networkRestored: latest.networkRestored,
+        settings: { ...latest.settings, token: latest.settings.token },
+        modal: null,
+        modalContext: null,
+        mode: "read",
+        syncStatus: "ready",
+        message: "本地草稿已删除，已恢复为最近一次发表版本"
+      });
+    });
+    setToast("本地草稿已删除");
+  };
   const confirmAuth = () => {
     const account = document.querySelector("[data-auth='account']")?.value.trim();
     const password = document.querySelector("[data-auth='password']")?.value.trim();
@@ -805,6 +860,7 @@ function App() {
       });
     }
     if (action === "publish") preparePublish();
+    if (action === "delete-drafts") openDeleteDraftsModal();
     if (action === "toggle-create-menu") {
       if (!requireEditPermission("edit")) return;
       patchState((draft) => {
@@ -847,6 +903,7 @@ function App() {
     if (action === "confirm-auth") confirmAuth();
     if (action === "confirm-publish-tags") confirmPublishTags();
     if (action === "confirm-publish-all") publishAllNotes(state.modalContext?.settings, state.modalContext?.notes);
+    if (action === "confirm-delete-drafts") confirmDeleteDrafts();
     if (action === "delete-note") deleteNote(targetFolderId || state.activeId);
     if (action === "delete-folder") deleteFolder(targetFolderId);
     if (action === "rename-folder") {
@@ -2254,6 +2311,11 @@ function renderTopbar(state, note, handleAction) {
         onClick: () => handleAction("toggle-mode")
       }, state.mode === "edit" ? "阅读" : "编辑") : null,
       note ? h("button", {
+        className: "danger-btn",
+        disabled: state.syncStatus === "publishing",
+        onClick: () => handleAction("delete-drafts")
+      }, "删除草稿") : null,
+      note ? h("button", {
         className: "primary-btn",
         disabled: state.syncStatus === "publishing",
         onClick: () => handleAction("publish")
@@ -2926,6 +2988,44 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
   );
 }
 
+function buildDraftDeletionSummary(localState, publishedState) {
+  const publishedById = new Map((publishedState.notes || []).map((item) => [item.id, item]));
+  const localById = new Map((localState.notes || []).map((item) => [item.id, item]));
+  const dirtyNotes = (localState.notes || [])
+    .filter((item) => item.dirty || !item.publishedAt)
+    .map((item) => item.title || "未命名文档");
+  const localOnlyNotes = (localState.notes || [])
+    .filter((item) => !publishedById.has(item.id))
+    .map((item) => item.title || "未命名文档");
+  const restoredNotes = (publishedState.notes || [])
+    .filter((item) => !localById.has(item.id))
+    .map((item) => item.title || "未命名文档");
+  const changedPublishedNotes = (localState.notes || [])
+    .filter((item) => {
+      const published = publishedById.get(item.id);
+      if (!published) return false;
+      return item.dirty
+        || item.title !== published.title
+        || item.folderId !== published.folderId
+        || normalizeHtml(item.html || blocksToHtml(item.blocks)) !== normalizeHtml(published.html || blocksToHtml(published.blocks));
+    })
+    .map((item) => item.title || "未命名文档");
+  const folderChanged = JSON.stringify(localState.folders || []) !== JSON.stringify(publishedState.folders || []);
+  return {
+    dirtyNotes: uniqueValues(dirtyNotes),
+    localOnlyNotes: uniqueValues(localOnlyNotes),
+    restoredNotes: uniqueValues(restoredNotes),
+    changedPublishedNotes: uniqueValues(changedPublishedNotes),
+    deletedTags: uniqueTags(localState.deletedTags || []),
+    folderChanged,
+    hasChanges: dirtyNotes.length > 0
+      || localOnlyNotes.length > 0
+      || restoredNotes.length > 0
+      || changedPublishedNotes.length > 0
+      || Boolean(localState.deletedTags?.length)
+      || folderChanged
+  };
+}
 function buildPublishSummary(state, notes = state.notes) {
   const dirtyNotes = notes.filter((item) => item.dirty || !item.publishedAt);
   const renamedOrMovedNotes = notes.filter((item) => !item.dirty && item.publishedAt);
@@ -3002,6 +3102,34 @@ function renderModal(state, handleAction) {
         )
       ),
       "确认并发表", "confirm-publish-tags", handleAction);
+  }
+  if (state.modal === "delete-drafts") {
+    const summary = state.modalContext?.summary || buildDraftDeletionSummary(state, state.modalContext?.published || state);
+    return h("div", { className: "modal-backdrop" },
+      h("div", { className: "modal" },
+        h("h2", null, "删除本地草稿"),
+        h("p", null, "此操作只清理当前浏览器里的本地草稿缓存，不会删除 GitHub 上已经发表的内容。确认后页面会恢复为最近一次发表版本。"),
+        h("div", { className: "form" },
+          h("div", { className: "publish-summary" },
+            h("div", { className: `summary-row ${summary.hasChanges ? "danger" : ""}` }, h("strong", null, "结果"), h("span", null, summary.hasChanges ? "将丢弃本地未发表内容" : "没有检测到本地草稿差异")),
+            h("h3", null, "将删除的本地草稿 / 未发表文档"),
+            summaryList(summary.dirtyNotes, "没有本地草稿。"),
+            h("h3", null, "仅存在于本地的新文档"),
+            summaryList(summary.localOnlyNotes, "没有仅存在于本地的文档。"),
+            h("h3", null, "将从已发表版本恢复的文档"),
+            summaryList(summary.restoredNotes, "没有需要恢复的已发表文档。"),
+            h("h3", null, "将回退的已发表文档本地改动"),
+            summaryList(summary.changedPublishedNotes, "没有已发表文档的本地改动。"),
+            summary.folderChanged ? h("div", { className: "summary-row danger" }, h("strong", null, "目录"), h("span", null, "本地目录改动会恢复为已发表版本")) : null,
+            summary.deletedTags.length ? h("div", { className: "summary-row danger" }, h("strong", null, "标签"), h("span", null, summary.deletedTags.join("、"))) : null
+          )
+        ),
+        h("div", { className: "modal-actions" },
+          h("button", { className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
+          h("button", { className: "danger-btn", onClick: () => handleAction("confirm-delete-drafts") }, "确认删除草稿")
+        )
+      )
+    );
   }
   if (state.modal === "publish-summary") {
     const summary = state.modalContext?.summary || buildPublishSummary(state, state.modalContext?.notes || state.notes);
