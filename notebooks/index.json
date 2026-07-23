@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-23T02:35:50.785Z",
+  "updatedAt": "2026-07-23T03:44:15.319Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -44,7 +44,7 @@
         "模型",
         "VoxelNet"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/voxelnet模型.json"
     },
     {
@@ -57,7 +57,7 @@
         "模型",
         "ViT"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/vit模型.json"
     },
     {
@@ -71,7 +71,7 @@
         "运动模型",
         "matlab"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/运动模型.json"
     },
     {
@@ -84,7 +84,7 @@
         "模型",
         "BERT"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/bert模型.json"
     },
     {
@@ -97,7 +97,7 @@
         "自动驾驶",
         "bev模型"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/bev模型技术路线.json"
     },
     {
@@ -110,7 +110,7 @@
         "自动驾驶",
         "融合后处理"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/6v融合后处理方案总结.json"
     },
     {
@@ -123,7 +123,7 @@
         "工具",
         "gsutil"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/google-cloud-sdk.json"
     },
     {
@@ -136,7 +136,7 @@
         "自动标注",
         "DetZero"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/detzero-离线-3d-目标检测.json"
     },
     {
@@ -149,7 +149,7 @@
         "工具",
         "docker"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/docker.json"
     },
     {
@@ -164,7 +164,7 @@
         "gemini",
         "chrome"
       ],
-      "updatedAt": "2026-07-23T02:35:50.785Z",
+      "updatedAt": "2026-07-23T03:44:15.319Z",
       "file": "notebooks/docs/chrome.json"
     }
   ]
