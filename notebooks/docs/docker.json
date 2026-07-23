@@ -9,8 +9,8 @@
     "工具",
     "docker"
   ],
-  "createdAt": "2026-07-15T03:41:10.809Z",
-  "updatedAt": "2026-07-22T03:01:06.763Z",
+  "createdAt": "2026-07-22T03:01:06.763Z",
+  "updatedAt": "2026-07-23T02:35:50.785Z",
   "assets": [],
   "html": "<h2><strong>Docker 创建</strong></h2><pre><code class=\"language-Plain\">HostPort=10233\nAD=ruifeng.xie\nContainer=class_test\nsudo docker run -p ${HostPort}:22 -e NVIDIA_DRIVER_CAPABILITIES=compute,utility -e NVIDIA_VISIBLE_DEVICES=all --gpus all  -v /mnt/cfs2/algorithm/ruifeng.xie/BigModel/:/mnt  --shm-size 64G --name ${Container} -itd hub.phigent.io/avp/cuda11.3.1-trt8.0.3.4-ros2-desktop-ubuntu20.04.x86:v2.3</code></pre><h2><strong>常用指令</strong></h2><pre><code class=\"language-Plain\">#镜像查看\ndocker images\n\n#查看正在运行的容器\ndocker ps\n\n#查看所有的容器\ndocker ps -a\n\n#进入指定容器里\ndocker exec -it &lt;容器名或容器ID&gt; /bin/bash\n\n#删除容器\nsudo docker rm &lt;容器名或容器ID&gt; -f（强制删除正在运行的容器）\n\n#打包指定容器为镜像\nsudo docker commit autolabel_v1 adlp-j6p-repo-cn-beijing.cr.volces.com/adlp-j6p/annotation_pipeline:v0.5_custom</code></pre><p></p><p></p><p></p><p></p>"
 }
