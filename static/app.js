@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "https://esm.sh/react@18.3.1";
 import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
 import { Editor, Node, mergeAttributes } from "https://esm.sh/@tiptap/core@2.11.7";
+import katex from "https://esm.sh/katex@0.16.22";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit@2.11.7";
 import CodeBlock from "https://esm.sh/@tiptap/extension-code-block@2.11.7";
 import Underline from "https://esm.sh/@tiptap/extension-underline@2.11.7";
@@ -29,6 +30,8 @@ const localAssetPrefix = "/api/local-assets/";
 const assetRootPath = "notebooks/assets";
 const documentOutlinePanelWidth = 196;
 const now = () => new Date().toISOString();
+const mathInlineType = "mathInline";
+const mathBlockType = "mathBlock";
 
 const tableCellStyleAttributes = {
   backgroundColor: {
@@ -60,6 +63,80 @@ const StyledTableHeader = TableHeader.extend({
   }
 });
 
+const MathInline = Node.create({
+  name: mathInlineType,
+  group: "inline",
+  inline: true,
+  atom: true,
+  selectable: true,
+  addAttributes() {
+    return {
+      tex: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-tex") || element.textContent || "",
+        renderHTML: (attributes) => ({ "data-tex": attributes.tex || "" })
+      }
+    };
+  },
+  parseHTML() {
+    return [{ tag: "span[data-type='math-inline']" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["span", mergeAttributes(HTMLAttributes, {
+      "data-type": "math-inline",
+      class: "math-node math-inline"
+    }), HTMLAttributes.tex || ""];
+  },
+  addNodeView() {
+    return ({ node }) => createMathNodeView(node, false);
+  }
+});
+
+const MathBlock = Node.create({
+  name: mathBlockType,
+  group: "block",
+  atom: true,
+  selectable: true,
+  isolating: true,
+  addAttributes() {
+    return {
+      tex: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-tex") || element.textContent || "",
+        renderHTML: (attributes) => ({ "data-tex": attributes.tex || "" })
+      }
+    };
+  },
+  parseHTML() {
+    return [{ tag: "div[data-type='math-block']" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["div", mergeAttributes(HTMLAttributes, {
+      "data-type": "math-block",
+      class: "math-node math-block"
+    }), HTMLAttributes.tex || ""];
+  },
+  addNodeView() {
+    return ({ node }) => createMathNodeView(node, true);
+  }
+});
+
+function createMathNodeView(node, displayMode) {
+  const dom = document.createElement(displayMode ? "div" : "span");
+  dom.className = "math-node " + (displayMode ? "math-block" : "math-inline");
+  dom.dataset.type = displayMode ? "math-block" : "math-inline";
+  dom.dataset.tex = node.attrs.tex || "";
+  renderMathElement(dom, displayMode);
+  return {
+    dom,
+    update(updatedNode) {
+      if (updatedNode.type.name !== node.type.name) return false;
+      dom.dataset.tex = updatedNode.attrs.tex || "";
+      renderMathElement(dom, displayMode);
+      return true;
+    }
+  };
+}
 
 const NotebookCodeBlock = CodeBlock.extend({
   addAttributes() {
@@ -1475,6 +1552,12 @@ function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
 function DocumentPaper({ note, state, editable, updateNote }) {
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
+  const readerRef = useRef(null);
+
+  useEffect(() => {
+    if (!editable && readerRef.current) renderMathElements(readerRef.current);
+  }, [editable, html]);
+
   return h("div", { className: `document-workspace ${outline.length ? "has-outline" : "has-empty-outline"}` },
     h(DocumentOutline, { noteId: note.id, outline }),
     h("article", { className: `paper ${editable ? "is-editing" : ""}`, "data-note-id": note.id },
@@ -1509,6 +1592,7 @@ function DocumentPaper({ note, state, editable, updateNote }) {
               })
             })
           : h("div", {
+              ref: readerRef,
               className: "reader tiptap-reader",
               dangerouslySetInnerHTML: { __html: sanitizeHtml(html) }
             })
@@ -1693,6 +1777,8 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
       extensions: [
         StarterKit.configure({ heading: { levels: [1, 2, 3] }, codeBlock: false }),
         NotebookCodeBlock,
+        MathInline,
+        MathBlock,
         Placeholder.configure({
           placeholder: "输入 / 插入内容",
           showOnlyCurrent: false
@@ -1731,10 +1817,18 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
           },
           paste(view, event) {
             const files = clipboardFilesFromPaste(event);
-            if (!files.length) return false;
+            if (files.length) {
+              event.preventDefault();
+              setInsertMenu(null);
+              insertPastedAssets(files);
+              return true;
+            }
+            const text = event.clipboardData?.getData("text/plain") || "";
+            if (!markdownTextHasMath(text)) return false;
             event.preventDefault();
             setInsertMenu(null);
-            insertPastedAssets(files);
+            editorRef.current?.chain().focus().insertContent(markdownTextToHtmlWithMath(text)).run();
+            if (editorRef.current) onChange(editorRef.current.getHTML());
             return true;
           },
           click(view, event) {
@@ -1745,6 +1839,7 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
           }
         },
         handleKeyDown(view, event) {
+          if (maybeReplaceGapCursorWithParagraph(editorRef.current, event)) return true;
           const tableLineKind = tableSelectionKind(editorRef.current);
           if ((event.key === "Backspace" || event.key === "Delete") && tableLineKind) {
             event.preventDefault();
@@ -2024,7 +2119,7 @@ function FeishuInsertMenu({ position, run }) {
         { icon: "▤", label: "高亮块", command: "highlightBlock", color: "#ff7a45" },
         { icon: "▣", label: "同步块", command: "paragraph", color: "#3b82f6" },
         { icon: "▢", label: "按钮", command: "button", color: "#5b7cfa", arrow: true },
-        { icon: "fx", label: "公式", command: "codeBlock", color: "#6b7280" },
+        { icon: "fx", label: "\u516c\u5f0f", command: "mathBlock", color: "#6b7280" },
         { icon: "✦", label: "模板", command: "template", color: "#f97316", arrow: true }
       ]
     },
@@ -2073,6 +2168,10 @@ async function applyEditorCommand(editor, command, context = {}) {
   if (command === "taskList") chain.toggleTaskList().run();
   if (command === "blockquote") chain.toggleBlockquote().run();
   if (command === "codeBlock") chain.toggleCodeBlock().run();
+  if (command === "mathBlock") {
+    insertFormula(editor);
+    return;
+  }
   if (command === "divider") chain.setHorizontalRule().run();
   if (command === "table") chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   if (command === "link") {
@@ -2099,6 +2198,23 @@ async function applyEditorCommand(editor, command, context = {}) {
   }
 }
 
+function insertFormula(editor) {
+  const { from, to, empty } = editor.state.selection;
+  const selectedText = empty ? "" : editor.state.doc.textBetween(from, to).trim();
+  const tex = window.prompt("\u516c\u5f0f", selectedText || "V_{in} = [x, y, z, r, x - v_x, y - v_y, z - v_z]");
+  if (tex === null) return;
+  const value = tex.trim();
+  if (!value) return;
+  const node = empty
+    ? { type: mathBlockType, attrs: { tex: value } }
+    : { type: mathInlineType, attrs: { tex: value } };
+  if (empty) {
+    insertBlockWithEditableParagraph(editor, node);
+    return;
+  }
+  editor.chain().focus().deleteSelection().insertContent(node).run();
+}
+
 function commandName(command) {
   const names = {
     file: "文件附件",
@@ -2110,6 +2226,132 @@ function commandName(command) {
     template: "模板"
   };
   return names[command] || command;
+}
+
+function markdownTextHasMath(text) {
+  return /(^|[^\\])\${1,2}[\s\S]+?\${1,2}/.test(String(text || ""));
+}
+
+function markdownTextToHtmlWithMath(text) {
+  const lines = String(text || "").replace(/\r\n?/g, "\n").split("\n");
+  const blocks = [];
+  let paragraph = [];
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    blocks.push("<p>" + inlineMarkdownToHtmlWithMath(paragraph.join(" ").trim()) + "</p>");
+    paragraph = [];
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushParagraph();
+      continue;
+    }
+    if (trimmed.startsWith("$$")) {
+      flushParagraph();
+      const mathLines = [trimmed.replace(/^\$\$\s*/, "")];
+      while (!mathLines.at(-1).trim().endsWith("$$") && index + 1 < lines.length) {
+        index += 1;
+        mathLines.push(lines[index]);
+      }
+      const tex = mathLines.join("\n").replace(/\s*\$\$$/, "").trim();
+      blocks.push(mathHtml(tex, true));
+      continue;
+    }
+    const ordered = trimmed.match(/^\d+[.)]\s+(.+)$/);
+    const bullet = trimmed.match(/^[-*+]\s+(.+)$/);
+    if (ordered || bullet) {
+      flushParagraph();
+      const tag = ordered ? "ol" : "ul";
+      const items = [];
+      let currentMatch = ordered || bullet;
+      while (currentMatch) {
+        items.push("<li>" + inlineMarkdownToHtmlWithMath(currentMatch[1]) + "</li>");
+        if (index + 1 >= lines.length) break;
+        const next = lines[index + 1].trim();
+        const nextMatch = tag === "ol" ? next.match(/^\d+[.)]\s+(.+)$/) : next.match(/^[-*+]\s+(.+)$/);
+        if (!nextMatch) break;
+        index += 1;
+        currentMatch = nextMatch;
+      }
+      blocks.push("<" + tag + ">" + items.join("") + "</" + tag + ">");
+      continue;
+    }
+    paragraph.push(trimmed);
+  }
+  flushParagraph();
+  return blocks.join("") || "<p></p>";
+}
+
+function inlineMarkdownToHtmlWithMath(text) {
+  const source = String(text || "");
+  let cursor = 0;
+  let html = "";
+  const inlineMath = /(^|[^\\])\$([^$\n]+?)\$/g;
+  let match;
+  while ((match = inlineMath.exec(source))) {
+    const markerIndex = match.index + match[1].length;
+    html += inlineMarkdownTextToHtml(source.slice(cursor, markerIndex));
+    html += mathHtml(match[2].trim(), false);
+    cursor = markerIndex + match[2].length + 2;
+  }
+  html += inlineMarkdownTextToHtml(source.slice(cursor));
+  return html;
+}
+
+function inlineMarkdownTextToHtml(text) {
+  return escapeHtml(text)
+    .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\\\$/g, "$");
+}
+
+function mathHtml(tex, displayMode) {
+  const tag = displayMode ? "div" : "span";
+  const type = displayMode ? "math-block" : "math-inline";
+  const escaped = escapeHtml(tex);
+  return "<" + tag + " data-type=\"" + type + "\" class=\"math-node " + type + "\" data-tex=\"" + escaped + "\">" + escaped + "</" + tag + ">";
+}
+
+function renderMathElements(root) {
+  root.querySelectorAll("[data-type='math-inline'], [data-type='math-block']").forEach((element) => {
+    renderMathElement(element, element.dataset.type === "math-block");
+  });
+}
+
+function renderMathElement(element, displayMode) {
+  const tex = element.getAttribute("data-tex") || element.textContent || "";
+  element.setAttribute("data-tex", tex);
+  try {
+    katex.render(tex, element, { displayMode, throwOnError: false, strict: "ignore" });
+  } catch {
+    element.textContent = displayMode ? "$$" + tex + "$$" : "$" + tex + "$";
+  }
+}
+
+function restoreMarkdownMathInHtml(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html || "";
+  template.content.querySelectorAll("p").forEach((paragraph) => {
+    if (paragraph.querySelector("[data-type='math-inline'], [data-type='math-block'], code, pre")) return;
+    const match = paragraph.textContent.trim().match(/^\$\$([\s\S]+?)\$\$$/);
+    if (!match) return;
+    const fragment = document.createRange().createContextualFragment(mathHtml(match[1].trim(), true));
+    paragraph.replaceWith(fragment);
+  });
+  const walker = document.createTreeWalker(template.content, window.NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+  textNodes.forEach((textNode) => {
+    const parent = textNode.parentElement;
+    if (!parent || parent.closest("pre, code, [data-type='math-inline'], [data-type='math-block']")) return;
+    if (!markdownTextHasMath(textNode.nodeValue || "")) return;
+    const fragment = document.createRange().createContextualFragment(inlineMarkdownToHtmlWithMath(textNode.nodeValue || ""));
+    textNode.replaceWith(fragment);
+  });
+  return template.innerHTML;
 }
 
 function clipboardFilesFromPaste(event) {
@@ -2192,24 +2434,46 @@ async function cacheNotebookAsset(note, file, requestedKind) {
 
 function insertAssetNode(editor, asset) {
   if (asset.kind === "image") {
-    editor.chain().focus().setImage({ src: asset.localUrl, alt: asset.name, title: asset.name }).run();
+    insertBlockWithEditableParagraph(editor, {
+      type: "image",
+      attrs: { src: asset.localUrl, alt: asset.name, title: asset.name }
+    });
     return;
   }
   if (asset.kind === "video") {
-    editor.chain().focus().insertContent({
+    insertBlockWithEditableParagraph(editor, {
       type: "video",
       attrs: { src: asset.localUrl, title: asset.name, controls: true }
-    }).run();
+    });
     return;
   }
-  editor.chain().focus().insertContent({
+  insertBlockWithEditableParagraph(editor, {
     type: "fileAttachment",
     attrs: {
       href: asset.localUrl,
       name: asset.name,
       size: formatBytes(asset.size)
     }
-  }).run();
+  });
+}
+
+function insertBlockWithEditableParagraph(editor, blockNode) {
+  editor.chain().focus().deleteSelection().insertContent([
+    blockNode,
+    { type: "paragraph" }
+  ]).run();
+}
+
+function maybeReplaceGapCursorWithParagraph(editor, event) {
+  if (event.key !== "Enter" || !editor) return false;
+  const selection = editor.state.selection;
+  const isGapCursor = selection.constructor?.name === "GapCursor";
+  const isAtomNodeSelection = Boolean(selection.node?.isAtom);
+  if (!isGapCursor && !isAtomNodeSelection) return false;
+  event.preventDefault();
+  const position = selection.to;
+  editor.chain().focus().insertContentAt(position, { type: "paragraph" }).setTextSelection(position + 1).run();
+  return true;
 }
 
 function normalizeAssetKind(kind, mimeType, name = "") {
@@ -3790,7 +4054,7 @@ function blocksToHtml(blocks) {
 }
 
 function normalizeHtml(html) {
-  return sanitizeHtml(html || "<p></p>");
+  return sanitizeHtml(restoreMarkdownMathInHtml(html || "<p></p>"));
 }
 
 function normalizeDraftHtml(nextHtml, currentHtml, assets = []) {

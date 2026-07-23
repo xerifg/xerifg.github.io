@@ -26,7 +26,7 @@ assert.match(appSource, /function FeishuTableControls/, "the editor should rende
 assert.match(appSource, /function TableInsertGrid/, "table insertion should support selecting a grid size");
 assert.match(appSource, /merge-or-split/, "the table toolbar should merge and split selected cells");
 assert.match(appSource, /sort-ascending/, "the table toolbar should sort the active column");
-assert.match(indexSource, /app\.js\?v=20260722-mobile-scrollbars-v1/, "the page should request the updated table editor module instead of a cached script");
+assert.match(indexSource, /app\.js\?v=20260723-math-v1/, "the page should request the updated table editor module instead of a cached script");
 assert.match(bubbleToolbarSource, /tableSelectionInfo\(editor\)/, "the normal text toolbar should stay hidden for table selections");
 assert.match(bubbleToolbarSource, /\{ label: "H3", command: "h3"/, "the selected-text toolbar should expose a level-three heading button");
 assert.match(bubbleToolbarSource, /command: "textColor"/, "the selected-text toolbar should expose a text color palette trigger");
@@ -36,6 +36,16 @@ assert.match(bubbleToolbarSource, /\{ label: "A", command: "textColor"/, "the se
 assert.match(bubbleToolbarSource, /backgroundColors/, "the color panel should keep background highlight choices");
 assert.match(bubbleToolbarSource, /feishu-color-panel/, "the selected-text toolbar should render a compact color panel");
 assert.match(appSource, /import Color from "https:\/\/esm\.sh\/@tiptap\/extension-color@2\.11\.7";/, "text color should use Tiptap color extension");
+assert.match(appSource, /import katex from "https:\/\/esm\.sh\/katex@0\.16\.22";/, "math rendering should use KaTeX in the browser");
+assert.match(appSource, /const MathInline = Node\.create/, "the editor should support inline math nodes");
+assert.match(appSource, /const MathBlock = Node\.create/, "the editor should support block math nodes");
+assert.match(appSource, /markdownTextToHtmlWithMath/, "pasted Markdown formulas should be converted before insertion");
+assert.match(appSource, /function insertBlockWithEditableParagraph/, "block atoms should add a real editable paragraph after insertion");
+assert.match(appSource, /function maybeReplaceGapCursorWithParagraph/, "pressing Enter on a gap cursor should create a normal paragraph");
+assert.match(appSource, /selection\.constructor\?\.name === "GapCursor"/, "the gap cursor fallback should target ProseMirror gap cursors");
+assert.match(appSource, /insertBlockWithEditableParagraph\(editor, \{[\s\S]*type: "image"/, "inserted images should leave the cursor in a following paragraph");
+assert.match(appSource, /if \(empty\) \{[\s\S]*insertBlockWithEditableParagraph\(editor, node\)/, "inserted block formulas should leave the cursor in a following paragraph");
+assert.match(indexSource, /katex@0\.16\.22\/dist\/katex\.min\.css/, "KaTeX styles should be loaded for rendered formulas");
 assert.match(appSource, /import TextStyle from "https:\/\/esm\.sh\/@tiptap\/extension-text-style@2\.11\.7";/, "text color should be stored through Tiptap textStyle marks");
 assert.match(appSource, /if \(command === "text-color-reset"\) return chain\.unsetColor/, "editor commands should reset selected text color before matching color prefixes");
 assert.match(appSource, /if \(command\.startsWith\("text-color-"\)\) return chain\.setColor/, "editor commands should apply selected text colors");
