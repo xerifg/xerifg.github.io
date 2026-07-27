@@ -2127,7 +2127,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   position: sticky;
   top: 16px;
   align-self: start;
-  height: min(calc(100vh - 128px), 720px);
+  height: min(calc(100vh - 128px), 1030px);
   overflow: hidden;
   width: auto;
   min-width: 132px;
