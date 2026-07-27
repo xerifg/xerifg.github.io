@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-27T04:03:50.401Z",
+  "updatedAt": "2026-07-27T08:56:11.044Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -44,7 +44,7 @@
         "模型",
         "VoxelNet"
       ],
-      "updatedAt": "2026-07-27T04:03:50.401Z",
+      "updatedAt": "2026-07-27T08:56:11.044Z",
       "file": "notebooks/docs/voxelnet模型.json"
     },
     {
