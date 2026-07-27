@@ -2353,9 +2353,9 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   }
 
   .document-outline {
-    position: static;
-    top: auto;
-    z-index: auto;
+    position: sticky;
+    top: 0;
+    z-index: 10;
     width: min(1120px, max(720px, calc(100vw - 30px))) !important;
     min-width: 720px;
     max-width: none;
