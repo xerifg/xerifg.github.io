@@ -58,6 +58,21 @@ function foldersRequiredForSelectedNotes(localState, remoteState, selectedIds, c
   });
 }
 
+export function buildMissingRemoteNote(summary, fallbackDate) {
+  const tags = stableTags(summary?.tags);
+  return {
+    id: summary.id,
+    title: summary.title || "Untitled document",
+    folderId: summary.folderId || null,
+    tags: tags.length ? tags : ["Notes"],
+    date: summary.updatedAt || fallbackDate,
+    file: summary.file,
+    dirty: false,
+    publishedAt: summary.updatedAt || "",
+    assets: [],
+    html: ""
+  };
+}
 export function buildPublishChangeSet(localState, remoteState) {
   const localNotes = localState.notes || [];
   const remoteNotes = remoteState.notes || [];

@@ -1,5 +1,26 @@
 import assert from "node:assert/strict";
-import { buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "../static/publish-model.mjs";
+import { buildMissingRemoteNote, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "../static/publish-model.mjs";
+
+const missingRemoteNote = buildMissingRemoteNote({
+  id: "unavailable",
+  title: "Remote unavailable",
+  folderId: "work",
+  tags: [],
+  updatedAt: "2026-07-27T10:00:00.000Z",
+  file: "notebooks/docs/unavailable.json"
+}, "2026-07-27T11:00:00.000Z");
+assert.deepEqual(missingRemoteNote, {
+  id: "unavailable",
+  title: "Remote unavailable",
+  folderId: "work",
+  tags: ["Notes"],
+  date: "2026-07-27T10:00:00.000Z",
+  file: "notebooks/docs/unavailable.json",
+  dirty: false,
+  publishedAt: "2026-07-27T10:00:00.000Z",
+  assets: [],
+  html: ""
+}, "a missing remote document should retain its index summary for a later publish retry");
 
 const remote = {
   folders: [{ id: "work", name: "Work", parentId: null }],

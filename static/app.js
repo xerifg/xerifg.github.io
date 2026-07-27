@@ -20,7 +20,7 @@ import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
-import { buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs";
+import { buildMissingRemoteNote, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -3735,8 +3735,8 @@ async function loadGitHubPublishedLibrary(settings) {
   return {
     folders: index.folders || [],
     notes: docs.map((documentData, indexPosition) => {
-      if (!documentData) return { id: summary.id, title: summary.title || "未命名文档", folderId: summary.folderId || null, tags: ensureDefaultTags(summary.tags), date: summary.updatedAt || now(), file: summary.file, dirty: false, publishedAt: summary.updatedAt || "", assets: [], html: "" };
       const summary = index.docs[indexPosition];
+      if (!documentData) return buildMissingRemoteNote(summary, now());
       return {
         id: documentData.id || summary.id,
         title: documentData.title || summary.title || "未命名文档",
