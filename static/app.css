@@ -2399,3 +2399,78 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
     -webkit-line-clamp: unset;
   }
 }
+
+.publish-review-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.publish-select-toggle {
+  min-height: 30px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.publish-change-list {
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.publish-change-row {
+  display: grid;
+  grid-template-columns: 18px auto minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.publish-change-row:has(input:checked) {
+  border-color: rgba(0, 122, 255, .42);
+  background: rgba(0, 122, 255, .05);
+}
+
+.publish-change-row input {
+  margin: 3px 0 0;
+  accent-color: var(--blue);
+}
+
+.publish-change-row.is-delete {
+  border-color: rgba(192, 53, 53, .38);
+}
+
+.publish-change-row.is-delete .publish-change-type {
+  color: #a62b2b;
+}
+
+.publish-change-type {
+  min-width: 28px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue-dark);
+}
+
+.publish-change-content {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.publish-change-content strong,
+.publish-change-content small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.publish-change-content small {
+  color: var(--muted);
+  font-size: 12px;
+}

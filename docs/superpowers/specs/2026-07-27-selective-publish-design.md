@@ -1,59 +1,59 @@
-# Selective Publish Design
+# 选择性发布设计
 
-## Goal
+## 目标
 
-Replace the current full-library publish action with a review step that shows the differences between local drafts and the GitHub-published notebook library. The user can choose which changes to publish while keeping unselected changes local.
+将当前的全库发布操作替换为审查步骤：展示本地草稿与 GitHub 已发布笔记本库之间的差异。用户可选择要发布的变更，未选中的变更保留在本地。
 
-## Scope
+## 范围
 
-The feature changes the browser-based GitHub publish flow only. It does not introduce a server, change repository authentication, or alter how published pages are rendered.
+本功能仅改变基于浏览器的 GitHub 发布流程。不引入服务端、不改变仓库认证方式，也不改变已发布页面的渲染方式。
 
-## Publish Review
+## 发布审查
 
-Opening Publish fetches the current `notebooks/index.json` and published documents from GitHub, then compares them with the local notebook state. The review modal groups changes into:
+打开「发布」时，会从 GitHub 拉取当前的 `notebooks/index.json` 及已发布文档，并与本地笔记本状态对比。审查弹窗将变更分组为：
 
-- New documents.
-- Modified documents, including content, title, folder, tags, and attachments.
-- Deleted documents that still exist on GitHub.
-- Folder structure changes.
-- Tag deletions.
+- 新文档。
+- 已修改文档，包括内容、标题、文件夹、标签和附件。
+- 在 GitHub 上仍存在、但本地已删除的文档。
+- 文件夹结构变更。
+- 标签删除。
 
-Every detected change has a checkbox and is selected by default. The modal provides a clear selected-item count and a select-all control. Deleted documents are visually identified as deletions before confirmation.
+每个检测到的变更都有复选框，且默认选中。弹窗显示已选项目数量，并提供全选控件。删除类变更在确认前会以视觉方式明确标识为删除操作。
 
-## Selection Rules
+## 选择规则
 
-Users may exclude any detected document change. Excluded changes remain in local storage as drafts and are shown again during the next publish review.
+用户可排除任意检测到的文档变更。被排除的变更仍保留在本地存储中作为草稿，并在下次发布审查时再次显示。
 
-When a selected document depends on an updated folder, tag, or index entry, the publish flow automatically updates the shared `notebooks/index.json`. This dependency is not independently optional: the online notebook relies on its index to expose document titles, folders, and tags correctly.
+当所选文档依赖已更新的文件夹、标签或索引条目时，发布流程会自动更新共享的 `notebooks/index.json`。此依赖关系不能单独取消选择：在线笔记本依赖索引来正确展示文档标题、文件夹和标签。
 
-Folder and tag changes not required by any selected document remain local unless the user explicitly selects their corresponding review item.
+未被任何所选文档所需的文件夹和标签变更会保留在本地，除非用户显式选中对应的审查项。
 
-## GitHub Writes
+## GitHub 写入
 
-For the selected change set, publishing writes only the required files:
+对于所选变更集，发布时仅写入必需的文件：
 
-- A selected new or modified document writes its document JSON and selected pending assets.
-- A selected deletion removes its document JSON from GitHub.
-- Any selected change that affects the library view updates `notebooks/index.json` with a merge of the selected local changes and the unselected remote state.
+- 所选的新建或修改文档会写入其文档 JSON 及所选待发布资源。
+- 所选删除会从 GitHub 移除对应文档 JSON。
+- 任何影响库视图的所选变更，会用「所选本地变更」与「未选远程状态」的合并结果更新 `notebooks/index.json`。
 
-The existing GitHub Contents API continues to be used. GitHub may therefore show several small commits for one publish operation, such as one commit per document, asset, or index update. The feature guarantees file scope, not a single atomic Git commit.
+仍使用现有的 GitHub Contents API。因此 GitHub 上的一次发布操作可能显示为多个小提交，例如每个文档、资源或索引更新各一次提交。本功能保证的是文件写入范围，而非单次原子 Git 提交。
 
-## Local State After Publishing
+## 发布后的本地状态
 
-Successfully published selected documents are marked clean and receive the new published metadata. Unselected edits keep their local content and dirty state. A failed write leaves the affected local draft unchanged and presents an error; later publish attempts can retry it.
+成功发布的所选文档会被标记为干净状态，并接收新的已发布元数据。未选中的编辑保留本地内容与脏标记。若写入失败，受影响的本地草稿保持不变并展示错误；后续发布可重试。
 
-## Architecture
+## 架构
 
-Extract pure change-set and merge helpers into a small publish model module so their behavior can be tested without the browser UI. `static/app.js` remains responsible for loading GitHub data, rendering the modal, collecting checkbox selections, performing GitHub writes, and updating local application state.
+将纯变更集与合并相关的辅助逻辑提取到小型发布模型模块中，以便在不依赖浏览器 UI 的情况下测试其行为。`static/app.js` 仍负责加载 GitHub 数据、渲染弹窗、收集复选框选择、执行 GitHub 写入，以及更新本地应用状态。
 
-The publish model receives local and remote notebook libraries, returns typed change records, and merges only selected changes into a remote-based index. The UI must not infer change semantics itself.
+发布模型接收本地与远程笔记本库，返回类型化的变更记录，并仅将所选变更合并到基于远程的索引中。UI 不得自行推断变更语义。
 
-## Testing
+## 测试
 
-Automated Node tests cover change detection for new, modified, and deleted documents; selection-aware index merging; and preservation of unselected remote content. Existing tests continue to run. The app code is syntax-checked after the UI integration.
+自动化 Node 测试覆盖：新建、修改、删除文档的变更检测；与选择相关的索引合并；以及未选远程内容的保留。现有测试继续运行。UI 集成后对应用代码进行语法检查。
 
-## Out of Scope
+## 不在范围内
 
-- Combining all selected file updates into one atomic Git commit.
-- A persistent staging area separate from the publish modal.
-- Conflict-resolution UI for simultaneous edits made directly on GitHub and locally.
+- 将所有所选文件更新合并为一次原子 Git 提交。
+- 与发布弹窗分离的持久化暂存区。
+- 针对在 GitHub 与本地同时编辑所产生的冲突解决 UI。

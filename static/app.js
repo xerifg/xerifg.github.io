@@ -20,6 +20,7 @@ import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
+import { buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -790,33 +791,26 @@ function App() {
       const renamedTags = ensureDefaultTags(item.tags)
         .filter((tag) => !deletedTags.has(tag))
         .map((tag) => renameMap.get(tag) || tag);
-      return {
-        ...item,
-        tags: item.id === noteId ? nextTags : ensureDefaultTags(renamedTags)
-      };
+      return { ...item, tags: item.id === noteId ? nextTags : ensureDefaultTags(renamedTags) };
     });
+    const localState = {
+      ...state,
+      notes: updatedNotes,
+      deletedTags: uniqueTags([...(state.deletedTags || []), ...deletedTags])
+    };
     patchState((draft) => {
-      draft.notes = updatedNotes;
-      draft.deletedTags = uniqueTags([...(draft.deletedTags || []), ...deletedTags]);
+      draft.notes = localState.notes;
+      draft.deletedTags = localState.deletedTags;
       draft.modal = null;
       draft.modalContext = null;
-    });
-        patchState((draft) => {
-      draft.modal = "publish-summary";
-      draft.modalContext = {
-        notes: updatedNotes,
-        settings: null,
-        summary: buildPublishSummary({ ...state, notes: updatedNotes, deletedTags: uniqueTags([...(state.deletedTags || []), ...deletedTags]) }, updatedNotes)
-      };
       draft.openCreateMenu = null;
     });
+    openPublishReview({ ...state.settings, branch: "main" }, localState);
   };
+
   const preparePublish = (overrideSettings, skipTagModal = false) => {
     if (!note) return;
-    const settings = {
-      ...(overrideSettings || state.settings),
-      branch: "main"
-    };
+    const settings = { ...(overrideSettings || state.settings), branch: "main" };
     if (!overrideSettings && !state.authenticated) {
       requireEditPermission("publish");
       return;
@@ -833,38 +827,67 @@ function App() {
       openPublishTagModal();
       return;
     }
-    patchState((draft) => {
-      draft.modal = "publish-summary";
-      draft.modalContext = {
-        notes: draft.notes,
-        settings,
-        summary: buildPublishSummary(draft, draft.notes)
-      };
-      draft.openCreateMenu = null;
-    });
+    openPublishReview(settings, state);
   };
 
-  const publishAllNotes = async (overrideSettings, overrideNotes) => {
-    if (!note) return;
-    const settings = {
-      ...(overrideSettings || state.settings),
-      branch: "main"
-    };
-    const sourceNotes = overrideNotes || state.notes;
+  const openPublishReview = async (settings, localState) => {
+    patchState((draft) => {
+      draft.modal = null;
+      draft.modalContext = null;
+      draft.message = "正在比较本地改动与 GitHub";
+    });
+    try {
+      const remoteState = await loadGitHubPublishedLibrary(settings);
+      const changeSet = buildPublishChangeSet(localState, remoteState);
+      patchState((draft) => {
+        draft.modal = "publish-review";
+        draft.modalContext = {
+          settings,
+          review: {
+            localState,
+            remoteState,
+            changes: changeSet.changes,
+            selectedIds: changeSet.selectedIds
+          }
+        };
+        draft.openCreateMenu = null;
+        draft.message = changeSet.changes.length ? "已检测到待发表改动" : "没有检测到待发表改动";
+      });
+    } catch (error) {
+      console.error(error);
+      patchState((draft) => {
+        draft.syncStatus = "error";
+        draft.message = error.message || "读取 GitHub 已发表内容失败";
+      });
+      setToast(error.message || "读取 GitHub 已发表内容失败，请检查 token 和仓库权限");
+    }
+  };
+
+  const publishSelectedChanges = async (settings, review, selectedIds) => {
+    if (!selectedIds.size) {
+      setToast("请至少选择一项改动");
+      return;
+    }
+    const validation = validatePublishSelection(review.changes, selectedIds);
+    if (!validation.valid) { setToast("删除标签时，请同时选择受影响的文档"); return; }
     patchState((draft) => {
       draft.syncStatus = "publishing";
-      draft.message = "正在发表全部改动到 GitHub";
+      draft.message = "正在发表选中的改动到 GitHub";
       draft.modal = null;
       draft.modalContext = null;
     });
     try {
       const publishedAt = now();
-      const remoteLibrary = await loadGitHubPublishedIndex(settings);
-      const normalizedNotes = assignPublishFiles(sourceNotes);
-      const nextNotes = [];
-      const publishState = { ...state, notes: normalizedNotes };
-      for (const item of normalizedNotes) {
-        const docPath = item.file;
+      const latestRemoteState = await loadGitHubPublishedLibrary(settings);
+      const merged = mergeSelectedPublishState(review.localState, latestRemoteState, selectedIds);
+      const selectedNotes = assignSelectedPublishFiles(merged.selectedNotes, latestRemoteState.notes || []);
+      const selectedById = new Map(selectedNotes.map((item) => [item.id, item]));
+      const publishState = {
+        ...merged.state,
+        notes: merged.state.notes.map((item) => selectedById.get(item.id) || item)
+      };
+      const publishedNotes = [];
+      for (const item of selectedNotes) {
         const publishTags = ensureDefaultTags(item.tags);
         const publishedAssets = await publishPendingAssets(settings, item);
         const publishedHtml = replaceLocalAssetUrls(
@@ -873,7 +896,6 @@ function App() {
         );
         const publishedNote = {
           ...item,
-          file: docPath,
           dirty: false,
           publishedAt,
           date: publishedAt,
@@ -893,22 +915,27 @@ function App() {
           assets: publishedNote.assets,
           html: publishedHtml
         };
-        await putGitHubFile(settings, docPath, documentData, `Publish notebook: ${item.title}`);
-        nextNotes.push(publishedNote);
+        await putGitHubFile(settings, publishedNote.file, documentData, `Publish notebook: ${item.title}`);
+        publishedNotes.push(publishedNote);
       }
-      const library = buildPublishedIndex({ ...state, notes: nextNotes }, publishedAt);
-      await putGitHubFile(settings, publishedIndexPath, library, "Publish notebook index");
-      await deleteStalePublishedDocs(settings, remoteLibrary, nextNotes);
-
+      const publishedById = new Map(publishedNotes.map((item) => [item.id, item]));
+      const indexState = {
+        ...publishState,
+        notes: publishState.notes.map((item) => publishedById.get(item.id) || item)
+      };
+      for (const remoteNote of merged.deletedRemoteNotes) {
+        await deleteGitHubFile(settings, remoteNote.file, `Delete notebook: ${remoteNote.title}`);
+      }
+      await putGitHubFile(settings, publishedIndexPath, buildPublishedIndex(indexState, publishedAt), "Publish selected notebook changes");
       setState((latest) => {
         const next = structuredClone(latest);
-        next.notes = nextNotes;
-        next.deletedTags = [];
+        next.notes = reconcilePublishedNotes(latest.notes, publishedNotes, selectedIds);
+        if (merged.includeDeletedTags) next.deletedTags = [];
         next.syncStatus = "ready";
-        next.message = "已发表全部改动到 GitHub 仓库";
+        next.message = `已发表 ${selectedIds.size} 项改动到 GitHub 仓库`;
         return next;
       });
-      setToast("已发表全部改动到 GitHub");
+      setToast(`已发表 ${selectedIds.size} 项改动到 GitHub`);
     } catch (error) {
       console.error(error);
       patchState((draft) => {
@@ -984,7 +1011,23 @@ function App() {
     if (action === "confirm-rename-note") renameNote();
     if (action === "confirm-auth") confirmAuth();
     if (action === "confirm-publish-tags") confirmPublishTags();
-    if (action === "confirm-publish-all") publishAllNotes(state.modalContext?.settings, state.modalContext?.notes);
+    if (action === "toggle-publish-selection") {
+      const inputs = Array.from(document.querySelectorAll("[data-publish-change-id]"));
+      const shouldSelect = inputs.some((input) => !input.checked);
+      inputs.forEach((input) => { input.checked = shouldSelect; });
+      const count = document.querySelector("[data-publish-selected-count]");
+      if (count) count.textContent = String(shouldSelect ? inputs.length : 0);
+    }
+    if (action === "update-publish-selection-count") {
+      const count = document.querySelector("[data-publish-selected-count]");
+      if (count) count.textContent = String(document.querySelectorAll("[data-publish-change-id]:checked").length);
+    }
+    if (action === "confirm-publish-selected") {
+      const selectedIds = new Set(
+        Array.from(document.querySelectorAll("[data-publish-change-id]:checked"), (input) => input.dataset.publishChangeId)
+      );
+      publishSelectedChanges(state.modalContext?.settings, state.modalContext?.review, selectedIds);
+    }
     if (action === "confirm-delete-drafts") confirmDeleteDrafts();
     if (action === "delete-note") deleteNote(targetFolderId || state.activeId);
     if (action === "delete-folder") deleteFolder(targetFolderId);
@@ -3537,20 +3580,46 @@ function renderModal(state, handleAction) {
       )
     );
   }
-  if (state.modal === "publish-summary") {
-    const summary = state.modalContext?.summary || buildPublishSummary(state, state.modalContext?.notes || state.notes);
-    return modalShell("确认发表全部改动", "这次会把本地所有文档、目录、标签和索引一起写入 GitHub。确认后，下次打开网页会读取这次发表后的结果。",
-      h("div", { className: "publish-summary" },
-        h("div", { className: "summary-row" }, h("strong", null, "将写入文档"), h("span", null, `${summary.totalNotes} 篇`)),
-        h("div", { className: "summary-row" }, h("strong", null, "目录"), h("span", null, `${summary.folderCount} 个文件夹`)),
-        h("div", { className: "summary-row" }, h("strong", null, "标签"), h("span", null, `${summary.tagNames.length} 个标签`)),
-        summary.deletedTags.length ? h("div", { className: "summary-row danger" }, h("strong", null, "删除标签"), h("span", null, summary.deletedTags.join("、"))) : null,
-        h("h3", null, "本地草稿 / 新文档"),
-        summaryList(summary.dirtyNotes, "没有未发表草稿，但仍会重新同步全部文档。"),
-        h("h3", null, "将同步的文件夹"),
-        summaryList(summary.folderNames, "没有文件夹。")
-      ),
-      "确认发表全部", "confirm-publish-all", handleAction);
+  if (state.modal === "publish-review") {
+    const review = state.modalContext?.review || { changes: [], selectedIds: [] };
+    const selectedCount = review.selectedIds?.length || 0;
+    const typeLabels = { create: "新建", update: "修改", delete: "删除" };
+    const changeDescription = (change) => {
+      if (change.kind === "folders") return "目录结构会随必要的索引更新发表";
+      if (change.kind === "tags") return "已删除标签会从线上标签目录移除";
+      return `${typeLabels[change.action] || "修改"}文档`;
+    };
+    return h("div", { className: "modal-backdrop" },
+      h("div", { className: "modal" },
+        h("h2", null, "选择要发表的改动"),
+        h("p", null, "默认已选中所有检测到的改动。未选中的内容会继续保留在本地草稿中。选中文档时，必要的索引、目录和标签信息会自动一并更新。"),
+        h("div", { className: "form" },
+          h("div", { className: "publish-review-summary" },
+            h("div", { className: "summary-row" }, h("strong", null, "已选择"), h("span", { "data-publish-selected-count": "" }, String(selectedCount))),
+            h("button", { type: "button", className: "ghost-btn publish-select-toggle", onClick: () => handleAction("toggle-publish-selection") }, "全选 / 取消全选")
+          ),
+          h("div", { className: "publish-change-list" },
+            review.changes.length
+              ? review.changes.map((change) => h("label", {
+                key: change.id,
+                className: `publish-change-row ${change.action === "delete" ? "is-delete" : ""}`
+              },
+              h("input", { type: "checkbox", "data-publish-change-id": change.id, defaultChecked: review.selectedIds.includes(change.id), onChange: () => handleAction("update-publish-selection-count") }),
+              h("span", { className: "publish-change-type" }, typeLabels[change.action] || "更新"),
+              h("span", { className: "publish-change-content" },
+                h("strong", null, change.title),
+                h("small", null, changeDescription(change))
+              )
+            ))
+              : h("p", { className: "empty" }, "没有检测到待发表改动。")
+          )
+        ),
+        h("div", { className: "modal-actions" },
+          h("button", { className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
+          h("button", { className: "primary-btn", disabled: !review.changes.length, onClick: () => handleAction("confirm-publish-selected") }, "发表选中改动")
+        )
+      )
+    );
   }
   if (state.modal === "auth") {
     return modalShell("编辑验证", "验证通过后，文档会发表到当前笔记本 GitHub 仓库的 main 分支。",
@@ -3660,6 +3729,30 @@ async function loadGitHubPublishedIndex(settings) {
   return data && Array.isArray(data.docs) ? data : { docs: [] };
 }
 
+async function loadGitHubPublishedLibrary(settings) {
+  const index = await loadGitHubPublishedIndex(settings);
+  const docs = await Promise.all((index.docs || []).map((doc) => getGitHubJsonFile(settings, doc.file)));
+  return {
+    folders: index.folders || [],
+    notes: docs.map((documentData, indexPosition) => {
+      if (!documentData) return { id: summary.id, title: summary.title || "未命名文档", folderId: summary.folderId || null, tags: ensureDefaultTags(summary.tags), date: summary.updatedAt || now(), file: summary.file, dirty: false, publishedAt: summary.updatedAt || "", assets: [], html: "" };
+      const summary = index.docs[indexPosition];
+      return {
+        id: documentData.id || summary.id,
+        title: documentData.title || summary.title || "未命名文档",
+        folderId: documentData.folderId || summary.folderId || null,
+        tags: ensureDefaultTags(documentData.tags || summary.tags),
+        date: documentData.updatedAt || summary.updatedAt || now(),
+        file: summary.file,
+        dirty: false,
+        publishedAt: documentData.updatedAt || summary.updatedAt || "",
+        assets: documentData.assets || [],
+        html: normalizeHtml(documentData.html || blocksToHtml(documentData.blocks))
+      };
+    }).filter(Boolean),
+    deletedTags: []
+  };
+}
 async function getGitHubJsonFile(settings, path) {
   const response = await fetch(`${githubContentUrl(settings, path)}?ref=${encodeURIComponent(settings.branch)}&v=${Date.now()}`, {
     headers: githubHeaders(settings.token),
@@ -3733,6 +3826,24 @@ function assignPublishFiles(notes) {
   });
 }
 
+function assignSelectedPublishFiles(selectedNotes, remoteNotes) {
+  const remoteById = new Map((remoteNotes || []).map((note) => [note.id, note]));
+  const usedFiles = new Set((remoteNotes || []).map((note) => trimSlash(note.file)).filter(Boolean));
+  return (selectedNotes || []).map((note) => {
+    const remote = remoteById.get(note.id);
+    if (remote?.file) return { ...note, file: remote.file };
+    const preferred = trimSlash(note.file);
+    const base = `notebooks/docs/${slugify(note.title || note.id || "untitled")}.json`;
+    let candidate = preferred && !usedFiles.has(preferred) ? preferred : base;
+    let counter = 2;
+    while (usedFiles.has(candidate)) {
+      candidate = `notebooks/docs/${slugify(note.title || note.id || "untitled")}-${counter}.json`;
+      counter += 1;
+    }
+    usedFiles.add(candidate);
+    return { ...note, file: candidate };
+  });
+}
 function uniqueValues(values) {
   return Array.from(new Set(values));
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildPublishChangeSet, mergeSelectedPublishState } from "../static/publish-model.mjs";
+import { buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "../static/publish-model.mjs";
 
 const remote = {
   folders: [{ id: "work", name: "Work", parentId: null }],
@@ -51,3 +51,22 @@ const movedFolderLocal = {
 const selectedMove = mergeSelectedPublishState(movedFolderLocal, remote, new Set(["note:update"]));
 assert.equal(selectedMove.includeFolders, true, "a selected document in a changed existing folder must carry its folder dependency");
 assert.equal(selectedMove.state.folders[0].name, "Renamed work", "the selected folder dependency should use the local folder structure");
+
+const publishedUpdate = { ...local.notes[1], html: "<p>published</p>", dirty: false, publishedAt: "2026-07-27T00:00:00.000Z" };
+const reconciledNotes = reconcilePublishedNotes(local.notes, [publishedUpdate], new Set(["note:update"]));
+assert.equal(reconciledNotes.find((note) => note.id === "update").html, "<p>published</p>", "a published selection should use the write result locally");
+assert.equal(reconciledNotes.find((note) => note.id === "update").dirty, false, "a published selection should become clean");
+assert.equal(reconciledNotes.find((note) => note.id === "create").dirty, true, "an unselected draft must remain dirty after another note publishes");
+
+const tagRemote = { ...remote, notes: [{ ...remote.notes[0], tags: ["Legacy"] }] };
+const tagLocal = { ...tagRemote, notes: [{ ...tagRemote.notes[0], tags: ["Notes"], dirty: true }], deletedTags: ["Legacy"] };
+const tagChangeSet = buildPublishChangeSet(tagLocal, tagRemote);
+const tagOnlySelection = new Set(["tags"]);
+assert.equal(validatePublishSelection(tagChangeSet.changes, tagOnlySelection).valid, false, "a tag deletion must require its affected documents to stay selected");
+const selectedTagDelete = mergeSelectedPublishState(tagLocal, tagRemote, tagOnlySelection);
+assert.equal(selectedTagDelete.selectedNotes.length, 0, "a tag-only selection must not write a document the user deselected");
+assert.deepEqual(selectedTagDelete.state.notes[0].tags, ["Legacy"], "a rejected tag-only selection must preserve remote tags");
+
+const freshRemote = { ...remote, notes: [...remote.notes, { id: "fresh", title: "Remote fresh", folderId: "work", tags: ["Notes"], html: "<p>fresh</p>", assets: [], file: "notebooks/docs/fresh.json" }] };
+const mergedWithFreshRemote = mergeSelectedPublishState(local, freshRemote, new Set(["note:update"]));
+assert.equal(mergedWithFreshRemote.state.notes.some((note) => note.id === "fresh"), true, "a selected update must preserve a document added remotely after review opened");

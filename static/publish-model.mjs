@@ -84,13 +84,19 @@ export function buildPublishChangeSet(localState, remoteState) {
     changes.push({ id: "folders", kind: "folders", action: "update", title: "????" });
   }
   if (!sameValue(stableTags(localState.deletedTags), stableTags(remoteState.deletedTags))) {
-    changes.push({ id: "tags", kind: "tags", action: "delete", title: "?????" });
+    changes.push({ id: "tags", kind: "tags", action: "delete", title: "Tag deletions", requires: changes.filter((change) => change.kind === "note" && change.action !== "delete" && !sameValue(stableTags(localById.get(change.noteId)?.tags), stableTags(remoteById.get(change.noteId)?.tags))).map((change) => change.id) });
   }
 
   return { changes, selectedIds: changes.map((change) => change.id) };
 }
 
-export function mergeSelectedPublishState(localState, remoteState, selectedIds) {
+
+export function validatePublishSelection(changes, selectedIds) {
+  const selected = new Set(selectedIds || []);
+  const tags = (changes || []).find((change) => change.id === "tags");
+  const missing = (tags?.requires || []).filter((id) => !selected.has(id));
+  return missing.length ? { valid: false, missing } : { valid: true, missing: [] };
+}export function mergeSelectedPublishState(localState, remoteState, selectedIds) {
   const selected = new Set(selectedIds || []);
   const changeSet = buildPublishChangeSet(localState, remoteState);
   const changeById = new Map(changeSet.changes.map((change) => [change.id, change]));
@@ -98,27 +104,19 @@ export function mergeSelectedPublishState(localState, remoteState, selectedIds) 
   const localById = new Map((localState.notes || []).map((note) => [note.id, note]));
   const selectedNotes = [];
   const deletedRemoteNotes = [];
+  const includeDeletedTags = selected.has("tags");
 
   for (const change of changeSet.changes) {
     if (!selected.has(change.id) || change.kind !== "note") continue;
+    const local = localById.get(change.noteId);
+    const remote = remoteById.get(change.noteId);
     if (change.action === "delete") {
-      const remote = remoteById.get(change.noteId);
-      if (remote) {
-        remoteById.delete(change.noteId);
-        deletedRemoteNotes.push(remote);
-      }
+      if (remote) { remoteById.delete(change.noteId); deletedRemoteNotes.push(remote); }
       continue;
     }
-    const local = localById.get(change.noteId);
-    if (local) {
-      const next = clone(local);
-      remoteById.set(change.noteId, next);
-      selectedNotes.push(next);
-    }
+    if (local) { const next = clone(local); remoteById.set(change.noteId, next); selectedNotes.push(next); }
   }
-
   const includeFolders = selected.has("folders") || foldersRequiredForSelectedNotes(localState, remoteState, selected, changeById);
-  const includeDeletedTags = selected.has("tags");
   const remoteOrder = (remoteState.notes || []).map((note) => note.id);
   const createdIds = selectedNotes.map((note) => note.id).filter((id) => !remoteOrder.includes(id));
   const orderedIds = [...remoteOrder.filter((id) => remoteById.has(id)), ...createdIds];
@@ -134,4 +132,9 @@ export function mergeSelectedPublishState(localState, remoteState, selectedIds) 
     includeFolders,
     includeDeletedTags
   };
+}
+
+export function reconcilePublishedNotes(localNotes, publishedNotes) {
+  const publishedById = new Map((publishedNotes || []).map((note) => [note.id, note]));
+  return (localNotes || []).map((note) => publishedById.get(note.id) || note);
 }
