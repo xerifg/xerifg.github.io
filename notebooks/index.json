@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-27T12:00:57.127Z",
+  "updatedAt": "2026-07-28T03:48:39.006Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -41,8 +41,8 @@
       "path": "Notebooks/自动驾驶",
       "tags": [
         "Notes",
-        "模型",
-        "VoxelNet"
+        "VoxelNet",
+        "模型"
       ],
       "updatedAt": "2026-07-27T12:00:57.127Z",
       "file": "notebooks/docs/voxelnet模型.json"
@@ -166,6 +166,19 @@
       ],
       "updatedAt": "2026-07-27T04:03:50.401Z",
       "file": "notebooks/docs/chrome.json"
+    },
+    {
+      "id": "note-1785207464379",
+      "title": "PointPillars模型",
+      "folderId": "folder-1783672397764",
+      "path": "Notebooks/自动驾驶",
+      "tags": [
+        "Notes",
+        "模型",
+        "PointPillars"
+      ],
+      "updatedAt": "2026-07-28T03:48:39.006Z",
+      "file": "notebooks/docs/未命名文档.json"
     }
   ]
 }
