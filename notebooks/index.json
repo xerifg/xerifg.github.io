@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-28T03:48:39.006Z",
+  "updatedAt": "2026-07-29T03:22:20.412Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -179,6 +179,20 @@
       ],
       "updatedAt": "2026-07-28T03:48:39.006Z",
       "file": "notebooks/docs/未命名文档.json"
+    },
+    {
+      "id": "note-1785294364683",
+      "title": "SECOND检测模型",
+      "folderId": "folder-1783672397764",
+      "path": "Notebooks/自动驾驶",
+      "tags": [
+        "Notes",
+        "模型",
+        "自动驾驶",
+        "SECOND"
+      ],
+      "updatedAt": "2026-07-29T03:22:20.412Z",
+      "file": "notebooks/docs/second检测模型.json"
     }
   ]
 }
