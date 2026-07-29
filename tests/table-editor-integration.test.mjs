@@ -24,6 +24,13 @@ assert.match(tableControlsSource, /table-column-drag-handle/, "only internal tab
 assert.match(tableControlsSource, /const nextWidth = Math\.max\(96, state\.rightWidth - delta\);/, "dragging a border should shrink the adjacent column instead of moving later borders");
 assert.match(appSource, /function FeishuTableControls/, "the editor should render controls for the active table");
 assert.match(appSource, /function TableInsertGrid/, "table insertion should support selecting a grid size");
+assert.match(appSource, /run\(item\.command, \{ event, item \}\)/, "insert menu items should pass their trigger event for submenu anchoring");
+assert.match(appSource, /setTablePicker\(tablePickerPositionForTrigger\(context\.event, shellRef\.current, insertMenu/, "table picker should anchor beside the table menu item instead of replacing the insert menu");
+const insertTableCommandBranch = appSource.match(/if \(command === "table"\) \{[\s\S]*?return;\n    \}/)?.[0] || "";
+assert.ok(insertTableCommandBranch, "table insert command should have a dedicated branch");
+assert.doesNotMatch(insertTableCommandBranch, /setInsertMenu\(null\)/, "opening the table picker should keep the insert menu visible");
+assert.match(appSource, /closest\?\.\("\.feishu-insert-menu, \.table-insert-grid, \.feishu-plus"\)/, "clicking outside insert controls should dismiss both insert panels");
+assert.doesNotMatch(appSource, /onMouseLeave: onClose/, "table grid picker should not close while moving between the insert menu and the grid");
 assert.match(appSource, /merge-or-split/, "the table toolbar should merge and split selected cells");
 assert.match(appSource, /sort-ascending/, "the table toolbar should sort the active column");
 assert.match(indexSource, /app\.js\?v=20260729-markdown-paste-v2/, "the page should request the updated table editor module instead of a cached script");
@@ -96,9 +103,14 @@ assert.match(tableControlsSource, /table-toolbar-popover/, "table toolbar dropdo
 assert.match(tableControlsSource, /onPointerDown: \(event\) => activate\(event, command/, "toolbar commands should execute on pointer down without losing the table selection");
 assert.match(tableControlsSource, /onPointerDown: \(event\) => openToolbarMenu\(event, "style"\)/, "text style options should open on click");
 assert.match(tableControlsSource, /onPointerDown: \(event\) => openToolbarMenu\(event, "align"\)/, "alignment options should open on click");
+assert.match(tableControlsSource, /openToolbarMenu\(event, "textColor"\)/, "table toolbar should expose the document-style text color panel");
+assert.match(tableControlsSource, /openToolbarMenu\(event, "cellBackground"\)/, "table toolbar should expose a cell background color panel");
+assert.match(tableControlsSource, /\\u5355\\u5143\\u683c\\u80cc\\u666f\\u989c\\u8272/, "cell background panel should be labeled for cell background color");
+assert.doesNotMatch(tableControlsSource, /feishu-color-reset/, "table color panels should not show a restore-default button");
 assert.doesNotMatch(tableControlsSource, /table-structure-menu/, "the compact toolbar should not add a separate table structure button");
 assert.match(tableControlsSource, /title: activeLine\.kind === "row" \? "删除行" : "删除列"/, "the full-line toolbar should include a direct delete control");
 assert.match(appSource, /if \(command === "strike"\) return chain\.toggleStrike\(\)\.run\(\);/, "table toolbars should support strikethrough formatting");
+assert.match(appSource, /if \(command === "background-reset"\) return chain\.setCellAttribute\("backgroundColor", null\)\.run\(\);/, "table background reset should clear the cell background attribute");
 assert.match(appSource, /if \(command\.startsWith\("highlight-"\)\)/, "table toolbars should support highlight color choices");
 assert.match(appSource, /if \(command\.startsWith\("vertical-align-"\)\)/, "table toolbars should support vertical cell alignment");
 assert.doesNotMatch(tableControlsSource, /sort-ascending|sort-descending/, "the compact toolbar should not include unrequested sorting controls");
@@ -106,6 +118,7 @@ assert.match(cssSource, /\.table-selection-toolbar\s*\{[\s\S]*pointer-events: au
 assert.match(cssSource, /\.table-toolbar-popover\s*\{[\s\S]*pointer-events: auto/, "table toolbar dropdowns must remain clickable inside the overlay");
 assert.match(cssSource, /\.table-selection-toolbar\s*\{[^}]*overflow: visible/, "the main toolbar should not become a horizontal scrolling container");
 assert.doesNotMatch(cssSource, /\.table-selection-toolbar\s*\{[^}]*overflow-x: auto/, "toolbar menus should render as independent floating panels, not in a scrollable toolbar");
+assert.match(cssSource, /\.table-toolbar-color-panel/, "table color popovers should use table-specific color panel placement");
 assert.match(tableControlsSource, /const left = event\.currentTarget\.offsetLeft;/, "menu trigger geometry must be read before the React event is released");
 assert.match(tableControlsSource, /\{ type, left \}/, "the deferred menu state update should use the captured trigger position");
 assert.match(cssSource, /\.table-toolbar-popover button\s*\{[^}]*display: flex[^}]*align-items: center/, "menu icons and labels should stay on one line");

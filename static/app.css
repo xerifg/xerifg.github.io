@@ -1285,6 +1285,16 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 .table-selection-toolbar .table-toolbar-menu-trigger { width: auto; min-width: 34px; padding: 0 6px; }
 .table-selection-toolbar .table-highlight-trigger { color: #a47700; background: #fff8b8; }
 .table-selection-toolbar .table-highlight-trigger:hover { background: #fff3a0; color: #765700; }
+.table-selection-toolbar .table-text-color-trigger { color: #245bdb; }
+.table-selection-toolbar .table-text-color-trigger:hover { background: #e8f3ff; color: #1d4ed8; }
+.table-selection-toolbar .table-cell-background-trigger { color: #2f6f3e; }
+.table-selection-toolbar .table-cell-background-trigger:hover { background: #eaf7ef; color: #1f5c32; }
+
+.table-toolbar-color-panel {
+  left: auto;
+  top: calc(100% + 6px);
+  z-index: 3;
+}
 .table-selection-toolbar .table-delete-action { color: #d13b3b; }
 .table-selection-toolbar .table-delete-action:hover { background: #fff1f0; color: #b42318; }
 

@@ -1955,7 +1955,18 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
     };
   }, []);
 
-  const run = async (command) => {
+  useEffect(() => {
+    if (!insertMenu && !tablePicker) return undefined;
+    const closeInsertPanels = (event) => {
+      if (event.target?.closest?.(".feishu-insert-menu, .table-insert-grid, .feishu-plus")) return;
+      setInsertMenu(null);
+      setTablePicker(null);
+    };
+    window.addEventListener("pointerdown", closeInsertPanels, true);
+    return () => window.removeEventListener("pointerdown", closeInsertPanels, true);
+  }, [insertMenu, tablePicker]);
+
+  const run = async (command, context = {}) => {
     if (!editorRef.current) return;
     if (insertMenu?.slashRange) {
       const { from, to } = insertMenu.slashRange;
@@ -1964,8 +1975,7 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
       }
     }
     if (command === "table") {
-      setTablePicker(insertMenu || { left: 52, top: sideButton.top + 28 });
-      setInsertMenu(null);
+      setTablePicker(tablePickerPositionForTrigger(context.event, shellRef.current, insertMenu || { left: 52, top: sideButton.top + 28 }));
       return;
     }
     await applyEditorCommand(editorRef.current, command, {
@@ -2017,9 +2027,9 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
       onSelect: (rows, cols) => {
         editorRef.current?.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
         setTablePicker(null);
+        setInsertMenu(null);
         if (editorRef.current) onChange(editorRef.current.getHTML());
       },
-      onClose: () => setTablePicker(null)
     }) : null
   );
 }
@@ -2187,7 +2197,7 @@ function FeishuInsertMenu({ position, run }) {
     onMouseDown: (event) => event.preventDefault()
   }, sections.map((section) => h("div", { className: "feishu-menu-section", key: section.title },
     h("div", { className: "feishu-menu-title" }, section.title),
-    section.items.map((item) => h("button", { key: `${section.title}-${item.label}`, onClick: () => run(item.command) },
+    section.items.map((item) => h("button", { key: `${section.title}-${item.label}`, onClick: (event) => run(item.command, { event, item }) },
       h("span", { className: "feishu-menu-icon", style: { color: item.color || "#1f2329" } }, item.icon),
       h("span", null, item.label),
       item.arrow ? h("i", null, "›") : null
@@ -2814,6 +2824,23 @@ function menuPositionInShell(rect, shell, anchor) {
   };
 }
 
+function tablePickerPositionForTrigger(event, shell, menuPosition) {
+  const shellRect = shell?.getBoundingClientRect?.();
+  const triggerRect = event?.currentTarget?.getBoundingClientRect?.();
+  const pickerWidth = 178;
+  const gap = 8;
+  if (!shell || !shellRect || !triggerRect) {
+    return {
+      left: Math.min(Math.max(0, (menuPosition?.left || 52) + 248 + gap), Math.max(0, (shell?.clientWidth || 480) - pickerWidth)),
+      top: Math.max(0, menuPosition?.top || 0)
+    };
+  }
+  return {
+    left: Math.min(Math.max(0, triggerRect.right - shellRect.left + gap), Math.max(0, shell.clientWidth - pickerWidth)),
+    top: Math.max(0, triggerRect.top - shellRect.top)
+  };
+}
+
 function renderTopbar(state, note, handleAction) {
   return h("header", { className: "topbar" },
     h("div", { className: "crumb" },
@@ -3023,9 +3050,13 @@ function applyTableCommand(editor, command) {
     if (url === null) return false;
     return url ? chain.extendMarkRange("link").setLink({ href: url }).run() : chain.unsetLink().run();
   }
+  if (command === "text-color-reset") return chain.unsetColor().run();
+  if (command === "highlight-reset") return chain.unsetHighlight().run();
+  if (command.startsWith("text-color-")) return chain.setColor(command.slice(11)).run();
   if (command.startsWith("highlight-")) return chain.setHighlight({ color: command.slice(10) }).run();
   if (command.startsWith("align-")) return chain.setCellAttribute("textAlign", command.slice(6)).run();
   if (command.startsWith("vertical-align-")) return chain.setCellAttribute("verticalAlign", command.slice(15)).run();
+  if (command === "background-reset") return chain.setCellAttribute("backgroundColor", null).run();
   if (command.startsWith("background-")) return chain.setCellAttribute("backgroundColor", command.slice(11)).run();
   if (command === "sort-ascending") return sortActiveTable(editor, "asc");
   if (command === "sort-descending") return sortActiveTable(editor, "desc");
@@ -3370,35 +3401,75 @@ function FeishuTableControls({ editor, shellRef }) {
       const lineRect = activeLine?.cell?.getBoundingClientRect() || null;
       const textRect = hasTableTextSelection ? getSelectionToolbarRect(editor.view.dom) : null;
       const toolbarAnchorRect = textRect || lineRect || tableRect;
+      const textColors = ["#245bdb", "#1f2329", "#f54a45", "#f59f00", "#de7b00", "#2f9e44", "#2563eb", "#7c3aed"];
+      const backgroundColors = ["transparent", "#f2f3f5", "#ffe8e8", "#ffe8c2", "#fff4b8", "#d9f7d8", "#dbe7ff", "#e8dcff", "#e4e7eb", "#c9cdd4", "#ff6b5f", "#ff9f43", "#ffd43b", "#51cf66", "#91a7ff", "#b197fc"];
       const menuItems = toolbarMenu?.type === "style"
         ? [
-          { command: "paragraph", icon: "T", label: "正文" },
-          { command: "h1", icon: "H1", label: "一级标题" },
-          { command: "h2", icon: "H2", label: "二级标题" },
-          { command: "h3", icon: "H3", label: "三级标题" },
+          { command: "paragraph", icon: "T", label: "\u6b63\u6587" },
+          { command: "h1", icon: "H1", label: "\u4e00\u7ea7\u6807\u9898" },
+          { command: "h2", icon: "H2", label: "\u4e8c\u7ea7\u6807\u9898" },
+          { command: "h3", icon: "H3", label: "\u4e09\u7ea7\u6807\u9898" },
           { divider: true },
-          { command: "ordered-list", icon: "1.", label: "有序列表" },
-          { command: "bullet-list", icon: "•", label: "无序列表" },
-          { command: "task-list", icon: "☑", label: "任务" },
-          { command: "code-block", icon: "{}", label: "代码块" }
+          { command: "ordered-list", icon: "1.", label: "\u6709\u5e8f\u5217\u8868" },
+          { command: "bullet-list", icon: "\u2022", label: "\u65e0\u5e8f\u5217\u8868" },
+          { command: "task-list", icon: "\u2611", label: "\u4efb\u52a1" },
+          { command: "code-block", icon: "{}", label: "\u4ee3\u7801\u5757" }
         ]
         : toolbarMenu?.type === "align"
           ? [
-            { command: "align-left", icon: "≡", label: "左对齐" },
-            { command: "align-center", icon: "≡", label: "居中对齐" },
-            { command: "align-right", icon: "≡", label: "右对齐" },
+            { command: "align-left", icon: "L", label: "\u5de6\u5bf9\u9f50" },
+            { command: "align-center", icon: "C", label: "\u5c45\u4e2d\u5bf9\u9f50" },
+            { command: "align-right", icon: "R", label: "\u53f3\u5bf9\u9f50" },
             { divider: true },
-            { command: "vertical-align-top", icon: "↑", label: "顶部对齐" },
-            { command: "vertical-align-middle", icon: "↕", label: "垂直居中" },
-            { command: "vertical-align-bottom", icon: "↓", label: "底部对齐" }
+            { command: "vertical-align-top", icon: "T", label: "\u9876\u90e8\u5bf9\u9f50" },
+            { command: "vertical-align-middle", icon: "M", label: "\u5782\u76f4\u5c45\u4e2d" },
+            { command: "vertical-align-bottom", icon: "B", label: "\u5e95\u90e8\u5bf9\u9f50" }
           ]
-          : toolbarMenu?.type === "highlight"
-            ? [
-              { command: "highlight-#fff36d", icon: "■", label: "黄色高亮" },
-              { command: "highlight-#d3f9d8", icon: "■", label: "绿色高亮" },
-              { command: "highlight-#dbeafe", icon: "■", label: "蓝色高亮" }
-            ]
-            : [];
+          : [];
+      const renderToolbarMenu = () => {
+        if (!toolbarMenu) return null;
+        if (toolbarMenu.type === "textColor") {
+          return h("div", { className: "feishu-color-panel table-toolbar-color-panel", style: { left: `${toolbarMenu.left}px` }, onMouseDown: (event) => event.preventDefault() },
+            h("div", { className: "feishu-color-section" },
+              h("div", { className: "feishu-color-title" }, "\u5b57\u4f53\u989c\u8272"),
+              h("div", { className: "feishu-color-row" }, textColors.map((color) => h("button", {
+                key: "table-text-" + color,
+                className: "feishu-text-color-swatch",
+                style: { color },
+                title: color,
+                onPointerDown: (event) => activate(event, "text-color-" + color, activeLine || {})
+              }, "A")))
+            ),
+            h("div", { className: "feishu-color-section" },
+              h("div", { className: "feishu-color-title" }, "\u80cc\u666f\u989c\u8272"),
+              h("div", { className: "feishu-color-grid" }, backgroundColors.map((color) => h("button", {
+                key: "table-highlight-" + color,
+                className: "feishu-bg-color-swatch " + (color === "transparent" ? "empty" : ""),
+                style: { background: color === "transparent" ? "#ffffff" : color },
+                title: color === "transparent" ? "\u65e0\u80cc\u666f" : color,
+                onPointerDown: (event) => activate(event, color === "transparent" ? "highlight-reset" : "highlight-" + color, activeLine || {})
+              })))
+            )
+          );
+        }
+        if (toolbarMenu.type === "cellBackground") {
+          return h("div", { className: "feishu-color-panel table-toolbar-color-panel", style: { left: `${toolbarMenu.left}px` }, onMouseDown: (event) => event.preventDefault() },
+            h("div", { className: "feishu-color-section" },
+              h("div", { className: "feishu-color-title" }, "\u5355\u5143\u683c\u80cc\u666f\u989c\u8272"),
+              h("div", { className: "feishu-color-grid" }, backgroundColors.map((color) => h("button", {
+                key: "table-background-" + color,
+                className: "feishu-bg-color-swatch " + (color === "transparent" ? "empty" : ""),
+                style: { background: color === "transparent" ? "#ffffff" : color },
+                title: color === "transparent" ? "\u65e0\u586b\u5145" : color,
+                onPointerDown: (event) => activate(event, color === "transparent" ? "background-reset" : "background-" + color, activeLine || {})
+              })))
+            )
+          );
+        }
+        return h("div", { className: "table-toolbar-popover", style: { left: `${toolbarMenu.left}px` } }, menuItems.map((item, index) => item.divider
+          ? h("span", { className: "table-toolbar-popover-divider", key: `divider-${index}` })
+          : h("button", { key: item.command, onPointerDown: (event) => activate(event, item.command, activeLine || {}) }, h("span", { className: "table-toolbar-menu-icon" }, item.icon), item.label)));
+      };
       return h("div", {
       className: "table-selection-toolbar",
       style: {
@@ -3423,10 +3494,15 @@ function FeishuTableControls({ editor, shellRef }) {
         onPointerDown: (event) => activate(event, command, activeLine || {})
       }, label)),
       h("button", {
-        className: "table-toolbar-menu-trigger table-highlight-trigger",
-        title: "高亮颜色",
-        onPointerDown: (event) => openToolbarMenu(event, "highlight")
-      }, "A⌄"),
+        className: "table-toolbar-menu-trigger table-text-color-trigger",
+        title: "\u6587\u5b57\u989c\u8272",
+        onPointerDown: (event) => openToolbarMenu(event, "textColor")
+      }, "A v"),
+      h("button", {
+        className: "table-toolbar-menu-trigger table-cell-background-trigger",
+        title: "\u5355\u5143\u683c\u80cc\u666f\u989c\u8272",
+        onPointerDown: (event) => openToolbarMenu(event, "cellBackground")
+      }, "Bg v"),
       activeLine ? h("span", { className: "table-toolbar-divider" }) : null,
       activeLine ? h("button", { title: "合并或拆分单元格", onPointerDown: (event) => activate(event, "merge-or-split", activeLine) }, "▦") : null,
       activeLine ? h("button", {
@@ -3434,20 +3510,12 @@ function FeishuTableControls({ editor, shellRef }) {
         title: activeLine.kind === "row" ? "删除行" : "删除列",
         onPointerDown: (event) => activate(event, activeLine.kind === "row" ? "delete-row" : "delete-column", activeLine)
       }, "⌫") : null,
-      toolbarMenu ? h("div", {
-        className: "table-toolbar-popover",
-        style: { left: `${toolbarMenu.left}px` }
-      }, menuItems.map((item, index) => item.divider
-        ? h("span", { className: "table-toolbar-popover-divider", key: `divider-${index}` })
-        : h("button", {
-          key: item.command,
-          onPointerDown: (event) => activate(event, item.command, activeLine || {})
-        }, h("span", { className: "table-toolbar-menu-icon" }, item.icon), item.label))) : null
+      renderToolbarMenu()
     ); })() : null
   );
 }
 
-function TableInsertGrid({ position, onSelect, onClose }) {
+function TableInsertGrid({ position, onSelect }) {
   const [selected, setSelected] = useState({ rows: 3, cols: 3 });
   const cells = [];
   for (let rows = 1; rows <= 6; rows += 1) {
@@ -3465,8 +3533,7 @@ function TableInsertGrid({ position, onSelect, onClose }) {
   return h("div", {
     className: "table-insert-grid",
     style: { left: `${position.left}px`, top: `${position.top}px` },
-    onMouseDown: (event) => event.preventDefault(),
-    onMouseLeave: onClose
+    onMouseDown: (event) => event.preventDefault()
   },
     h("div", { className: "table-grid-cells" }, cells),
     h("div", { className: "table-grid-size" }, `${selected.rows} × ${selected.cols}`)
