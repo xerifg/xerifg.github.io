@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-29T06:10:44.012Z",
+  "updatedAt": "2026-07-29T11:52:11.922Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -30,6 +30,11 @@
     {
       "id": "folder-1783672397764",
       "name": "自动驾驶",
+      "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1785325659605",
+      "name": "AI",
       "parentId": "folder-writing"
     }
   ],
@@ -193,6 +198,19 @@
       ],
       "updatedAt": "2026-07-29T06:10:44.012Z",
       "file": "notebooks/docs/second检测模型.json"
+    },
+    {
+      "id": "note-1785325662432",
+      "title": "优质github项目",
+      "folderId": "folder-1785325659605",
+      "path": "Notebooks/AI",
+      "tags": [
+        "Notes",
+        "AI",
+        "工具"
+      ],
+      "updatedAt": "2026-07-29T11:52:11.922Z",
+      "file": "notebooks/docs/优质github项目.json"
     }
   ]
 }
