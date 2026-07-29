@@ -20,7 +20,7 @@ import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
-import { buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs";
+import { buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260729-publish-diff-v2";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";

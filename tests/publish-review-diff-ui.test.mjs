@@ -42,17 +42,22 @@ assert.match(
 );
 assert.match(
   indexSource,
-  /app\.js\?v=20260729-publish-diff-v2/,
+  /app\.js\?v=20260729-publish-diff-v3/,
   "the page should request the publish diff script instead of a cached script"
 );
 
 assert.match(
   indexSource,
-  /app\.css\?v=20260729-publish-diff-v2/,
+  /app\.css\?v=20260729-publish-diff-v3/,
   "the page should request the publish diff styles instead of cached styles"
 );
 assert.match(
   appSource,
   /loadPublishedDocumentFallback/,
   "publish review should fall back to the already published local document JSON when GitHub document details are unavailable"
+);
+assert.match(
+  appSource,
+  /from "\.\/publish-model\.mjs\?v=20260729-publish-diff-v2"/,
+  "the app should version the publish model import so Chrome does not reuse a stale cached module"
 );
