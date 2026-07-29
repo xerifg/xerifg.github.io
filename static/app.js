@@ -1843,6 +1843,9 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
       ],
       content: normalizeHtml(note.html || blocksToHtml(note.blocks)),
       editorProps: {
+        transformPastedHTML(html) {
+          return sanitizeHtml(restoreMarkdownMathInHtml(html));
+        },
         attributes: { class: "feishu-editor ProseMirror" },
         handleDOMEvents: {
           mousedown(view, event) {
@@ -1866,8 +1869,10 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
               insertPastedAssets(files);
               return true;
             }
+            const html = event.clipboardData?.getData("text/html") || "";
+            if (html.trim()) return false;
             const text = event.clipboardData?.getData("text/plain") || "";
-            if (!markdownTextHasMath(text)) return false;
+            if (!markdownTextLooksStructured(text)) return false;
             event.preventDefault();
             setInsertMenu(null);
             editorRef.current?.chain().focus().insertContent(markdownTextToHtmlWithMath(text)).run();
@@ -2275,6 +2280,15 @@ function markdownTextHasMath(text) {
   return /(^|[^\\])\${1,2}[\s\S]+?\${1,2}/.test(String(text || ""));
 }
 
+function markdownTextLooksStructured(text) {
+  const source = String(text || "").trim();
+  if (!source) return false;
+  if (markdownTextHasMath(source)) return true;
+  return /(^|\n)\s{0,3}(#{1,6}\s+|[-*+]\s+|\d+[.)]\s+|>\s+|```)/.test(source)
+    || /\*\*[^*\n]+?\*\*/.test(source)
+    || /`[^`\n]+?`/.test(source);
+}
+
 function markdownTextToHtmlWithMath(text) {
   const lines = String(text || "").replace(/\r\n?/g, "\n").split("\n");
   const blocks = [];
@@ -2293,6 +2307,24 @@ function markdownTextToHtmlWithMath(text) {
       flushParagraph();
       continue;
     }
+    if (trimmed.startsWith("```")) {
+      flushParagraph();
+      const codeLines = [];
+      while (index + 1 < lines.length) {
+        index += 1;
+        if (lines[index].trim().startsWith("```")) break;
+        codeLines.push(lines[index]);
+      }
+      blocks.push("<pre><code>" + escapeHtml(codeLines.join("\n")) + "</code></pre>");
+      continue;
+    }
+    const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      const level = heading[1].length;
+      blocks.push("<h" + level + ">" + inlineMarkdownToHtmlWithMath(heading[2].trim()) + "</h" + level + ">");
+      continue;
+    }
     if (trimmed.startsWith("$$")) {
       flushParagraph();
       const mathLines = [trimmed.replace(/^\$\$\s*/, "")];
@@ -2304,23 +2336,24 @@ function markdownTextToHtmlWithMath(text) {
       blocks.push(mathHtml(tex, true));
       continue;
     }
-    const ordered = trimmed.match(/^\d+[.)]\s+(.+)$/);
-    const bullet = trimmed.match(/^[-*+]\s+(.+)$/);
-    if (ordered || bullet) {
+    if (markdownListLine(line)) {
       flushParagraph();
-      const tag = ordered ? "ol" : "ul";
-      const items = [];
-      let currentMatch = ordered || bullet;
-      while (currentMatch) {
-        items.push("<li>" + inlineMarkdownToHtmlWithMath(currentMatch[1]) + "</li>");
-        if (index + 1 >= lines.length) break;
-        const next = lines[index + 1].trim();
-        const nextMatch = tag === "ol" ? next.match(/^\d+[.)]\s+(.+)$/) : next.match(/^[-*+]\s+(.+)$/);
-        if (!nextMatch) break;
+      const parsed = parseMarkdownList(lines, index);
+      blocks.push(parsed.html);
+      index = parsed.nextIndex - 1;
+      continue;
+    }
+    const quote = trimmed.match(/^>\s+(.+)$/);
+    if (quote) {
+      flushParagraph();
+      const quoteLines = [quote[1]];
+      while (index + 1 < lines.length) {
+        const nextQuote = lines[index + 1].trim().match(/^>\s+(.+)$/);
+        if (!nextQuote) break;
+        quoteLines.push(nextQuote[1]);
         index += 1;
-        currentMatch = nextMatch;
       }
-      blocks.push("<" + tag + ">" + items.join("") + "</" + tag + ">");
+      blocks.push("<blockquote><p>" + inlineMarkdownToHtmlWithMath(quoteLines.join(" ")) + "</p></blockquote>");
       continue;
     }
     paragraph.push(trimmed);
@@ -2329,6 +2362,41 @@ function markdownTextToHtmlWithMath(text) {
   return blocks.join("") || "<p></p>";
 }
 
+function markdownListLine(line) {
+  return String(line || "").match(/^(\s*)(?:([-*+])|(\d+)[.)])\s+(.+)$/);
+}
+
+function parseMarkdownList(lines, startIndex, baseIndent = null) {
+  const first = markdownListLine(lines[startIndex]);
+  const indent = baseIndent ?? first[1].replace(/\t/g, "    ").length;
+  const ordered = Boolean(first[3]);
+  const tag = ordered ? "ol" : "ul";
+  const items = [];
+  let index = startIndex;
+
+  while (index < lines.length) {
+    const match = markdownListLine(lines[index]);
+    if (!match) break;
+    const currentIndent = match[1].replace(/\t/g, "    ").length;
+    const currentOrdered = Boolean(match[3]);
+    if (currentIndent < indent || currentOrdered !== ordered) break;
+    if (currentIndent > indent) {
+      if (!items.length) break;
+      const nested = parseMarkdownList(lines, index, currentIndent);
+      items[items.length - 1] = items[items.length - 1].replace(/<\/li>$/, nested.html + "</li>");
+      index = nested.nextIndex;
+      continue;
+    }
+    items.push("<li>" + inlineMarkdownToHtmlWithMath(match[4].trim()) + "</li>");
+    index += 1;
+    while (index < lines.length && lines[index].trim() && !markdownListLine(lines[index])) {
+      items[items.length - 1] = items[items.length - 1].replace(/<\/li>$/, " " + inlineMarkdownToHtmlWithMath(lines[index].trim()) + "</li>");
+      index += 1;
+    }
+  }
+
+  return { html: "<" + tag + ">" + items.join("") + "</" + tag + ">", nextIndex: index };
+}
 function inlineMarkdownToHtmlWithMath(text) {
   const source = String(text || "");
   let cursor = 0;
@@ -2347,10 +2415,10 @@ function inlineMarkdownToHtmlWithMath(text) {
 
 function inlineMarkdownTextToHtml(text) {
   return escapeHtml(text)
-    .replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`+([^`\n]+?)`+/g, "<code>$1</code>")
+    .replace(/\*\*([^*\n]+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\\\$/g, "$");
 }
-
 function mathHtml(tex, displayMode) {
   const tag = displayMode ? "div" : "span";
   const type = displayMode ? "math-block" : "math-inline";
