@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "note-1785325662432",
+  "title": "优质github项目",
+  "folderId": "folder-1785325659605",
+  "path": "Notebooks/AI",
+  "tags": [
+    "Notes",
+    "AI",
+    "工具"
+  ],
+  "createdAt": "2026-07-29T11:51:06.756Z",
+  "updatedAt": "2026-07-29T11:52:11.922Z",
+  "assets": [],
+  "html": "<h2>codegraph</h2><p><code> https://github.com/colbymchenry/codegraph</code></p><p><strong>CodeGraph</strong> 是一个专为 AI Agent（如 Claude Code、Cursor、Codex、Gemini CLI 等）设计的<strong>本地代码语义知识图谱工具</strong>。</p><p>它通过预先提取和分析代码库中所有的符号（Symbols）、函数调用链（Call Edges）和依赖关系，为 AI 提供精准的代码上下文，从而避免 AI 逐个读取文件去盲目探索代码结构</p><p></p>"
+}
