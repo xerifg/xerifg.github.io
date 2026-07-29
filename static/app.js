@@ -20,7 +20,7 @@ import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
-import { buildMissingRemoteNote, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs";
+import { buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -900,7 +900,7 @@ function App() {
           publishedAt,
           date: publishedAt,
           html: publishedHtml,
-          assets: publishedAssets.map(({ content, dataUrl, ...asset }) => asset),
+          assets: sanitizePublishedAssets(publishedAssets, publishedHtml),
           tags: publishTags
         };
         const documentData = {
@@ -3735,17 +3735,40 @@ function renderModal(state, handleAction) {
           ),
           h("div", { className: "publish-change-list" },
             review.changes.length
-              ? review.changes.map((change) => h("label", {
-                key: change.id,
-                className: `publish-change-row ${change.action === "delete" ? "is-delete" : ""}`
-              },
-              h("input", { type: "checkbox", "data-publish-change-id": change.id, defaultChecked: review.selectedIds.includes(change.id), onChange: () => handleAction("update-publish-selection-count") }),
-              h("span", { className: "publish-change-type" }, typeLabels[change.action] || "更新"),
-              h("span", { className: "publish-change-content" },
-                h("strong", null, change.title),
-                h("small", null, changeDescription(change))
-              )
-            ))
+              ? review.changes.map((change) => {
+                const details = buildPublishChangeDetails(review.localState, review.remoteState, change);
+                return h("div", {
+                  key: change.id,
+                  className: `publish-change-row ${change.action === "delete" ? "is-delete" : ""}`
+                },
+                h("input", { type: "checkbox", "data-publish-change-id": change.id, defaultChecked: review.selectedIds.includes(change.id), onChange: () => handleAction("update-publish-selection-count") }),
+                h("span", { className: "publish-change-type" }, typeLabels[change.action] || "更新"),
+                h("span", { className: "publish-change-content" },
+                  h("strong", null, change.title),
+                  h("small", null, changeDescription(change))
+                ),
+                h("details", { className: "publish-change-details" },
+                  h("summary", null, "查看差异"),
+                  details.length
+                    ? h("div", { className: "publish-diff-list" }, details.map((detail, index) => h("section", { key: `${change.id}-${detail.label}-${index}`, className: "publish-diff-item" },
+                      h("div", { className: "publish-diff-head" },
+                        h("strong", null, detail.label),
+                        detail.summary ? h("span", null, detail.summary) : null
+                      ),
+                      h("div", { className: "publish-diff-grid" },
+                        h("div", null,
+                          h("b", null, "远端"),
+                          h("pre", null, detail.remote)
+                        ),
+                        h("div", null,
+                          h("b", null, "本地待发表"),
+                          h("pre", null, detail.local)
+                        )
+                      )
+                    )))
+                    : h("p", { className: "empty" }, "没有可展示的字段差异。")
+                ));
+              })
               : h("p", { className: "empty" }, "没有检测到待发表改动。")
           )
         ),
@@ -3789,6 +3812,7 @@ async function loadPublishedLibrary() {
     const docResponse = await fetch(`${trimSlash(doc.file)}?v=${Date.now()}`, { cache: "no-store" });
     if (!docResponse.ok) return null;
     const documentData = await docResponse.json();
+    const documentHtml = normalizeHtml(documentData.html || blocksToHtml(documentData.blocks));
     return {
       id: documentData.id || doc.id,
       title: documentData.title || doc.title,
@@ -3798,8 +3822,8 @@ async function loadPublishedLibrary() {
       file: doc.file,
       dirty: false,
       publishedAt: documentData.updatedAt || doc.updatedAt || "",
-      assets: documentData.assets || [],
-      html: normalizeHtml(documentData.html || blocksToHtml(documentData.blocks))
+      assets: sanitizePublishedAssets(documentData.assets || [], documentHtml),
+      html: documentHtml
     };
   }));
   return migrate({
@@ -3866,28 +3890,49 @@ async function loadGitHubPublishedIndex(settings) {
 
 async function loadGitHubPublishedLibrary(settings) {
   const index = await loadGitHubPublishedIndex(settings);
-  const docs = await Promise.all((index.docs || []).map((doc) => getGitHubJsonFile(settings, doc.file)));
+  const docs = await Promise.all((index.docs || []).map(async (summary) => {
+    const documentData = await getGitHubJsonFile(settings, summary.file)
+      || await loadPublishedDocumentFallback(summary);
+    return documentData
+      ? buildRemotePublishedNote(summary, documentData)
+      : buildMissingRemoteNote(summary, now());
+  }));
   return {
     folders: index.folders || [],
-    notes: docs.map((documentData, indexPosition) => {
-      const summary = index.docs[indexPosition];
-      if (!documentData) return buildMissingRemoteNote(summary, now());
-      return {
-        id: documentData.id || summary.id,
-        title: documentData.title || summary.title || "未命名文档",
-        folderId: documentData.folderId || summary.folderId || null,
-        tags: ensureDefaultTags(documentData.tags || summary.tags),
-        date: documentData.updatedAt || summary.updatedAt || now(),
-        file: summary.file,
-        dirty: false,
-        publishedAt: documentData.updatedAt || summary.updatedAt || "",
-        assets: documentData.assets || [],
-        html: normalizeHtml(documentData.html || blocksToHtml(documentData.blocks))
-      };
-    }).filter(Boolean),
+    notes: docs.filter(Boolean),
     deletedTags: []
   };
 }
+
+function buildRemotePublishedNote(summary, documentData) {
+  const documentHtml = normalizeHtml(documentData.html || blocksToHtml(documentData.blocks));
+  return {
+    id: documentData.id || summary.id,
+    title: documentData.title || summary.title || "未命名文档",
+    folderId: documentData.folderId || summary.folderId || null,
+    tags: ensureDefaultTags(documentData.tags || summary.tags),
+    date: documentData.updatedAt || summary.updatedAt || now(),
+    file: summary.file,
+    dirty: false,
+    publishedAt: documentData.updatedAt || summary.updatedAt || "",
+    assets: sanitizePublishedAssets(documentData.assets || [], documentHtml),
+    html: documentHtml
+  };
+}
+
+async function loadPublishedDocumentFallback(summary) {
+  const file = trimSlash(summary?.file || "");
+  if (!file) return null;
+  try {
+    const response = await fetch(`${file}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.warn("Failed to load published document fallback", error);
+    return null;
+  }
+}
+
 async function getGitHubJsonFile(settings, path) {
   const response = await fetch(`${githubContentUrl(settings, path)}?ref=${encodeURIComponent(settings.branch)}&v=${Date.now()}`, {
     headers: githubHeaders(settings.token),
@@ -3982,12 +4027,36 @@ function assignSelectedPublishFiles(selectedNotes, remoteNotes) {
 function uniqueValues(values) {
   return Array.from(new Set(values));
 }
+function sanitizePublishedAsset(asset) {
+  const remotePath = asset?.remotePath || asset?.remoteUrl || "";
+  const { content, dataUrl, createdAt, ...rest } = asset || {};
+  return {
+    ...rest,
+    remotePath,
+    remoteUrl: remotePath,
+    localUrl: remotePath,
+    localPath: "",
+    cached: true,
+    published: true
+  };
+}
+
+function sanitizePublishedAssets(assets, html) {
+  const normalizedHtml = normalizeHtml(html || "<p></p>");
+  return (Array.isArray(assets) ? assets : [])
+    .filter((asset) => {
+      const remotePath = asset?.remotePath || asset?.remoteUrl || "";
+      return remotePath && normalizedHtml.includes(remotePath);
+    })
+    .map(sanitizePublishedAsset);
+}
 async function publishPendingAssets(settings, note) {
   const assets = Array.isArray(note.assets) ? note.assets : [];
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
-  const referenced = assets.filter((asset) => asset.localUrl && html.includes(asset.localUrl));
+  const referenced = assets.filter((asset) => assetReferenceUrls(asset).some((url) => html.includes(url)));
+  const pending = referenced.filter((asset) => asset.localUrl && html.includes(asset.localUrl) && asset.localUrl !== asset.remotePath);
   const published = [];
-  for (const asset of referenced) {
+  for (const asset of pending) {
     const content = await assetContentBase64(asset);
     await putGitHubBase64File(settings, asset.remotePath, content, `Upload notebook asset: ${asset.name || asset.fileName}`);
     published.push({
@@ -3999,10 +4068,9 @@ async function publishPendingAssets(settings, note) {
       published: true
     });
   }
-  return [
-    ...assets.filter((asset) => !referenced.some((item) => item.id === asset.id)),
-    ...published
-  ];
+  const publishedIds = new Set(published.map((asset) => asset.id));
+  const preserved = referenced.filter((asset) => !publishedIds.has(asset.id));
+  return [...published, ...preserved];
 }
 
 async function assetContentBase64(asset) {
@@ -4095,18 +4163,23 @@ function migrate(data) {
     folders: data.folders?.length ? data.folders : structuredClone(seed.folders),
     notes: data.notes?.length ? data.notes : structuredClone(seed.notes)
   };
-  merged.notes = merged.notes.map((note) => ({
-    id: note.id || `note-${Date.now()}`,
-    title: note.title || "未命名文档",
-    folderId: note.folderId || null,
-    tags: ensureDefaultTags(note.tags),
-    date: note.date || note.updatedAt || now(),
-    file: note.file || `notebooks/docs/${slugify(note.title || "untitled")}.json`,
-    dirty: Boolean(note.dirty),
-    publishedAt: note.publishedAt || "",
-    assets: Array.isArray(note.assets) ? note.assets : [],
-    html: normalizeHtml(note.html || blocksToHtml(note.blocks))
-  }));
+  merged.notes = merged.notes.map((note) => {
+    const noteDirty = Boolean(note.dirty);
+    const noteHtml = normalizeHtml(note.html || blocksToHtml(note.blocks));
+    const noteAssets = Array.isArray(note.assets) ? note.assets : [];
+    return {
+      id: note.id || `note-${Date.now()}`,
+      title: note.title || "未命名文档",
+      folderId: note.folderId || null,
+      tags: ensureDefaultTags(note.tags),
+      date: note.date || note.updatedAt || now(),
+      file: note.file || `notebooks/docs/${slugify(note.title || "untitled")}.json`,
+      dirty: noteDirty,
+      publishedAt: note.publishedAt || "",
+      assets: noteDirty ? noteAssets : sanitizePublishedAssets(noteAssets, noteHtml),
+      html: noteHtml
+    };
+  });
   if (!merged.notes.some((note) => note.id === merged.activeId)) merged.activeId = merged.notes[0]?.id || "";
   if (shouldRestoreNetwork && !isSmallScreen()) {
     merged.view = "network";

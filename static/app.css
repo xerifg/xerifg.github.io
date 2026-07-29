@@ -2484,3 +2484,84 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   color: var(--muted);
   font-size: 12px;
 }
+
+.publish-change-details {
+  grid-column: 1 / -1;
+  margin: 2px 0 0 27px;
+  min-width: 0;
+}
+
+.publish-change-details summary {
+  width: max-content;
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.publish-diff-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.publish-diff-item {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid rgba(60, 60, 67, .12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .62);
+}
+
+.publish-diff-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text);
+}
+
+.publish-diff-head strong {
+  font-size: 12px;
+}
+
+.publish-diff-head span {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.publish-diff-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.publish-diff-grid b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.publish-diff-grid pre {
+  min-height: 42px;
+  max-height: 120px;
+  margin: 0;
+  padding: 7px;
+  overflow: auto;
+  border-radius: 5px;
+  background: rgba(246, 246, 248, .9);
+  color: #202124;
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .publish-diff-grid {
+    grid-template-columns: 1fr;
+  }
+}
