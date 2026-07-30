@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "note-1785380466117",
+  "title": "提示词",
+  "folderId": "folder-1785325659605",
+  "path": "Notebooks/AI",
+  "tags": [
+    "Notes",
+    "AI",
+    "提示词"
+  ],
+  "createdAt": "2026-07-30T03:06:38.341Z",
+  "updatedAt": "2026-07-30T03:07:16.173Z",
+  "assets": [],
+  "html": "<h2>论文某个章节的分析总结</h2><p>请以清晰、专业且易于阅读的文档格式，详细介绍 [填入你要分析的模块/模型名称] 模块：</p><ol><li><p>结构要求：</p></li></ol><ul><li><p>使用清晰的层级标题（一、二、三... 与 1、2、3...）。</p></li><li><p>-包含【输入数据】部分，详细说明该模块接收的数据格式、特征构成及初始维度。</p></li><li><p>包含一个使用 ASCII 文本/字符画绘制的【简易流程图】，清晰展示数据流向与关键维度变化。</p></li><li><p>包含【详细工作流程】，分步骤说明每一步的操作逻辑，并明确给出“特征维度变化”公式。</p></li><li><p>包含【超参数配置表格】，汇总论文或实验中的关键超参数及其说明。</p></li><li><p>包含【最终输出】总结，说明输出格式、维度与后续作用。</p></li></ul><ol><li><p>内容要求：</p></li></ol><ul><li><p>必须结合论文/技术细节，准确说明输入输出特征维度（如 Tensor Shape）。</p></li><li><p>数学公式与维度标记统一使用 LaTeX 格式（如 <span data-tex=\"D=9\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>、<span data-tex=\"(C, H, W)\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>）。</p></li></ul><p></p>"
+}
