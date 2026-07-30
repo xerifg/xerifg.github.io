@@ -20,7 +20,7 @@ import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
-import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260730-file-rename-v1";
+import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260730-table-insert-v3";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -3156,6 +3156,7 @@ function FeishuTableControls({ editor, shellRef }) {
   const [version, setVersion] = useState(0);
   const [hoverTarget, setHoverTarget] = useState(null);
   const [activeTable, setActiveTable] = useState(null);
+  const [insertTarget, setInsertTarget] = useState(null);
   const [selectedLine, setSelectedLine] = useState(null);
   const [toolbarMenu, setToolbarMenu] = useState(null);
   useEffect(() => {
@@ -3212,6 +3213,7 @@ function FeishuTableControls({ editor, shellRef }) {
       if (isInsideTableOrRail) return;
       setActiveTable(null);
       setHoverTarget(null);
+      setInsertTarget(null);
     };
     shell.addEventListener("mousemove", updateShellHover);
     return () => shell.removeEventListener("mousemove", updateShellHover);
@@ -3271,6 +3273,24 @@ function FeishuTableControls({ editor, shellRef }) {
   const rowLineTop = hoveredCellRect ? (hoverTarget?.rowEdge === "before" ? hoveredCellRect.top : hoveredCellRect.bottom) - shellRect.top : 0;
   const columnTargets = tableColumnTargets(table);
   const rowCells = Array.from(table.rows).map((row) => row.cells[0]).filter(Boolean);
+  const updateInsertTarget = (kind, event) => {
+    const offset = kind === "column"
+      ? event.clientX - visibleTableLeft + visibleTableOffset
+      : event.clientY - tableRect.top;
+    const index = kind === "column"
+      ? columnTargets.findIndex((target) => offset >= target.left && offset <= target.left + target.width)
+      : rowCells.findIndex((cell) => {
+        const rect = cell.getBoundingClientRect();
+        return offset >= rect.top - tableRect.top && offset <= rect.bottom - tableRect.top;
+      });
+    setInsertTarget((previous) => {
+      if (index < 0) return previous ? null : previous;
+      return previous?.kind === kind && previous.index === index ? previous : { kind, index };
+    });
+  };
+  const activeColumnInsert = insertTarget?.kind === "column" ? columnTargets[insertTarget.index] : null;
+  const activeRowInsert = insertTarget?.kind === "row" ? rowCells[insertTarget.index] : null;
+  const activeRowInsertRect = activeRowInsert?.getBoundingClientRect() || null;
   const startColumnResize = (event, index) => {
     const leftTarget = columnTargets[index];
     const rightTarget = columnTargets[index + 1];
@@ -3329,7 +3349,9 @@ function FeishuTableControls({ editor, shellRef }) {
     hoveredTable ? h(React.Fragment, null,
       h("div", {
         className: "table-top-rail",
-        style: { left: `${visibleTableLeft - shellRect.left}px`, top: `${tableTop - 24}px`, width: `${visibleTableWidth}px` }
+        style: { left: `${visibleTableLeft - shellRect.left}px`, top: `${tableTop - 26}px`, width: `${visibleTableWidth}px` },
+        onPointerMove: (event) => updateInsertTarget("column", event),
+        onPointerLeave: () => setInsertTarget((current) => current?.kind === "column" ? null : current)
       }, columnTargets.map((target, index) => {
         const { cell } = target;
         const selectorLeft = target.left - visibleTableOffset;
@@ -3345,19 +3367,22 @@ function FeishuTableControls({ editor, shellRef }) {
             event.stopPropagation();
             selectLine("column", index, cell, target.cells);
           }
-        }, h("span", {
-          className: "table-rail-dot column",
-          title: "在右侧插入列",
-          onPointerDown: (event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            run("add-column-after", { cell, focusCell: true });
-          }
-        }));
-      })),
+        });
+      }), activeColumnInsert ? h("button", {
+        className: "table-insert-trigger table-column-insert-trigger",
+        title: "在右侧插入列",
+        style: { left: `${activeColumnInsert.left + activeColumnInsert.width - visibleTableOffset}px`, top: "50%" },
+        onPointerDown: (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          run("add-column-after", { cell: activeColumnInsert.cell, focusCell: true });
+        }
+      }, "+") : null),
       h("div", {
         className: "table-left-rail",
-        style: { left: `${tableLeft - 24}px`, top: `${tableTop}px`, height: `${tableHeight}px` }
+        style: { left: `${tableLeft - 26}px`, top: `${tableTop}px`, height: `${tableHeight}px` },
+        onPointerMove: (event) => updateInsertTarget("row", event),
+        onPointerLeave: () => setInsertTarget((current) => current?.kind === "row" ? null : current)
       }, rowCells.map((cell, index) => {
         const rect = cell.getBoundingClientRect();
         const cells = Array.from(table.rows[index]?.cells || []);
@@ -3371,16 +3396,17 @@ function FeishuTableControls({ editor, shellRef }) {
             event.stopPropagation();
             selectLine("row", index, cell, cells);
           }
-        }, h("span", {
-          className: "table-rail-dot row",
-          title: "在下方插入行",
-          onPointerDown: (event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            run("add-row-after", { cell, focusCell: true });
-          }
-        }));
-      })),
+        });
+      }), activeRowInsert && activeRowInsertRect ? h("button", {
+        className: "table-insert-trigger table-row-insert-trigger",
+        title: "在下方插入行",
+        style: { left: "50%", top: `${activeRowInsertRect.bottom - tableRect.top}px` },
+        onPointerDown: (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          run("add-row-after", { cell: activeRowInsert, focusCell: true });
+        }
+      }, "+") : null),
       columnTargets.slice(0, -1).map((target, index) => {
         const handleLeft = tableLeft + target.left + target.width - 3;
         if (handleLeft < visibleTableLeft - shellRect.left - 3 || handleLeft > visibleTableRight - shellRect.left + 3) return null;
