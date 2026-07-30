@@ -50,6 +50,26 @@ function noteChangeId(noteId) {
   return `note:${noteId}`;
 }
 
+function slugify(value) {
+  const slug = String(value || "untitled")
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || `note-${Date.now()}`;
+}
+
+function trimSlash(path) {
+  return String(path || "").replace(/^\/+|\/+$/g, "");
+}
+
+function fileSlug(path) {
+  return trimSlash(path).split("/").pop()?.replace(/\.json$/i, "").toLowerCase() || "";
+}
+
+function isUntitledDocumentFile(path) {
+  return ["未命名文档", "untitled", "untitled-document"].includes(fileSlug(path));
+}
 function textFromHtml(html) {
   return String(html || "")
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -250,7 +270,29 @@ export function validatePublishSelection(changes, selectedIds) {
   const tags = (changes || []).find((change) => change.id === "tags");
   const missing = (tags?.requires || []).filter((id) => !selected.has(id));
   return missing.length ? { valid: false, missing } : { valid: true, missing: [] };
-}export function mergeSelectedPublishState(localState, remoteState, selectedIds) {
+}
+
+export function assignSelectedPublishFiles(selectedNotes, remoteNotes) {
+  const remoteById = new Map((remoteNotes || []).map((note) => [note.id, note]));
+  const usedFiles = new Set((remoteNotes || []).map((note) => trimSlash(note.file)).filter(Boolean));
+  return (selectedNotes || []).map((note) => {
+    const remote = remoteById.get(note.id);
+    const preferred = trimSlash(note.file);
+    const base = `notebooks/docs/${slugify(note.title || note.id || "untitled")}.json`;
+    const shouldKeepRemote = remote?.file && !isUntitledDocumentFile(remote.file);
+    if (shouldKeepRemote) return { ...note, file: remote.file };
+    let candidate = preferred && !isUntitledDocumentFile(preferred) && !usedFiles.has(preferred) ? preferred : base;
+    let counter = 2;
+    while (usedFiles.has(candidate)) {
+      candidate = `notebooks/docs/${slugify(note.title || note.id || "untitled")}-${counter}.json`;
+      counter += 1;
+    }
+    usedFiles.add(candidate);
+    return { ...note, file: candidate };
+  });
+}
+
+export function mergeSelectedPublishState(localState, remoteState, selectedIds) {
   const selected = new Set(selectedIds || []);
   const changeSet = buildPublishChangeSet(localState, remoteState);
   const changeById = new Map(changeSet.changes.map((change) => [change.id, change]));

@@ -20,7 +20,7 @@ import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
-import { buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260729-publish-diff-v2";
+import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260730-file-rename-v1";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -3990,40 +3990,6 @@ async function deleteGitHubFile(settings, path, message) {
   return response.json();
 }
 
-function assignPublishFiles(notes) {
-  const used = new Set();
-  return notes.map((note) => {
-    const base = slugify(note.title || note.id || "untitled");
-    let candidate = `notebooks/docs/${base}.json`;
-    if (used.has(candidate)) candidate = `notebooks/docs/${base}-${slugify(note.id || Date.now())}.json`;
-    let counter = 2;
-    while (used.has(candidate)) {
-      candidate = `notebooks/docs/${base}-${counter}.json`;
-      counter += 1;
-    }
-    used.add(candidate);
-    return { ...note, file: candidate };
-  });
-}
-
-function assignSelectedPublishFiles(selectedNotes, remoteNotes) {
-  const remoteById = new Map((remoteNotes || []).map((note) => [note.id, note]));
-  const usedFiles = new Set((remoteNotes || []).map((note) => trimSlash(note.file)).filter(Boolean));
-  return (selectedNotes || []).map((note) => {
-    const remote = remoteById.get(note.id);
-    if (remote?.file) return { ...note, file: remote.file };
-    const preferred = trimSlash(note.file);
-    const base = `notebooks/docs/${slugify(note.title || note.id || "untitled")}.json`;
-    let candidate = preferred && !usedFiles.has(preferred) ? preferred : base;
-    let counter = 2;
-    while (usedFiles.has(candidate)) {
-      candidate = `notebooks/docs/${slugify(note.title || note.id || "untitled")}-${counter}.json`;
-      counter += 1;
-    }
-    usedFiles.add(candidate);
-    return { ...note, file: candidate };
-  });
-}
 function uniqueValues(values) {
   return Array.from(new Set(values));
 }

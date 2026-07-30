@@ -33,7 +33,7 @@ assert.match(appSource, /closest\?\.\("\.feishu-insert-menu, \.table-insert-grid
 assert.doesNotMatch(appSource, /onMouseLeave: onClose/, "table grid picker should not close while moving between the insert menu and the grid");
 assert.match(appSource, /merge-or-split/, "the table toolbar should merge and split selected cells");
 assert.match(appSource, /sort-ascending/, "the table toolbar should sort the active column");
-assert.match(indexSource, /app\.js\?v=20260729-publish-diff-v3/, "the page should request the current app module instead of a cached script");
+assert.match(indexSource, /app\.js\?v=20260730-file-rename-v1/, "the page should request the current app module instead of a cached script");
 assert.match(bubbleToolbarSource, /tableSelectionInfo\(editor\)/, "the normal text toolbar should stay hidden for table selections");
 assert.match(bubbleToolbarSource, /\{ label: "H3", command: "h3"/, "the selected-text toolbar should expose a level-three heading button");
 assert.match(bubbleToolbarSource, /command: "textColor"/, "the selected-text toolbar should expose a text color palette trigger");

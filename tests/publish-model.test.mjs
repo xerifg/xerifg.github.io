@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import * as publishModel from "../static/publish-model.mjs";
 import { buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "../static/publish-model.mjs";
 
 const missingRemoteNote = buildMissingRemoteNote({
@@ -204,3 +205,13 @@ assert.deepEqual(selectedTagDelete.state.notes[0].tags, ["Legacy"], "a rejected 
 const freshRemote = { ...remote, notes: [...remote.notes, { id: "fresh", title: "Remote fresh", folderId: "work", tags: ["Notes"], html: "<p>fresh</p>", assets: [], file: "notebooks/docs/fresh.json" }] };
 const mergedWithFreshRemote = mergeSelectedPublishState(local, freshRemote, new Set(["note:update"]));
 assert.equal(mergedWithFreshRemote.state.notes.some((note) => note.id === "fresh"), true, "a selected update must preserve a document added remotely after review opened");
+
+assert.equal(typeof publishModel.assignSelectedPublishFiles, "function", "publish file assignment should be testable");
+assert.equal(
+  publishModel.assignSelectedPublishFiles(
+    [{ id: "pointpillars", title: "PointPillars模型", file: "notebooks/docs/未命名文档.json" }],
+    [{ id: "pointpillars", title: "未命名文档", file: "notebooks/docs/未命名文档.json" }]
+  )[0].file,
+  "notebooks/docs/pointpillars模型.json",
+  "a renamed untitled document should publish to a title-based document path"
+);
