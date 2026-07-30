@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-29T11:52:11.922Z",
+  "updatedAt": "2026-07-30T01:59:38.185Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -46,8 +46,8 @@
       "path": "Notebooks/自动驾驶",
       "tags": [
         "Notes",
-        "VoxelNet",
-        "模型"
+        "模型",
+        "VoxelNet"
       ],
       "updatedAt": "2026-07-27T12:00:57.127Z",
       "file": "notebooks/docs/voxelnet模型.json"
@@ -211,6 +211,19 @@
       ],
       "updatedAt": "2026-07-29T11:52:11.922Z",
       "file": "notebooks/docs/优质github项目.json"
+    },
+    {
+      "id": "note-1785376662628",
+      "title": "AI Skills",
+      "folderId": "folder-1785325659605",
+      "path": "Notebooks/AI",
+      "tags": [
+        "Notes",
+        "AI",
+        "skills"
+      ],
+      "updatedAt": "2026-07-30T01:59:38.185Z",
+      "file": "notebooks/docs/ai-skills.json"
     }
   ]
 }
