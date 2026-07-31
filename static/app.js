@@ -3898,8 +3898,7 @@ function renderModal(state, handleAction) {
             summaryList(summary.changedPublishedNotes, "没有已发表文档的本地改动。"),
             summary.folderChanged ? h("div", { className: "summary-row danger" }, h("strong", null, "目录"), h("span", null, "本地目录改动会恢复为已发表版本")) : null,
             summary.deletedTags.length ? h("div", { className: "summary-row danger" }, h("strong", null, "标签"), h("span", null, summary.deletedTags.join("、"))) : null
-          )
-      ),
+          ),
       "确认删除草稿",
       "confirm-delete-drafts",
       handleAction,
