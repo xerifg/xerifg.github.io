@@ -33,7 +33,7 @@ export function resolveStartupState(state = {}, preferences = DEFAULT_UI_PREFERE
 }
 
 function normalizedTag(tag) {
-  return typeof tag === "string" ? tag.trim().toLocaleLowerCase() : "";
+  return typeof tag === "string" ? tag.trim().toLowerCase() : "";
 }
 
 function noteTags(note) {
@@ -93,8 +93,8 @@ export function buildTagBrowser(notes = [], options = {}) {
     }
   }
 
-  const query = String(options.query || "").trim().toLocaleLowerCase();
-  const records = [...tags.values()].filter((tag) => tag.name.toLocaleLowerCase().includes(query));
+  const query = String(options.query || "").trim().toLowerCase();
+  const records = [...tags.values()].filter((tag) => tag.name.toLowerCase().includes(query));
   const byName = (left, right) => left.name.localeCompare(right.name, "zh-CN");
   records.sort(options.sort === "name" ? byName : (left, right) => right.count - left.count || byName(left, right));
 
