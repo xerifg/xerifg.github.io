@@ -32,7 +32,7 @@ const legacyStorageKey = "personal-notebook-v2";
 const publishedIndexPath = "notebooks/index.json";
 const localAssetPrefix = "/api/local-assets/";
 const assetRootPath = "notebooks/assets";
-const documentOutlinePanelWidth = 196;
+const documentOutlinePanelWidth = 210;
 const publishTriggerSelector = "[data-publish-trigger]";
 const now = () => new Date().toISOString();
 const mathInlineType = "mathInline";
@@ -1553,7 +1553,7 @@ function DocumentOutline({ noteId, outline }) {
     "aria-label": "\u6587\u6863\u76ee\u5f55",
     style: { width: `${documentOutlinePanelWidth}px` }
   },
-    h("div", { className: "document-outline-title" }, "\u6587\u6863\u76ee\u5f55"),
+    h("div", { className: "document-outline-title" }, "\u5927\u7eb2"),
     outline.length
       ? h("ol", null, outline.map((item) => h("li", {
           key: item.key,

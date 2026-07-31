@@ -5,10 +5,17 @@ const appSource = readFileSync(new URL("../static/app.js", import.meta.url), "ut
 const cssSource = readFileSync(new URL("../static/app.css", import.meta.url), "utf8");
 const documentPaperSource = appSource.slice(appSource.indexOf("function DocumentPaper"), appSource.indexOf("function DocumentOutline"));
 const paperStyles = cssSource.match(/\.paper\s*\{[^}]*\}/)?.[0] || "";
+const documentOutlineSource = appSource.slice(appSource.indexOf("function DocumentOutline"), appSource.indexOf("function documentOutlineFromHtml"));
+
+assert.match(
+  documentOutlineSource,
+  /className: "document-outline-title" \}, "\\u5927\\u7eb2"/,
+  "document outline should use the concise reference title"
+);
 
 assert.match(
   appSource,
-  /const documentOutlinePanelWidth = 196;/,
+  /const documentOutlinePanelWidth = 210;/,
   "document outline should use a stable panel width so mode switches do not change the content gap"
 );
 
@@ -20,7 +27,7 @@ assert.doesNotMatch(
 
 assert.match(
   cssSource,
-  /\.document-workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*var\(--document-width\)\) 196px;/,
+  /\.document-workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) 210px;/,
   "document workspace should place the configurable document column before the right-side outline"
 );
 

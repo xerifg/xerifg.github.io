@@ -3294,3 +3294,195 @@ body { background: #fff; }
 .tag-create-control small { max-width: 220px; color: var(--muted); font-size: 11px; text-align: right; }
 .tag-rename-button { margin-left: auto; min-height: 30px; padding: 0 9px; border-radius: 7px; color: var(--blue-dark); font-size: 12px; font-weight: 600; }
 .tag-rename-button:hover { background: var(--surface-hover); }
+
+/* Desktop document reading and editing polish. */
+@media (min-width: 1101px) {
+  .document-topbar {
+    min-height: 64px;
+    padding: 10px 20px;
+  }
+
+  .paper-scroll {
+    padding: 0 0 52px;
+  }
+
+  .document-workspace {
+    width: 100%;
+    margin: 0;
+    grid-template-columns: minmax(0, 1fr) 210px;
+    justify-content: stretch;
+    gap: 24px;
+  }
+
+  .document-workspace.without-outline,
+  .document-workspace.has-empty-outline {
+    grid-template-columns: 1fr;
+  }
+
+  .document-workspace.has-empty-outline .document-outline {
+    display: none;
+  }
+
+  .paper {
+    max-width: var(--document-width);
+    margin: 0;
+    padding: 44px 8px 72px;
+    justify-self: center;
+  }
+
+  .doc-title,
+  .doc-title-input {
+    font-size: 36px;
+    line-height: 1.2;
+    letter-spacing: -.025em;
+    font-weight: 720;
+  }
+
+  .doc-meta {
+    margin: 14px 0 32px;
+  }
+
+  .tiptap-reader,
+  .feishu-editor {
+    font-size: 16px;
+    line-height: 1.78;
+  }
+
+  .feishu-editor h1,
+  .tiptap-reader h1 {
+    font-size: 32px;
+  }
+
+  .feishu-editor h2,
+  .tiptap-reader h2 {
+    font-size: 25px;
+  }
+
+  .feishu-editor h3,
+  .tiptap-reader h3 {
+    font-size: 20px;
+  }
+
+  .document-outline {
+    position: fixed;
+    width: 210px;
+    justify-self: end;
+    top: 64px;
+    right: 0;
+    height: calc(100vh - 64px);
+    max-height: none;
+    overflow: hidden;
+    padding: 10px 0 14px 18px;
+    border-radius: 0;
+  }
+
+  .document-outline ol {
+    width: auto;
+    max-width: 100%;
+    height: calc(100% - 32px);
+    display: block;
+    gap: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 0 2px 8px 0;
+  }
+
+  .document-outline-item,
+  .document-outline-item.level-2,
+  .document-outline-item.level-3 {
+    flex: initial;
+  }
+
+  .document-outline-title {
+    margin-bottom: 10px;
+    padding: 0 10px;
+    font-size: 12px;
+    letter-spacing: .04em;
+  }
+
+  .document-outline-item {
+    margin: 3px 0;
+  }
+
+  .document-outline button {
+    min-height: 36px;
+    max-width: 100%;
+    padding: 7px 10px 7px 13px;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .document-outline-item.level-2 {
+    padding-left: 12px;
+  }
+
+  .document-outline-item.level-3 {
+    padding-left: 22px;
+  }
+
+
+  .tree-folder,
+  .tree-note {
+    min-height: 40px;
+    padding-block: 8px;
+    border-radius: 7px;
+    line-height: 1.4;
+  }
+
+  .tree-note.active {
+    background: var(--surface-selected);
+    color: var(--blue-dark);
+    box-shadow: inset 3px 0 var(--blue);
+  }
+}
+
+@media (min-width: 1600px) {
+  .document-workspace.has-outline {
+    grid-template-columns: 1fr;
+  }
+
+  .document-workspace.has-outline > .paper,
+  .document-workspace.has-outline > .document-outline {
+    grid-column: 1;
+    grid-row: 1;
+  }
+}
+@media (max-width: 1100px) {
+  .document-outline {
+    display: none;
+  }
+}
+
+.feishu-editor pre,
+.tiptap-reader pre,
+.feishu-editor pre.notebook-code-block,
+.tiptap-reader pre.notebook-code-block {
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.feishu-editor pre:focus-within,
+.feishu-editor pre.notebook-code-block:focus-within,
+.feishu-editor pre.notebook-code-block.ProseMirror-selectednode,
+.feishu-editor pre.notebook-code-block.is-selected {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue);
+}
+
+.notebook-code-body {
+  overflow-x: hidden;
+}
+
+.feishu-editor pre code,
+.tiptap-reader pre code,
+.feishu-editor pre.notebook-code-block code.notebook-code-content,
+.tiptap-reader pre.notebook-code-block code.notebook-code-content {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
