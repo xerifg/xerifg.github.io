@@ -17,6 +17,7 @@ import TableHeader from "https://esm.sh/@tiptap/extension-table-header@2.11.7";
 import TableCell from "https://esm.sh/@tiptap/extension-table-cell@2.11.7";
 import TaskList from "https://esm.sh/@tiptap/extension-task-list@2.11.7";
 import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
+import { Ellipsis } from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
@@ -498,7 +499,7 @@ function App() {
   useEffect(() => {
     if (!state.openCreateMenu) return undefined;
     const closeCreateMenu = (event) => {
-      if (event.target.closest?.(".create-menu, .mini-action")) return;
+      if (event.target.closest?.(".create-menu, .mini-action, .document-overflow-menu, .document-overflow-trigger")) return;
       patchState((draft) => {
         draft.openCreateMenu = null;
       });
@@ -1066,6 +1067,12 @@ function App() {
       }
       patchState((draft) => {
         draft.mode = draft.mode === "edit" ? "read" : "edit";
+        draft.openCreateMenu = null;
+      });
+    }
+    if (action === "toggle-document-actions") {
+      patchState((draft) => {
+        draft.openCreateMenu = draft.openCreateMenu === "document-actions" ? null : "document-actions";
       });
     }
     if (action === "publish") preparePublish();
@@ -1204,7 +1211,7 @@ function App() {
       );
     }
     return h(React.Fragment, null,
-      renderTopbar(state, note, handleAction),
+      renderDocumentTopbar(state, note, state.uiPreferences, handleAction),
       h(PaperScroll, null,
         note
           ? h(DocumentPaper, {
@@ -1370,7 +1377,6 @@ function DocumentPaper({ note, state, editable, updateNote }) {
 
   const showOutline = state.uiPreferences.showOutline;
   return h("div", { className: `document-workspace ${showOutline ? (outline.length ? "has-outline" : "has-empty-outline") : "without-outline"}` },
-    state.uiPreferences.showOutline ? h(DocumentOutline, { noteId: note.id, outline }) : null,
     h("article", { className: `paper ${editable ? "is-editing" : ""}`, "data-note-id": note.id },
       editable
         ? h("input", {
@@ -1408,7 +1414,8 @@ function DocumentPaper({ note, state, editable, updateNote }) {
               dangerouslySetInnerHTML: { __html: sanitizeHtml(html) }
             })
       )
-    )
+    ),
+    state.uiPreferences.showOutline ? h(DocumentOutline, { noteId: note.id, outline }) : null
   );
 }
 
@@ -2609,34 +2616,64 @@ function tablePickerPositionForTrigger(event, shell, menuPosition) {
   };
 }
 
-function renderTopbar(state, note, handleAction) {
-  return h("header", { className: "topbar" },
-    h("div", { className: "crumb" },
+function renderDocumentTopbar(state, note, preferences, handleAction) {
+  const isPublishing = state.syncStatus === "publishing";
+  return h("header", {
+    className: "topbar document-topbar",
+    "data-outline-visible": preferences.showOutline ? "true" : "false"
+  },
+    h("div", { className: "document-breadcrumb" },
       state.tagReturnContext ? h("button", {
         className: "tag-return-button",
         onClick: () => handleAction("back-to-tag"),
         "aria-label": `返回标签：${state.tagReturnContext.selectedTag}`
       }, icon("back", { size: 16 }), "返回标签") : null,
       h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "未归档" : "没有笔记"),
-      h("strong", null, note ? note.title : "创建第一篇笔记"),
-      h("em", null, documentStatusText(state, note))
+      note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null,
+      h("strong", null, note ? note.title : "创建第一篇笔记")
     ),
+    note ? h("span", {
+      className: "document-save-status",
+      role: "status",
+      title: documentStatusText(state, note)
+    }, isPublishing ? "正在发表…" : "已自动保存") : null,
     h("div", { className: "toolbar" },
       note ? h("button", {
-        className: `ghost-btn ${state.mode === "edit" ? "active" : ""}`,
-        onClick: () => handleAction("toggle-mode")
+        className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`,
+        onClick: () => handleAction("toggle-mode"),
+        "aria-pressed": state.mode === "edit"
       }, state.mode === "edit" ? "阅读" : "编辑") : null,
+      note ? h("div", { className: "document-overflow" },
+        h("button", {
+          className: "ghost-btn document-overflow-trigger",
+          type: "button",
+          "aria-label": "更多文档操作",
+          "aria-haspopup": "menu",
+          "aria-expanded": state.openCreateMenu === "document-actions",
+          onClick: () => handleAction("toggle-document-actions")
+        }, h(Ellipsis, { size: 18, strokeWidth: 1.8, "aria-hidden": "true" })),
+        state.openCreateMenu === "document-actions" ? renderDocumentActionsMenu(state, note, handleAction) : null
+      ) : null,
       note ? h("button", {
-        className: "danger-btn",
-        disabled: state.syncStatus === "publishing",
-        onClick: () => handleAction("delete-drafts")
-      }, "删除草稿") : null,
-      note ? h("button", {
-        className: "primary-btn",
-        disabled: state.syncStatus === "publishing",
+        className: "primary-btn document-publish-button",
+        disabled: isPublishing,
         onClick: () => handleAction("publish")
-      }, state.syncStatus === "publishing" ? "发表中" : "发表") : null
+      }, isPublishing ? "发表中" : "发表") : null
     )
+  );
+}
+
+function renderDocumentActionsMenu(state, note, handleAction) {
+  return h("div", { className: "document-overflow-menu", role: "menu", "aria-label": "文档操作" },
+    h("button", { type: "button", role: "menuitem", onClick: () => handleAction("rename-note", note.id) }, "重命名"),
+    h("button", { type: "button", role: "menuitem", onClick: () => handleAction("delete-drafts") }, "删除本地草稿"),
+    h("button", {
+      type: "button",
+      role: "menuitem",
+      className: "danger-menu-item",
+      disabled: state.syncStatus === "publishing",
+      onClick: () => handleAction("delete-note", note.id)
+    }, "删除文档")
   );
 }
 

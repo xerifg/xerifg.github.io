@@ -60,3 +60,22 @@ assert.match(app, /back-to-tag/);
 
 const openAreaSource = app.slice(app.indexOf("const openArea ="), app.indexOf("const updateNote ="));
 assert.match(openAreaSource, /draft\.mode\s*=\s*draft\.uiPreferences\.defaultMode/);
+
+const documentTopbarSource = app.slice(app.indexOf("function renderDocumentTopbar"), app.indexOf("function renderDocumentActionsMenu"));
+const documentActionsSource = app.slice(app.indexOf("function renderDocumentActionsMenu"), app.indexOf("function documentStatusText"));
+assert.match(app, /renderDocumentTopbar\(state,\s*note,\s*state\.uiPreferences,\s*handleAction\)/);
+assert.match(documentTopbarSource, /className:\s*"document-save-status"/);
+assert.match(documentTopbarSource, /已自动保存/);
+assert.match(documentTopbarSource, /handleAction\("toggle-mode"\)/);
+assert.match(documentTopbarSource, /handleAction\("toggle-document-actions"\)/);
+assert.match(documentTopbarSource, /handleAction\("publish"\)/);
+assert.doesNotMatch(documentTopbarSource, /handleAction\("delete-drafts"\)/, "delete drafts should not remain a top-level toolbar action");
+assert.match(documentActionsSource, /role:\s*"menu"/);
+assert.match(documentActionsSource, /handleAction\("rename-note"/);
+assert.match(documentActionsSource, /handleAction\("delete-drafts"\)/);
+assert.match(documentActionsSource, /handleAction\("delete-note"/);
+assert.match(app, /state\.uiPreferences\.showOutline\s*\?\s*h\(DocumentOutline/);
+assert.match(css, /\.document-topbar\s*\{[^}]*background:\s*var\(--sheet\);/s);
+assert.match(css, /\.document-overflow-menu\s*\{[^}]*background:\s*var\(--sheet\);/s);
+assert.match(css, /\.feishu-bubble\s*\{[^}]*background:\s*var\(--sheet\);/s);
+assert.match(css, /\.feishu-bubble::after\s*\{[^}]*display:\s*none;/s);

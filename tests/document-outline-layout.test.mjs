@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 
 const appSource = readFileSync(new URL("../static/app.js", import.meta.url), "utf8");
 const cssSource = readFileSync(new URL("../static/app.css", import.meta.url), "utf8");
+const documentPaperSource = appSource.slice(appSource.indexOf("function DocumentPaper"), appSource.indexOf("function DocumentOutline"));
+const paperStyles = cssSource.match(/\.paper\s*\{[^}]*\}/)?.[0] || "";
 
 assert.match(
   appSource,
@@ -18,20 +20,25 @@ assert.doesNotMatch(
 
 assert.match(
   cssSource,
-  /\.document-workspace\s*\{[\s\S]*grid-template-columns:\s*196px minmax\(0,\s*1120px\);/,
-  "document workspace should reserve the same outline column in read and edit mode"
+  /\.document-workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*var\(--document-width\)\) 196px;/,
+  "document workspace should place the configurable document column before the right-side outline"
+);
+
+assert.ok(
+  documentPaperSource.indexOf('h("article"') < documentPaperSource.indexOf("h(DocumentOutline"),
+  "document markup should render the paper before its optional outline"
 );
 
 assert.match(
   cssSource,
-  /\.paper\s*\{[\s\S]*max-width:\s*1120px;/,
-  "document paper should use the wider content column"
-);
-
-assert.match(
-  cssSource,
-  /\.paper\s*\{[\s\S]*width:\s*100%;/,
+  /\.paper\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*var\(--document-width\);/,
   "document paper should fill the content grid column so editor/reader intrinsic size cannot change the outline gap"
+);
+
+assert.match(
+  paperStyles,
+  /border-radius:\s*0;[^}]*box-shadow:\s*none;/,
+  "the reading surface should not be presented as a floating card"
 );
 
 assert.match(
@@ -66,8 +73,8 @@ assert.match(
 
 assert.match(
   cssSource,
-  /\.document-outline\s*\{[\s\S]*position:\s*sticky;[\s\S]*top:\s*16px;[\s\S]*height:\s*min\(calc\(100vh - 128px\),\s*720px\);[\s\S]*overflow:\s*hidden;/,
-  "document outline should stay visible as a tall reading rail"
+  /\.document-outline\s*\{[^}]*position:\s*sticky;[^}]*border-left:\s*1px solid var\(--line\);[^}]*overflow:\s*hidden;/,
+  "document outline should stay visible as a quiet right-side reading rail"
 );
 
 assert.match(
@@ -78,8 +85,8 @@ assert.match(
 
 assert.match(
   cssSource,
-  /\.document-outline-item\.is-active button\s*\{[\s\S]*background:\s*rgba\(0,\s*122,\s*255,\s*\.12\);/,
-  "document outline should visibly highlight the heading nearest the document center"
+  /\.document-outline-item\.is-active button\s*\{[^}]*background:\s*transparent;[^}]*color:\s*#005fc7;[^}]*font-weight:\s*600;/,
+  "document outline should emphasize the nearest heading without turning it into a card"
 );
 
 assert.match(

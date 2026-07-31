@@ -312,51 +312,115 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   overflow: hidden;
 }
 
-.topbar {
-  min-height: 66px;
+.document-topbar {
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--sheet);
+}
+
+.document-breadcrumb {
+  min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--line);
+  gap: 6px;
+  overflow: hidden;
 }
 
-.crumb {
-  min-width: 0;
-}
-
-.crumb span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.crumb strong {
-  display: block;
-  margin-top: 3px;
-  font-size: 16px;
+.document-breadcrumb span,
+.document-breadcrumb strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.crumb em {
-  display: block;
-  margin-top: 3px;
+.document-breadcrumb span {
+  color: var(--muted);
+}
+
+.document-breadcrumb strong {
+  color: var(--text);
+}
+
+.document-breadcrumb .document-breadcrumb-separator {
+  flex: 0 0 auto;
+  color: #b0b3b9;
+}
+
+.document-save-status {
+  justify-self: center;
   color: var(--muted);
   font-size: 12px;
-  font-style: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
   justify-content: flex-end;
+}
+
+.document-mode-toggle,
+.document-overflow-trigger,
+.document-publish-button {
+  min-height: 32px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.document-overflow {
+  position: relative;
+}
+
+.document-overflow-trigger {
+  width: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.document-overflow-menu {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 7px);
+  right: 0;
+  width: 174px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--sheet);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .14);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+
+.document-overflow-menu button {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 7px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.document-overflow-menu button:hover,
+.document-overflow-menu button:focus-visible {
+  background: rgba(0, 122, 255, .09);
+}
+
+.document-overflow-menu .danger-menu-item {
+  color: #c03535;
+}
+
+.document-overflow-menu .danger-menu-item:hover,
+.document-overflow-menu .danger-menu-item:focus-visible {
+  background: rgba(255, 59, 48, .09);
 }
 
 .paper-scroll-shell {
@@ -382,16 +446,14 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 .paper {
   position: relative;
   width: 100%;
-  max-width: 1120px;
   max-width: var(--document-width);
   min-height: calc(100vh - 150px);
   margin: 0 auto;
   background: var(--sheet-solid);
-  border: 1px solid rgba(255, 255, 255, .8);
-  border-radius: 22px;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, .09);
-  padding: clamp(26px, 5vw, 68px);
-  animation: floatIn .34s cubic-bezier(.2, .8, .2, 1);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: clamp(28px, 5vw, 58px);
 }
 
 @keyframes floatIn {
@@ -411,10 +473,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   margin: 0;
   background: transparent;
   color: var(--text);
-  font-size: clamp(34px, 6vw, 62px);
-  line-height: 1.05;
+  font-size: clamp(30px, 4vw, 42px);
+  line-height: 1.14;
   letter-spacing: 0;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .doc-title-input {
@@ -426,7 +488,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin: 16px 0 30px;
+  margin: 12px 0 28px;
 }
 
 .pill {
@@ -455,16 +517,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .paper.is-editing {
-  box-shadow: 0 30px 90px rgba(0, 122, 255, .12);
-}
-
-.paper.is-editing::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, .12);
+  box-shadow: none;
 }
 
 .tiptap-shell {
@@ -1214,15 +1267,15 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  min-height: 42px;
-  padding: 4px 6px;
-  border: 1px solid rgba(31, 35, 41, .12);
-  border-radius: 6px;
-  background: rgba(255,255,255,.98);
-  box-shadow: 0 8px 22px rgba(31,35,41,.14), 0 1px 3px rgba(31,35,41,.08);
+  min-height: 40px;
+  padding: 4px 5px;
+  border: 1px solid rgba(31, 35, 41, .11);
+  border-radius: 10px;
+  background: var(--sheet);
+  box-shadow: 0 10px 28px rgba(31, 35, 41, .14);
   transform: translateX(-50%);
   transform-origin: center bottom;
-  backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
   animation: bubbleIn .14s cubic-bezier(.2, .8, .2, 1);
 }
 
@@ -1237,17 +1290,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .feishu-bubble::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -5px;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #ff4f9a;
-  transform: translateX(-50%);
-  box-shadow: 0 1px 3px rgba(255, 79, 154, .32);
-  pointer-events: none;
+  display: none;
 }
 
 .feishu-bubble.below {
@@ -1897,11 +1940,11 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .document-workspace {
-  width: min(1380px, 100%);
+  width: min(calc(var(--document-width) + 212px), 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 196px minmax(0, 1120px);
-  align-items: stretch;
+  grid-template-columns: minmax(0, var(--document-width)) 196px;
+  align-items: start;
   justify-content: center;
   gap: 16px;
 }
@@ -1912,24 +1955,20 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
 .document-outline {
   position: sticky;
-  top: 16px;
-  align-self: start;
-  height: min(calc(100vh - 128px), 1030px);
+  top: 0;
+  border-left: 1px solid var(--line);
   overflow: hidden;
+  align-self: start;
+  height: min(calc(100vh - 116px), 720px);
   width: auto;
-  min-width: 132px;
-  max-width: min(320px, 26vw);
-  padding: 14px 10px 12px;
-  border: 1px solid rgba(255, 255, 255, .76);
-  border-radius: 16px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, .44)),
-    rgba(245, 250, 255, .32);
+  min-width: 0;
+  max-width: none;
+  padding: 6px 0 8px 16px;
+  border-radius: 0;
+  background: transparent;
   color: #62666d;
-  box-shadow:
-    0 18px 46px rgba(75, 97, 128, .08),
-    inset 0 1px 0 rgba(255, 255, 255, .88);
-  backdrop-filter: blur(24px) saturate(150%);
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .document-outline-title {
@@ -2011,11 +2050,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .document-outline-item.is-active button {
-  background: rgba(0, 122, 255, .12);
+  background: transparent;
   color: #005fc7;
-  box-shadow:
-    inset 0 0 0 1px rgba(0, 122, 255, .10),
-    0 6px 14px rgba(0, 122, 255, .08);
+  box-shadow: none;
+  font-weight: 600;
 }
 
 .document-outline-item.is-active button::before {
@@ -2041,9 +2079,9 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   font-size: 13px;
 }
 
-@media (max-width: 1500px) {
+@media (max-width: 1100px) {
   .document-workspace {
-    grid-template-columns: minmax(0, 1120px);
+    grid-template-columns: minmax(0, var(--document-width));
   }
 
   .document-outline {
@@ -2085,9 +2123,9 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
     -webkit-line-clamp: unset;
   }
 }
-@container (max-width: 1260px) {
+@container (max-width: 980px) {
   .document-workspace {
-    grid-template-columns: minmax(0, 1120px);
+    grid-template-columns: minmax(0, var(--document-width));
   }
 
   .document-outline {
