@@ -8,6 +8,7 @@ import {
   notebookStateForPersistence,
   resolveLocalPersistenceStatus,
   resolveMenuKeyboard,
+  resolvePublishReviewReturnTarget,
   resolveTreeKeyboard,
   restoreTagView
 } from "../static/library-ui-model.mjs";
@@ -152,3 +153,21 @@ assert.deepEqual(resolveMenuKeyboard(1, "End", 3), { focusIndex: 2 });
 assert.deepEqual(resolveMenuKeyboard(1, "Escape", 3), { close: true, focusIndex: 1 });
 assert.deepEqual(resolveMenuKeyboard(-1, "ArrowDown", 3), { focusIndex: 0 });
 assert.deepEqual(resolveMenuKeyboard(1, "Tab", 3), { focusIndex: 1 });
+
+const directPublishTrigger = { isConnected: true, focused: 0, focus() { this.focused += 1; } };
+const directReturnTarget = resolvePublishReviewReturnTarget(directPublishTrigger, directPublishTrigger);
+directReturnTarget?.focus();
+assert.equal(directReturnTarget, directPublishTrigger, "a directly opened publish sheet should return to its connected publish trigger");
+assert.equal(directPublishTrigger.focused, 1, "the direct publish trigger should receive restored focus");
+
+const publishTriggerAfterTags = { isConnected: true, focused: 0, focus() { this.focused += 1; } };
+const detachedTagConfirm = { isConnected: false, focused: 0, focus() { this.focused += 1; } };
+const tagFlowReturnTarget = resolvePublishReviewReturnTarget(publishTriggerAfterTags, detachedTagConfirm);
+tagFlowReturnTarget?.focus();
+assert.equal(tagFlowReturnTarget, publishTriggerAfterTags, "the tag-confirm flow should prefer the still-mounted publish trigger");
+assert.equal(publishTriggerAfterTags.focused, 1, "the publish trigger should receive focus after the tag-confirm flow closes");
+assert.equal(detachedTagConfirm.focused, 0, "a detached tag-confirm button must never receive restored focus");
+
+const connectedFallback = { isConnected: true, focus() {} };
+assert.equal(resolvePublishReviewReturnTarget(null, connectedFallback), connectedFallback, "a connected previous element should remain the fallback for direct sheet callers without an explicit target");
+assert.equal(resolvePublishReviewReturnTarget(null, detachedTagConfirm), null, "a detached previous element should never be returned as a focus target");

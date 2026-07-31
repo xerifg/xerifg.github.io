@@ -261,3 +261,10 @@ export function resolveTreeKeyboard(items = [], currentId, key) {
   }
   return { focusId: current.id };
 }
+
+export function resolvePublishReviewReturnTarget(explicitTarget, previousFocus) {
+  const isConnectedFocusable = (target) => target?.isConnected === true && typeof target.focus === "function";
+  if (isConnectedFocusable(explicitTarget)) return explicitTarget;
+  if (isConnectedFocusable(previousFocus)) return previousFocus;
+  return null;
+}

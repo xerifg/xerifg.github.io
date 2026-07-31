@@ -71,3 +71,14 @@ Full verification:
 
 - `view_image` could not decode the exact reference because the Windows split-root sandbox failed before the image tool opened either copy. This is tooling-only; both reference files remain untouched and their byte identity was verified by file metadata/source handling.
 - Browser screenshot QA remains outside Task 6 and is reserved for Task 7; automated source/model/syntax regression coverage is green.
+
+## review fix round
+
+Addressed the single Important finding from `task-6-review.md` with a focused RED/GREEN cycle.
+
+- Root cause: the tag-confirm modal is removed before the async review sheet mounts, so `document.activeElement` at sheet mount can be the detached tag-confirm button. Cleanup then attempted to focus an element that no longer participates in the document.
+- RED: added executable return-target cases for a directly opened sheet, the normal Publish → tag-confirm → review path, a connected previous-element fallback, and a detached previous element. The interaction test failed because `resolvePublishReviewReturnTarget` did not exist. Added integration contracts for the stable Publish trigger and explicit selector; the publish UI test failed because the trigger attribute was absent.
+- GREEN: marked the still-mounted top-bar Publish control with `data-publish-trigger`, passed its selector explicitly into `PublishReviewSheet`, and resolved cleanup focus only to an element that is both connected and focusable. A detached tag-confirm button is never focused; previous active focus is used only when no connected explicit target exists.
+- Scope: no GitHub publish, selection, validation, merge, error, draft, authentication, motion, styling, or Task 7 responsive behavior changed.
+- Focused verification: `library-interactions.test.mjs`, `publish-review-diff-ui.test.mjs`, `publish-model.test.mjs`, and `node --check static/app.js` pass.
+- Fix commit: recorded in the worker handoff after commit creation.

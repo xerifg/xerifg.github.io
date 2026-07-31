@@ -21,7 +21,7 @@ import { Ellipsis, X } from "https://esm.sh/lucide-react@0.468.0?external=react"
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
-import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, localPersistenceStatusText, notebookStateForPersistence, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolveTreeKeyboard, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, localPersistenceStatusText, notebookStateForPersistence, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -33,6 +33,7 @@ const publishedIndexPath = "notebooks/index.json";
 const localAssetPrefix = "/api/local-assets/";
 const assetRootPath = "notebooks/assets";
 const documentOutlinePanelWidth = 196;
+const publishTriggerSelector = "[data-publish-trigger]";
 const now = () => new Date().toISOString();
 const mathInlineType = "mathInline";
 const mathBlockType = "mathBlock";
@@ -2671,6 +2672,7 @@ function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, 
       note ? h(DocumentOverflowMenu, { state, note, handleAction }) : null,
       note ? h("button", {
         className: "primary-btn document-publish-button",
+        "data-publish-trigger": "",
         disabled: state.syncStatus === "publishing",
         onClick: () => handleAction("publish")
       }, state.syncStatus === "publishing" ? "发表中" : "发表") : null
@@ -3591,7 +3593,7 @@ function summaryList(items, emptyText) {
     values.length > 12 ? h("li", { key: "more" }, `还有 ${values.length - 12} 项...`) : null
   );
 }
-function PublishReviewSheet({ state, handleAction }) {
+function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
   const closeButtonRef = useRef(null);
   const sheetRef = useRef(null);
   const review = state.modalContext?.review || { changes: [], selectedIds: [], localState: state, remoteState: state };
@@ -3635,7 +3637,8 @@ function PublishReviewSheet({ state, handleAction }) {
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      previousFocus?.focus();
+      const explicitReturnFocus = returnFocusSelector ? document.querySelector(returnFocusSelector) : null;
+      resolvePublishReviewReturnTarget(explicitReturnFocus, previousFocus)?.focus();
     };
   }, []);
 
@@ -3834,7 +3837,7 @@ function renderModal(state, handleAction) {
     );
   }
   if (state.modal === "publish-review") {
-    return h(PublishReviewSheet, { state, handleAction });
+    return h(PublishReviewSheet, { state, handleAction, returnFocusSelector: publishTriggerSelector });
   }
   if (state.modal === "auth") {
     return modalShell("编辑验证", "验证通过后，文档会发表到当前笔记本 GitHub 仓库的 main 分支。",

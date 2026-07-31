@@ -61,7 +61,14 @@ assert.match(
 );
 assert.match(appSource, /closeButtonRef\.current\?\.focus\(\)/, "opening the sheet should move focus into the dialog");
 assert.match(appSource, /event\.key === "Escape"/, "Escape should close the publish sheet");
-assert.match(appSource, /previousFocus\?\.focus\(\)/, "closing the sheet should restore focus to its trigger");
+assert.match(appSource, /"data-publish-trigger": ""/, "the mounted top-bar Publish control should expose a stable focus-return target");
+assert.match(appSource, /returnFocusSelector:\s*publishTriggerSelector/, "the sheet should receive the explicit Publish focus target");
+assert.match(
+  appSource,
+  /resolvePublishReviewReturnTarget\(explicitReturnFocus, previousFocus\)\?\.focus\(\)/,
+  "closing the sheet should prefer the connected explicit Publish target over a stale modal control"
+);
+assert.doesNotMatch(appSource, /previousFocus\?\.focus\(\)/, "the sheet must not blindly focus a detached previous modal control");
 
 assert.match(
   appSource,
