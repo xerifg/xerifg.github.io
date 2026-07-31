@@ -8,6 +8,45 @@ export const DEFAULT_UI_PREFERENCES = Object.freeze({
   defaultMode: "read"
 });
 
+export function resolveLocalPersistenceStatus(event) {
+  if (event === "start") return "saving";
+  if (event === "failure") return "error";
+  return "saved";
+}
+
+export function localPersistenceStatusText(status) {
+  if (status === "saving") return "正在保存…";
+  if (status === "error") return "保存失败";
+  return "已自动保存";
+}
+
+export function notebookStateForPersistence(state = {}) {
+  const {
+    uiPreferences,
+    authenticated,
+    pendingAuthAction,
+    modal,
+    modalContext,
+    openCreateMenu,
+    syncStatus,
+    message,
+    ...notebookState
+  } = state;
+  return notebookState;
+}
+
+export function resolveMenuKeyboard(currentIndex, key, itemCount) {
+  const count = Math.max(0, Number(itemCount) || 0);
+  if (key === "Escape") return { close: true, focusIndex: currentIndex };
+  if (!count) return { focusIndex: -1 };
+  const safeIndex = currentIndex >= 0 && currentIndex < count ? currentIndex : -1;
+  if (key === "ArrowDown") return { focusIndex: safeIndex < 0 ? 0 : (safeIndex + 1) % count };
+  if (key === "ArrowUp") return { focusIndex: safeIndex < 0 ? count - 1 : (safeIndex - 1 + count) % count };
+  if (key === "Home") return { focusIndex: 0 };
+  if (key === "End") return { focusIndex: count - 1 };
+  return { focusIndex: currentIndex };
+}
+
 export function normalizeUiPreferences(value = {}) {
   const contentWidth = Number(value.contentWidth);
   return {

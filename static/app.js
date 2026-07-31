@@ -21,7 +21,7 @@ import { Ellipsis } from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
-import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, resolveTreeKeyboard, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, localPersistenceStatusText, notebookStateForPersistence, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolveTreeKeyboard, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -389,9 +389,11 @@ function App() {
     return { ...migrated, ...resolveStartupState(migrated, uiPreferences), uiPreferences };
   });
   const [toast, setToast] = useState("");
+  const [localPersistenceStatus, setLocalPersistenceStatus] = useState("saved");
   const [dragTarget, setDragTarget] = useState(null);
   const [draggedTreeItem, setDraggedTreeItem] = useState(null);
   const [treeFocusId, setTreeFocusId] = useState("");
+  const notebookPersistencePayload = JSON.stringify(notebookStateForPersistence(state));
 
   useEffect(() => {
     let cancelled = false;
@@ -422,13 +424,24 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    let savedTimer = 0;
+    setLocalPersistenceStatus(resolveLocalPersistenceStatus("start"));
     try {
-      persist(state);
+      persist(notebookPersistencePayload);
+      savedTimer = window.setTimeout(() => {
+        if (!cancelled) setLocalPersistenceStatus(resolveLocalPersistenceStatus("success"));
+      }, 120);
     } catch (error) {
       console.error("Draft persistence failed", error);
+      setLocalPersistenceStatus(resolveLocalPersistenceStatus("failure"));
       setToast("本地草稿保存失败，请减少图片大小后重试");
     }
-  }, [state]);
+    return () => {
+      cancelled = true;
+      if (savedTimer) window.clearTimeout(savedTimer);
+    };
+  }, [notebookPersistencePayload]);
 
   useEffect(() => {
     try {
@@ -1070,6 +1083,11 @@ function App() {
         draft.openCreateMenu = null;
       });
     }
+    if (action === "close-document-actions") {
+      patchState((draft) => {
+        draft.openCreateMenu = null;
+      });
+    }
     if (action === "toggle-document-actions") {
       patchState((draft) => {
         draft.openCreateMenu = draft.openCreateMenu === "document-actions" ? null : "document-actions";
@@ -1211,7 +1229,7 @@ function App() {
       );
     }
     return h(React.Fragment, null,
-      renderDocumentTopbar(state, note, state.uiPreferences, handleAction),
+      renderDocumentTopbar(state, note, state.uiPreferences, localPersistenceStatus, handleAction),
       h(PaperScroll, null,
         note
           ? h(DocumentPaper, {
@@ -2616,8 +2634,7 @@ function tablePickerPositionForTrigger(event, shell, menuPosition) {
   };
 }
 
-function renderDocumentTopbar(state, note, preferences, handleAction) {
-  const isPublishing = state.syncStatus === "publishing";
+function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, handleAction) {
   return h("header", {
     className: "topbar document-topbar",
     "data-outline-visible": preferences.showOutline ? "true" : "false"
@@ -2635,44 +2652,92 @@ function renderDocumentTopbar(state, note, preferences, handleAction) {
     note ? h("span", {
       className: "document-save-status",
       role: "status",
-      title: documentStatusText(state, note)
-    }, isPublishing ? "正在发表…" : "已自动保存") : null,
+      title: localPersistenceStatusText(localPersistenceStatus)
+    }, localPersistenceStatusText(localPersistenceStatus)) : null,
     h("div", { className: "toolbar" },
       note ? h("button", {
         className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`,
         onClick: () => handleAction("toggle-mode"),
         "aria-pressed": state.mode === "edit"
       }, state.mode === "edit" ? "阅读" : "编辑") : null,
-      note ? h("div", { className: "document-overflow" },
-        h("button", {
-          className: "ghost-btn document-overflow-trigger",
-          type: "button",
-          "aria-label": "更多文档操作",
-          "aria-haspopup": "menu",
-          "aria-expanded": state.openCreateMenu === "document-actions",
-          onClick: () => handleAction("toggle-document-actions")
-        }, h(Ellipsis, { size: 18, strokeWidth: 1.8, "aria-hidden": "true" })),
-        state.openCreateMenu === "document-actions" ? renderDocumentActionsMenu(state, note, handleAction) : null
-      ) : null,
+      note ? h(DocumentOverflowMenu, { state, note, handleAction }) : null,
       note ? h("button", {
         className: "primary-btn document-publish-button",
-        disabled: isPublishing,
+        disabled: state.syncStatus === "publishing",
         onClick: () => handleAction("publish")
-      }, isPublishing ? "发表中" : "发表") : null
+      }, state.syncStatus === "publishing" ? "发表中" : "发表") : null
     )
   );
 }
 
-function renderDocumentActionsMenu(state, note, handleAction) {
-  return h("div", { className: "document-overflow-menu", role: "menu", "aria-label": "文档操作" },
-    h("button", { type: "button", role: "menuitem", onClick: () => handleAction("rename-note", note.id) }, "重命名"),
-    h("button", { type: "button", role: "menuitem", onClick: () => handleAction("delete-drafts") }, "删除本地草稿"),
+function DocumentOverflowMenu({ state, note, handleAction }) {
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const isOpen = state.openCreateMenu === "document-actions";
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      menuRef.current?.querySelector("[role=menuitem]:not(:disabled)")?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isOpen]);
+
+  const restoreTriggerFocus = () => {
+    window.requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  const closeMenu = () => {
+    handleAction("close-document-actions");
+    restoreTriggerFocus();
+  };
+
+  const runMenuAction = (action) => {
+    handleAction("close-document-actions");
+    handleAction(action, note.id);
+    restoreTriggerFocus();
+  };
+
+  const handleMenuKeyDown = (event) => {
+    const items = Array.from(menuRef.current?.querySelectorAll("[role=menuitem]:not(:disabled)") || []);
+    const currentIndex = items.indexOf(document.activeElement);
+    const result = resolveMenuKeyboard(currentIndex, event.key, items.length);
+    if (result.close) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu();
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    items[result.focusIndex]?.focus();
+  };
+
+  return h("div", { className: "document-overflow", onKeyDown: handleMenuKeyDown },
+    h("button", {
+      ref: triggerRef,
+      className: "ghost-btn document-overflow-trigger",
+      type: "button",
+      "aria-label": "更多文档操作",
+      "aria-haspopup": "menu",
+      "aria-expanded": isOpen,
+      onClick: () => handleAction("toggle-document-actions")
+    }, h(Ellipsis, { size: 18, strokeWidth: 1.8, "aria-hidden": "true" })),
+    isOpen ? renderDocumentActionsMenu(state, menuRef, handleMenuKeyDown, runMenuAction) : null
+  );
+}
+
+function renderDocumentActionsMenu(state, menuRef, handleMenuKeyDown, onAction) {
+  return h("div", { ref: menuRef, className: "document-overflow-menu", role: "menu", "aria-label": "文档操作" },
+    h("button", { type: "button", role: "menuitem", onClick: () => onAction("rename-note") }, "重命名"),
+    h("button", { type: "button", role: "menuitem", onClick: () => onAction("delete-drafts") }, "删除本地草稿"),
     h("button", {
       type: "button",
       role: "menuitem",
       className: "danger-menu-item",
       disabled: state.syncStatus === "publishing",
-      onClick: () => handleAction("delete-note", note.id)
+      onClick: () => onAction("delete-note")
     }, "删除文档")
   );
 }
@@ -4004,9 +4069,8 @@ function loadLocalState() {
   return null;
 }
 
-function persist(state) {
-  const { uiPreferences, ...notebookState } = state;
-  localStorage.setItem(storageKey, JSON.stringify(notebookState));
+function persist(notebookPersistencePayload) {
+  localStorage.setItem(storageKey, notebookPersistencePayload);
 }
 
 function migrate(data) {

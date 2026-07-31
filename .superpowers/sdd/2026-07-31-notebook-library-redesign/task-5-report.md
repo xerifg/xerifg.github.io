@@ -81,3 +81,23 @@ Full verification:
 
 - Direct `view_image` inspection remained unavailable because the Windows sandbox could not enforce split writable roots. The exact reference was inspected via a read-only Base64 rendering instead.
 - Interactive browser screenshot verification is intentionally deferred to Task 7. Task 6's publish review sheet was not modified.
+
+## review fix round
+
+Addressed both Important findings from `task-5-review.md` with a RED/GREEN cycle.
+
+- RED: added lifecycle contracts for `saving`, `saved`, and `error`, including the failure transition; added a persistence projection contract proving modal, authentication, menu, message, publish sync, and preference UI state cannot retrigger notebook persistence.
+- GREEN: introduced an independent local persistence lifecycle, persisted a stable serialized notebook payload, and kept publish progress/error state exclusively on the publish control.
+- RED: added executable menu-key resolution contracts for initial navigation, Arrow Up/Down wrapping, Home/End, Escape, and non-navigation keys, plus source integration contracts for focus management and action closure.
+- GREEN: moved the overflow into a stateful component that focuses the first enabled item, supports wrapped keyboard navigation, closes on Escape and restores trigger focus, and closes before every menu action.
+
+Review-fix verification:
+
+- `node tests/library-interactions.test.mjs` — pass.
+- `node tests/library-shell-ui.test.mjs` — pass.
+- Full `tests/*.test.mjs` sweep — 12 passed, 0 failed.
+- `node --check static/app.js` — pass.
+- `node --check static/library-ui-model.mjs` — pass.
+- `git diff --check` — pass, no output.
+
+Task 6's publish review sheet remains untouched.

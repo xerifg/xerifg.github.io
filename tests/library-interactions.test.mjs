@@ -4,6 +4,10 @@ import {
   buildVisibleTreeItems,
   enterTagView,
   groupTagRecords,
+  localPersistenceStatusText,
+  notebookStateForPersistence,
+  resolveLocalPersistenceStatus,
+  resolveMenuKeyboard,
   resolveTreeKeyboard,
   restoreTagView
 } from "../static/library-ui-model.mjs";
@@ -108,3 +112,43 @@ const searchedTreeItems = buildVisibleTreeItems(
 );
 assert.deepEqual(searchedTreeItems.map((item) => item.id), ["root", "root-note"]);
 assert.equal(searchedTreeItems[0].expanded, true);
+
+assert.equal(localPersistenceStatusText("saving"), "正在保存…");
+assert.equal(localPersistenceStatusText("saved"), "已自动保存");
+assert.equal(localPersistenceStatusText("error"), "保存失败");
+assert.equal(localPersistenceStatusText("publish-error"), "已自动保存");
+assert.equal(resolveLocalPersistenceStatus("start"), "saving");
+assert.equal(resolveLocalPersistenceStatus("success"), "saved");
+assert.equal(resolveLocalPersistenceStatus("failure"), "error");
+
+assert.deepEqual(
+  notebookStateForPersistence({
+    view: "library",
+    activeId: "note-1",
+    folders: [{ id: "folder-1" }],
+    notes: [{ id: "note-1", title: "Draft" }],
+    uiPreferences: { theme: "dark" },
+    authenticated: true,
+    pendingAuthAction: "publish",
+    modal: "publish-review",
+    modalContext: { selectedIds: ["note-1"] },
+    openCreateMenu: "document-actions",
+    syncStatus: "error",
+    message: "publish failed"
+  }),
+  {
+    view: "library",
+    activeId: "note-1",
+    folders: [{ id: "folder-1" }],
+    notes: [{ id: "note-1", title: "Draft" }]
+  }
+);
+
+assert.deepEqual(resolveMenuKeyboard(0, "ArrowDown", 3), { focusIndex: 1 });
+assert.deepEqual(resolveMenuKeyboard(2, "ArrowDown", 3), { focusIndex: 0 });
+assert.deepEqual(resolveMenuKeyboard(0, "ArrowUp", 3), { focusIndex: 2 });
+assert.deepEqual(resolveMenuKeyboard(1, "Home", 3), { focusIndex: 0 });
+assert.deepEqual(resolveMenuKeyboard(1, "End", 3), { focusIndex: 2 });
+assert.deepEqual(resolveMenuKeyboard(1, "Escape", 3), { close: true, focusIndex: 1 });
+assert.deepEqual(resolveMenuKeyboard(-1, "ArrowDown", 3), { focusIndex: 0 });
+assert.deepEqual(resolveMenuKeyboard(1, "Tab", 3), { focusIndex: 1 });
