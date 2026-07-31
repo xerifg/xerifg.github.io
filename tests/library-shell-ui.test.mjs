@@ -131,3 +131,14 @@ assert.match(css, /@media\s*\(prefers-reduced-transparency:\s*reduce\)/);
 assert.match(css, /@media\s*\(prefers-contrast:\s*more\)/);
 assert.match(app, /className:\s*"mini-action"[^}]*"aria-label":\s*"新建子项"/s);
 assert.match(app, /className:\s*"mini-action"[^}]*"aria-label":\s*"更多文档操作"/s);
+
+const narrowDrawerCss = css.slice(css.lastIndexOf("@media (max-width: 900px)"));
+assert.match(narrowDrawerCss, /\.context-sidebar\s*\{[^}]*z-index:\s*35/s);
+assert.match(narrowDrawerCss, /\.context-sidebar-toggle\s*\{[^}]*z-index:\s*(?:3[6-9]|[4-9]\d)/s, "the visible directory control must remain above its open drawer");
+
+const folderActionSource = app.slice(app.indexOf("function renderFolder"), app.indexOf("function tableSelectionInfo"));
+const noteActionSource = app.slice(app.indexOf("function renderNoteItem"), app.indexOf("function buildDraftDeletionSummary"));
+assert.match(folderActionSource, /h\(\"button\",\s*\{[^}]*className:\s*"mini-action"[^}]*type:\s*"button"[^}]*"aria-label":\s*"\u65b0\u5efa\u5b50\u9879"/s, "new-child action must be a native keyboard-operable button");
+assert.match(noteActionSource, /h\(\"button\",\s*\{[^}]*className:\s*"mini-action"[^}]*type:\s*"button"[^}]*"aria-label":\s*"\u66f4\u591a\u6587\u6863\u64cd\u4f5c"/s, "note-overflow action must be a native keyboard-operable button");
+assert.doesNotMatch(folderActionSource, /h\(\"span\",\s*\{[^}]*className:\s*"mini-action"/s, "new-child action must not be nested in the tree-row button");
+assert.doesNotMatch(noteActionSource, /h\(\"span\",\s*\{[^}]*className:\s*"mini-action"/s, "note-overflow action must not be nested in the tree-row button");

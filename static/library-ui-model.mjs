@@ -8,6 +8,10 @@ export const DEFAULT_UI_PREFERENCES = Object.freeze({
   defaultMode: "read"
 });
 
+export function toggleContextDrawer(isOpen) {
+  return !Boolean(isOpen);
+}
+
 export function resolveLocalPersistenceStatus(event) {
   if (event === "start") return "saving";
   if (event === "failure") return "error";

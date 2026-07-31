@@ -8,6 +8,11 @@ import {
   resolveStartupState
 } from "../static/library-ui-model.mjs";
 
+const drawerModel = await import("../static/library-ui-model.mjs");
+assert.equal(typeof drawerModel.toggleContextDrawer, "function", "drawer toggling must be an executable state transition");
+assert.equal(drawerModel.toggleContextDrawer(false), true, "the directory control opens a closed drawer");
+assert.equal(drawerModel.toggleContextDrawer(true), false, "the directory control closes an open drawer");
+
 assert.deepEqual(normalizeUiPreferences(), DEFAULT_UI_PREFERENCES);
 assert.deepEqual(
   resolveStartupState({ view: "library", activeId: "note-1" }, DEFAULT_UI_PREFERENCES),

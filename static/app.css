@@ -2948,6 +2948,18 @@ body { background: #fff; }
   box-shadow: 0 5px 18px rgba(0, 0, 0, .08);
 }
 
+.tree-section > .mini-action {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 6px;
+  border: 0;
+  cursor: pointer;
+}
+
+.tree-section > .tree-folder,
+.tree-section > .tree-note { padding-right: 34px; }
+
 .settings-sidebar-shell > .settings-sidebar {
   width: 100%;
   height: 100%;
@@ -3005,7 +3017,7 @@ body { background: #fff; }
 
   .context-sidebar-toggle {
     position: fixed;
-    z-index: 34;
+    z-index: 36;
     top: 12px;
     left: 68px;
     display: inline-flex;

@@ -21,7 +21,7 @@ import { Ellipsis, X } from "https://esm.sh/lucide-react@0.468.0?external=react"
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
-import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, localPersistenceStatusText, notebookStateForPersistence, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, localPersistenceStatusText, notebookStateForPersistence, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -1282,7 +1282,7 @@ function App() {
           "aria-controls": "context-sidebar",
           "aria-expanded": isContextSidebarOpen,
           "aria-label": isContextSidebarOpen ? "关闭目录" : "打开目录",
-          onClick: () => setIsContextSidebarOpen((isOpen) => !isOpen)
+          onClick: () => setIsContextSidebarOpen(toggleContextDrawer)
         }, icon("library", { size: 17 }), h("span", null, "目录")),
         state.view === "home"
           ? h(LibraryHome, {
@@ -2866,16 +2866,18 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
       }, isCollapsed ? "▸" : "▾"),
       icon("folder", { className: "tree-folder-icon" }),
       h("strong", null, folder.name),
-      h("span", {
-        className: "mini-action",
-        "aria-label": "新建子项",
-        title: "新建",
-        onClick: (event) => {
-          event.stopPropagation();
-          handleAction("toggle-create-menu", folder.id);
-        }
-      }, "+")
+
     ),
+    h("button", {
+      className: "mini-action",
+      type: "button",
+      "aria-label": "新建子项",
+      title: "新建",
+      onClick: (event) => {
+        event.stopPropagation();
+        handleAction("toggle-create-menu", folder.id);
+      }
+    }, "+"),
     state.openCreateMenu === folder.id
       ? h("div", { className: "create-menu" },
           h("button", { onClick: () => handleAction("new-folder-in-folder", folder.id) }, "新建文件夹"),
@@ -3536,16 +3538,18 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
         note.dirty ? h("span", { className: "tree-note-dirty", title: "本地草稿" }) : null
       ),
       h("strong", null, note.title || "未命名笔记"),
-      h("span", {
-        className: "mini-action",
-        "aria-label": "更多文档操作",
-        title: "更多",
-        onClick: (event) => {
-          event.stopPropagation();
-          handleAction("toggle-create-menu", note.id);
-        }
-      }, "+")
+
     ),
+    h("button", {
+      className: "mini-action",
+      type: "button",
+      "aria-label": "更多文档操作",
+      title: "更多",
+      onClick: (event) => {
+        event.stopPropagation();
+        handleAction("toggle-create-menu", note.id);
+      }
+    }, "+"),
     state.openCreateMenu === note.id
       ? h("div", { className: "create-menu" },
           h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-note", note.id) }, "删除文档")
