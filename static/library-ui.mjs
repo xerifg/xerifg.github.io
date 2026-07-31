@@ -117,11 +117,21 @@ function tagButton(tag, selectedTag, onSelectTag, className = "tag-browser-row")
 
 function renderTagIndex(model, onQuery, onSort, onSelectTag) {
   const commonTags = [...model.records].sort((left, right) => right.count - left.count || left.name.localeCompare(right.name, "zh-CN")).slice(0, 6);
+  const categories = [
+    ["technology", "技术"],
+    ["topic", "主题"],
+    ["tool", "工具"],
+    ["status", "状态"]
+  ];
   return h("div", { className: "tag-browser-index" },
     h("label", { className: "tag-browser-search" }, icon("search", { size: 17 }), h("span", { className: "sr-only" }, "搜索标签"), h("input", { type: "search", value: model.query, placeholder: "搜索标签", onChange: (event) => onQuery(event.target.value) })),
     h("div", { className: "tag-sort-control", role: "group", "aria-label": "标签排序" }, [["popular", "常用"], ["name", "名称"]].map(([value, label]) => h("button", { key: value, className: model.sort === value ? "is-active" : "", "aria-pressed": model.sort === value, onClick: () => onSort(value) }, label))),
     h("section", { className: "tag-browser-group", "aria-labelledby": "common-tags-title" }, h("h2", { id: "common-tags-title" }, "常用标签"), h("div", { className: "common-tag-list" }, commonTags.length ? commonTags.map((tag) => tagButton(tag, model.selected?.name, onSelectTag, "common-tag-button")) : h("p", { className: "tag-browser-empty" }, "没有匹配的标签。"))),
-    h("section", { className: "tag-browser-group", "aria-labelledby": "all-tags-title" }, h("h2", { id: "all-tags-title" }, "全部标签"), h("div", { className: "all-tag-list" }, model.records.length ? model.records.map((tag) => tagButton(tag, model.selected?.name, onSelectTag)) : h("p", { className: "tag-browser-empty" }, "没有匹配的标签。")))
+    categories.map(([category, label]) => h("section", { key: category, className: "tag-browser-group", "aria-labelledby": `tag-category-${category}` },
+      h("h2", { id: `tag-category-${category}` }, label),
+      h("div", { className: "all-tag-list" }, model.groups[category].length
+        ? model.groups[category].map((tag) => tagButton(tag, model.selected?.name, onSelectTag))
+        : h("p", { className: "tag-browser-empty" }, "暂无标签。"))))
   );
 }
 

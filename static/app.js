@@ -20,7 +20,7 @@ import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
-import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, resolveTreeKeyboard, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
 import { LibraryHome, PrimaryRail, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -389,6 +389,7 @@ function App() {
   const [toast, setToast] = useState("");
   const [dragTarget, setDragTarget] = useState(null);
   const [draggedTreeItem, setDraggedTreeItem] = useState(null);
+  const [treeFocusId, setTreeFocusId] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -438,16 +439,21 @@ function App() {
   const visibleNotes = useMemo(() => filteredNotes(state), [state]);
   const tagStats = useMemo(() => buildTagBrowser(state.notes).records, [state.notes]);
   const summary = useMemo(() => buildLibrarySummary(state.folders, state.notes), [state.folders, state.notes]);
-  const tagBrowserModel = useMemo(() => ({
-    ...buildTagBrowser(state.notes, {
+  const tagBrowserModel = useMemo(() => {
+    const browser = buildTagBrowser(state.notes, {
       query: state.tagQuery,
       sort: state.tagSort,
       selectedTag: state.selectedTag
-    }),
-    query: state.tagQuery,
-    sort: state.tagSort,
-    notesById: Object.fromEntries(state.notes.map((item) => [item.id, item]))
-  }), [state.notes, state.tagQuery, state.tagSort, state.selectedTag]);
+    });
+    return {
+      ...browser,
+      groups: groupTagRecords(browser.records),
+      query: state.tagQuery,
+      sort: state.tagSort,
+      notesById: Object.fromEntries(state.notes.map((item) => [item.id, item]))
+    };
+  }, [state.notes, state.tagQuery, state.tagSort, state.selectedTag]);
+  const visibleTreeItems = useMemo(() => buildVisibleTreeItems(state.folders, visibleNotes, state.collapsedFolders, { isSearching: Boolean(state.query.trim()) }), [state.folders, visibleNotes, state.collapsedFolders, state.query]);
 
   const areas = useMemo(() => buildKnowledgeAreas(state.folders, state.notes), [state.folders, state.notes]);
 
@@ -555,22 +561,17 @@ function App() {
 
   const enterTag = (tag) => {
     patchState((draft) => {
-      draft.selectedTag = tag;
-      draft.tagQuery = "";
-      draft.view = "tags";
-      draft.mode = "read";
-      draft.modal = null;
-      draft.modalContext = null;
-      draft.openCreateMenu = null;
+      Object.assign(draft, enterTagView(draft, tag, { clearQuery: true }));
+    });
+  };
+  const selectTag = (tag) => {
+    patchState((draft) => {
+      Object.assign(draft, enterTagView(draft, tag));
     });
   };
   const openTagNote = (noteId) => {
     patchState((draft) => {
-      draft.tagReturnContext = {
-        selectedTag: draft.selectedTag,
-        query: draft.tagQuery,
-        sort: draft.tagSort
-      };
+      draft.tagReturnContext = buildTagReturnContext(draft);
     });
     selectNote(noteId);
   };
@@ -1023,16 +1024,7 @@ function App() {
     }
     if (action === "back-to-tag") {
       patchState((draft) => {
-        const context = draft.tagReturnContext;
-        if (!context) return;
-        draft.view = "tags";
-        draft.selectedTag = context.selectedTag;
-        draft.tagQuery = context.query;
-        draft.tagSort = context.sort;
-        draft.tagReturnContext = null;
-        draft.modal = null;
-        draft.modalContext = null;
-        draft.openCreateMenu = null;
+        Object.assign(draft, restoreTagView(draft));
       });
     }
     if (action === "toggle-mode") {
@@ -1125,13 +1117,39 @@ function App() {
     }
   };
 
+  const defaultTreeFocusId = visibleTreeItems.some((item) => item.id === treeFocusId)
+    ? treeFocusId
+    : visibleTreeItems.some((item) => item.id === state.activeId)
+      ? state.activeId
+      : visibleTreeItems[0]?.id || "";
+  const focusTreeItem = (id) => {
+    setTreeFocusId(id);
+    window.requestAnimationFrame(() => {
+      const target = Array.from(document.querySelectorAll("[data-tree-id]")).find((element) => element.dataset.treeId === id);
+      target?.focus();
+    });
+  };
+  const treeKeyboard = {
+    focusedId: defaultTreeFocusId,
+    onFocus: setTreeFocusId,
+    onKeyDown: (event) => {
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      const currentId = event.currentTarget.dataset.treeId;
+      const action = resolveTreeKeyboard(visibleTreeItems, currentId, event.key);
+      event.preventDefault();
+      event.stopPropagation();
+      if (action.toggleFolderId) handleAction("toggle-folder", action.toggleFolderId);
+      if (action.focusId) focusTreeItem(action.focusId);
+    }
+  };
+
   const renderActiveView = () => {
     if (state.view === "tags") {
       return h(TagBrowser, {
         model: tagBrowserModel,
         onQuery: (query) => patchState((draft) => { draft.tagQuery = query; }),
         onSort: (sort) => patchState((draft) => { draft.tagSort = sort; }),
-        onSelectTag: enterTag,
+        onSelectTag: selectTag,
         onOpenNote: openTagNote,
         onCreateTag: () => {
           if (note) openPublishTagModal();
@@ -1165,7 +1183,7 @@ function App() {
   return h(React.Fragment, null,
     h("div", { className: "app-shell", "data-view": state.view },
       h(PrimaryRail, { view: state.view, onNavigate: navigate }),
-      renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget),
+      renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard),
       h("main", { className: "content" },
         state.view === "home"
           ? h(LibraryHome, {
@@ -2588,7 +2606,7 @@ function githubBrowserUrl(settings, path) {
   if (!owner || !repo || !path) return path || "notebooks/index.json";
   return `https://github.com/${owner}/${repo}/blob/${branch}/${trimSlash(path)}`;
 }
-function renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget) {
+function renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
   return h("aside", { className: "sidebar" },
     h("header", { className: "sidebar-heading" },
       h("div", null,
@@ -2613,16 +2631,16 @@ function renderContextSidebar(state, visibleNotes, selectNote, handleAction, tre
       })
     ),
     h("div", { className: "tree", role: "tree", "aria-label": "文档目录" },
-      renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget)
+      renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)
     )
   );
 }
-function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget) {
+function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
   const rootFolders = state.folders.filter((folder) => !folder.parentId);
   const orphanNotes = visibleNotes.filter((note) => !note.folderId);
   const children = [
-    ...rootFolders.map((folder) => renderFolder(state, folder, 0, visibleNotes, selectNote, handleAction, treeDrag, dragTarget)),
-    ...orphanNotes.map((note) => renderNoteItem(state, note, 0, selectNote, handleAction, treeDrag, dragTarget))
+    ...rootFolders.map((folder) => renderFolder(state, folder, 0, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)),
+    ...orphanNotes.map((note) => renderNoteItem(state, note, 0, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard))
   ];
   if (!visibleNotes.length) {
     children.push(h("div", { className: "empty", key: "empty" }, h("div", null, h("strong", null, "没有找到笔记"), h("p", null, "换个关键词试试。"))));
@@ -2630,7 +2648,7 @@ function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dra
   return children;
 }
 
-function renderFolder(state, folder, depth, visibleNotes, selectNote, handleAction, treeDrag, dragTarget) {
+function renderFolder(state, folder, depth, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
   const children = state.folders.filter((item) => item.parentId === folder.id);
   const notes = visibleNotes.filter((note) => note.folderId === folder.id);
   const count = countNotes(state, folder.id, visibleNotes);
@@ -2641,6 +2659,10 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
     h("button", {
       className: `tree-folder indent-${Math.min(depth, 3)} ${isCollapsed ? "collapsed" : ""} ${dragTarget?.type === "folder" && dragTarget.id === folder.id ? `drop-${dragTarget.position}` : ""}`,
       title: isCollapsed ? "展开目录" : "收起目录",
+      "data-tree-id": folder.id,
+      tabIndex: treeKeyboard.focusedId === folder.id ? 0 : -1,
+      onFocus: () => treeKeyboard.onFocus(folder.id),
+      onKeyDown: (event) => treeKeyboard.onKeyDown(event),
       draggable: !treeDrag.disabled,
       onDragStart: (event) => treeDrag.start(event, { type: "folder", id: folder.id }),
       onDragOver: (event) => treeDrag.over(event, { type: "folder", id: folder.id }),
@@ -2678,8 +2700,10 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
           h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-folder", folder.id) }, "删除文件夹")
         )
       : null,
-    isCollapsed ? null : notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction, treeDrag, dragTarget)),
-    isCollapsed ? null : children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, treeDrag, dragTarget))
+    isCollapsed ? null : h("div", { role: "group" },
+      notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)),
+      children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard))
+    )
   );
 }
 
@@ -3303,7 +3327,7 @@ function TableInsertGrid({ position, onSelect }) {
   );
 }
 
-function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, dragTarget) {
+function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
   const isActive = note.id === state.activeId;
   return h("div", { className: "tree-section", key: note.id },
     h("button", {
@@ -3313,6 +3337,10 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
       "aria-current": isActive ? "page" : undefined,
       draggable: !treeDrag.disabled,
       onDragStart: (event) => treeDrag.start(event, { type: "note", id: note.id }),
+      "data-tree-id": note.id,
+      tabIndex: treeKeyboard.focusedId === note.id ? 0 : -1,
+      onFocus: () => treeKeyboard.onFocus(note.id),
+      onKeyDown: (event) => treeKeyboard.onKeyDown(event),
       onDragOver: (event) => treeDrag.over(event, { type: "note", id: note.id }),
       onDragLeave: treeDrag.leave,
       onDragEnd: treeDrag.end,
