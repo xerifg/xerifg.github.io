@@ -1,6 +1,6 @@
 import React from "https://esm.sh/react@18.3.1";
 import {
-  BookOpenText, ChevronLeft, ChevronRight, FileText, Folder, Home, NotebookTabs, Plus,
+  BookOpenText, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, FileText, Folder, Home, NotebookTabs, Plus,
   Search, Settings, Tag, Trash2
 } from "https://esm.sh/lucide-react@0.468.0?external=react";
 
@@ -17,7 +17,10 @@ const icons = {
   trash: Trash2,
   library: BookOpenText,
   next: ChevronRight,
-  back: ChevronLeft
+  back: ChevronLeft,
+  expand: ChevronRight,
+  collapse: ChevronDown,
+  more: Ellipsis
 };
 
 export function icon(name, props = {}) {
@@ -125,7 +128,7 @@ function renderTagIndex(model, onQuery, onSort, onSelectTag) {
   ];
   return h("div", { className: "tag-browser-index" },
     h("label", { className: "tag-browser-search" }, icon("search", { size: 17 }), h("span", { className: "sr-only" }, "搜索标签"), h("input", { type: "search", value: model.query, placeholder: "搜索标签", onChange: (event) => onQuery(event.target.value) })),
-    h("div", { className: "tag-sort-control", role: "group", "aria-label": "标签排序" }, [["popular", "常用"], ["name", "名称"]].map(([value, label]) => h("button", { key: value, className: model.sort === value ? "is-active" : "", "aria-pressed": model.sort === value, onClick: () => onSort(value) }, label))),
+    h("div", { className: "tag-sort-control", role: "group", "aria-label": "标签排序" }, [["popular", "常用"], ["name", "名称"], ["recent", "最近创建"]].map(([value, label]) => h("button", { key: value, className: model.sort === value ? "is-active" : "", "aria-pressed": model.sort === value, onClick: () => onSort(value) }, label))),
     h("section", { className: "tag-browser-group", "aria-labelledby": "common-tags-title" }, h("h2", { id: "common-tags-title" }, "常用标签"), h("div", { className: "common-tag-list" }, commonTags.length ? commonTags.map((tag) => tagButton(tag, model.selected?.name, onSelectTag, "common-tag-button")) : h("p", { className: "tag-browser-empty" }, "没有匹配的标签。"))),
     categories.map(([category, label]) => h("section", { key: category, className: "tag-browser-group", "aria-labelledby": `tag-category-${category}` },
       h("h2", { id: `tag-category-${category}` }, label),
@@ -135,23 +138,30 @@ function renderTagIndex(model, onQuery, onSort, onSelectTag) {
   );
 }
 
-function renderTagDetail(selected, notesById, onOpenNote) {
+function renderTagDetail(selected, notesById, onOpenNote, onRenameTag) {
   if (!selected) return h("aside", { className: "tag-detail tag-detail-empty" }, icon("tags", { size: 24 }), h("h2", null, "选择一个标签"), h("p", null, "查看使用这个标签的笔记。"));
   const notes = selected.noteIds.map((id) => notesById[id]).filter(Boolean);
   return h("aside", { className: "tag-detail", "aria-labelledby": "selected-tag-title" },
-    h("header", null, h("span", { className: "tag-detail-icon" }, icon("tags", { size: 18 })), h("div", null, h("h2", { id: "selected-tag-title" }, selected.name), h("p", null, `${notes.length} 篇相关笔记`))),
+    h("header", null,
+      h("span", { className: "tag-detail-icon" }, icon("tags", { size: 18 })),
+      h("div", null, h("h2", { id: "selected-tag-title" }, selected.name), h("p", null, `${notes.length} 篇相关笔记`)),
+      h("button", { type: "button", className: "tag-rename-button", onClick: () => onRenameTag(selected.name) }, "重命名")
+    ),
     h("div", { className: "tag-note-list" }, notes.map((note) => h("button", { key: note.id, className: "tag-note-row", onClick: () => onOpenNote(note.id) }, icon("file", { size: 17 }), h("span", null, note.title || "未命名笔记"), icon("next", { size: 16 })))))
 }
 
-export function TagBrowser({ model, onQuery, onSort, onSelectTag, onOpenNote, onCreateTag }) {
+export function TagBrowser({ model, onQuery, onSort, onSelectTag, onOpenNote, onCreateTag, onRenameTag, canCreateTag }) {
   return h("section", { className: "tag-browser", "aria-labelledby": "tag-browser-title" },
     h("header", { className: "view-header" },
       h("div", null, h("h1", { id: "tag-browser-title" }, "标签"), h("p", null, "用主题连接散落在不同目录里的知识。")),
-      onCreateTag ? h("button", { className: "tag-create-button", onClick: onCreateTag }, icon("add"), "新建标签") : null
+      h("div", { className: "tag-create-control" },
+        h("button", { className: "tag-create-button", disabled: !canCreateTag, onClick: onCreateTag, "aria-describedby": !canCreateTag ? "tag-create-help" : undefined }, icon("add"), "新建标签"),
+        !canCreateTag ? h("small", { id: "tag-create-help" }, "先打开一篇笔记，再为它新建标签") : null
+      )
     ),
     h("div", { className: "tag-browser-grid" },
       renderTagIndex(model, onQuery, onSort, onSelectTag),
-      renderTagDetail(model.selected, model.notesById, onOpenNote)
+      renderTagDetail(model.selected, model.notesById, onOpenNote, onRenameTag)
     )
   );
 }

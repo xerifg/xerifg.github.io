@@ -122,30 +122,82 @@ export function buildKnowledgeAreas(folders = [], notes = []) {
     });
 }
 
+function tagTimestamp(note) {
+  const value = typeof note?.date === "string" ? note.date.trim() : "";
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? { value, time } : { value: "", time: Number.NEGATIVE_INFINITY };
+}
+
 export function buildTagBrowser(notes = [], options = {}) {
   const tags = new Map();
-  for (const note of notes) {
-    for (const rawTag of noteTags(note)) {
+  let occurrencePosition = 0;
+  notes.forEach((note) => {
+    const timestamp = tagTimestamp(note);
+    noteTags(note).forEach((rawTag) => {
       const name = typeof rawTag === "string" ? rawTag.trim() : "";
       const key = normalizedTag(rawTag);
-      if (!key) continue;
-      if (!tags.has(key)) tags.set(key, { name, count: 0, noteIds: [] });
+      if (!key) return;
+      if (!tags.has(key)) tags.set(key, { name, count: 0, noteIds: [], recentAt: "", recentTime: Number.NEGATIVE_INFINITY, recentPosition: Number.NEGATIVE_INFINITY });
       const tag = tags.get(key);
       tag.count += 1;
       tag.noteIds.push(note.id);
-    }
-  }
-
+      const position = occurrencePosition;
+      occurrencePosition += 1;
+      if (timestamp.time > tag.recentTime || (timestamp.time === tag.recentTime && position > tag.recentPosition)) Object.assign(tag, { recentAt: timestamp.value, recentTime: timestamp.time, recentPosition: position });
+    });
+  });
   const query = String(options.query || "").trim().toLowerCase();
   const records = [...tags.values()].filter((tag) => tag.name.toLowerCase().includes(query));
   const byName = (left, right) => left.name.localeCompare(right.name, "zh-CN");
-  records.sort(options.sort === "name" ? byName : (left, right) => right.count - left.count || byName(left, right));
 
+  const byRecent = (left, right) => right.recentTime - left.recentTime
+    || right.recentPosition - left.recentPosition
+    || byName(left, right);
+  records.sort(options.sort === "name"
+    ? byName
+    : options.sort === "recent"
+      ? byRecent
+      : (left, right) => right.count - left.count || byName(left, right));
+  const publicRecords = records.map(({ recentTime, recentPosition, recentAt, ...record }) => options.sort === "recent"
+    ? { ...record, recentAt }
+    : record);
   const selectedKey = normalizedTag(options.selectedTag);
   return {
-    records,
-    selected: records.find((tag) => normalizedTag(tag.name) === selectedKey) || null
+    records: publicRecords,
+    selected: publicRecords.find((tag) => normalizedTag(tag.name) === selectedKey) || null
   };
+}
+
+export function applyLocalTagMutation(notes = [], options = {}) {
+  const name = typeof options.name === "string" ? options.name.trim() : "";
+  const timestamp = typeof options.timestamp === "string" ? options.timestamp : "";
+  if (!name) return { notes, changed: false, selectedTag: "", error: "empty-name" };
+  if (options.mode === "create") {
+    const noteIndex = notes.findIndex((note) => note.id === options.noteId);
+    if (noteIndex < 0) return { notes, changed: false, selectedTag: "", error: "no-note" };
+    const existing = noteTags(notes[noteIndex]).find((tag) => normalizedTag(tag) === normalizedTag(name));
+    if (existing) return { notes, changed: false, selectedTag: existing, error: "duplicate" };
+    const nextNotes = notes.map((note, index) => index === noteIndex
+      ? { ...note, tags: [...noteTags(note), name], date: timestamp || note.date, dirty: true }
+      : note);
+    return { notes: nextNotes, changed: true, selectedTag: name, error: "" };
+  }
+  const selectedKey = normalizedTag(options.selectedTag);
+  if (!selectedKey) return { notes, changed: false, selectedTag: "", error: "missing-tag" };
+  let changed = false;
+  const nextNotes = notes.map((note) => {
+    if (!noteTags(note).some((tag) => normalizedTag(tag) === selectedKey)) return note;
+    changed = true;
+    const nextTags = noteTags(note).filter((tag) => {
+      const key = normalizedTag(tag);
+      return key !== selectedKey && key !== normalizedTag(name);
+    });
+    nextTags.push(name);
+    return { ...note, tags: nextTags, date: timestamp || note.date, dirty: true };
+  });
+  return changed
+    ? { notes: nextNotes, changed: true, selectedTag: name, error: "" }
+    : { notes, changed: false, selectedTag: "", error: "missing-tag" };
 }
 
 const tagCategoryMatchers = Object.freeze({
@@ -187,7 +239,7 @@ export function buildTagReturnContext(state) {
   return {
     selectedTag: state.selectedTag || "",
     query: state.tagQuery || "",
-    sort: state.tagSort === "name" ? "name" : "popular"
+    sort: ["name", "recent"].includes(state.tagSort) ? state.tagSort : "popular"
   };
 }
 

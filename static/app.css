@@ -3,6 +3,14 @@
   --sheet: rgba(255, 255, 255, .82);
   --sheet-solid: #ffffff;
   --sidebar: rgba(246, 246, 248, .74);
+  --surface-page: #ffffff;
+  --surface-raised: #fcfcfd;
+  --surface-subtle: #f4f5f7;
+  --surface-control: #fafbfc;
+  --surface-hover: #eef1f5;
+  --surface-selected: #e9f2ff;
+  --surface-rail: #f1f2f4;
+  --surface-sidebar: #f8f9fb;
   --text: #1d1d1f;
   --muted: #77777c;
   --soft: #e8e8ed;
@@ -2879,6 +2887,16 @@ body { background: #fff; }
   --muted: #a5a9b0;
   --soft: #34373d;
   --line: rgba(255, 255, 255, .12);
+  --surface-page: #1d1f22;
+  --surface-raised: #25282d;
+  --surface-subtle: #2b2e33;
+  --surface-control: #202226;
+  --surface-hover: #30343a;
+  --surface-selected: #183b62;
+  --surface-rail: #202226;
+  --surface-sidebar: #24262a;
+  --blue: #409cff;
+  --blue-dark: #78b7ff;
 }
 [data-theme="dark"] body,
 [data-theme="dark"] .content,
@@ -2910,6 +2928,16 @@ body { background: #fff; }
     --muted: #a5a9b0;
     --soft: #34373d;
     --line: rgba(255, 255, 255, .12);
+    --surface-page: #1d1f22;
+    --surface-raised: #25282d;
+    --surface-subtle: #2b2e33;
+    --surface-control: #202226;
+    --surface-hover: #30343a;
+    --surface-selected: #183b62;
+    --surface-rail: #202226;
+    --surface-sidebar: #24262a;
+    --blue: #409cff;
+    --blue-dark: #78b7ff;
   }
   :root[data-theme="auto"] body,
   :root[data-theme="auto"] .content,
@@ -3123,3 +3151,138 @@ body { background: #fff; }
     outline-offset: 2px;
   }
 }
+
+/* Theme-complete application surfaces */
+.app-shell,
+.content,
+.library-home,
+.tag-browser,
+.settings-page {
+  background: var(--surface-page);
+  color: var(--text);
+}
+
+.primary-rail {
+  background: var(--surface-rail);
+  border-color: var(--line);
+}
+
+.sidebar {
+  background: var(--surface-sidebar);
+  border-color: var(--line);
+}
+
+.library-summary-item {
+  background: var(--surface-raised);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.knowledge-area-row,
+.tag-browser-row,
+.tag-note-row,
+.settings-navigation-item,
+.tree-folder,
+.tree-note:not(.active) {
+  color: var(--text);
+}
+
+.rail-item,
+.tag-sort-control button,
+.settings-segmented button {
+  color: var(--muted);
+}
+
+.rail-item.is-active,
+.tag-browser-row.is-selected,
+.settings-navigation-item.is-active,
+.tag-sort-control button.is-active,
+.settings-segmented button.is-active { color: var(--blue-dark); }
+.tag-detail {
+  background: var(--surface-raised);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.tag-index-item,
+.common-tag-button,
+.tag-sort-control,
+.settings-segmented {
+  background: var(--surface-subtle);
+  color: var(--text);
+}
+
+.tag-browser-search input,
+.settings-row-control select,
+.settings-row-control input[type="text"],
+.settings-row-control input[type="password"],
+.settings-row-control input[readonly] {
+  background: var(--surface-control);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.tag-sort-control button.is-active,
+.settings-segmented button.is-active {
+  background: var(--surface-raised);
+}
+
+.knowledge-area-list,
+.knowledge-area-row + .knowledge-area-row,
+.all-tag-list,
+.tag-browser-row + .tag-browser-row,
+.tag-detail > header,
+.tag-note-row + .tag-note-row,
+.settings-group-rows,
+.settings-row {
+  border-color: var(--line);
+}
+
+.knowledge-area-row:hover,
+.tag-browser-row:hover,
+.settings-navigation-item:hover,
+.tree-folder:hover,
+.tree-note:hover {
+  background: var(--surface-hover);
+}
+
+.common-tag-button.is-selected,
+.tag-browser-row.is-selected,
+.settings-navigation-item.is-active {
+  background: var(--surface-selected);
+}
+
+.library-home-header p,
+.tag-browser > .view-header p,
+.knowledge-area-copy small,
+.knowledge-area-count,
+.library-inline-empty,
+.tag-index-item small,
+.library-summary-copy small,
+.tag-browser-row small,
+.common-tag-button small,
+.tag-browser-empty,
+.tag-detail p,
+.settings-page-header p,
+.settings-row-copy p,
+.settings-value {
+  color: var(--muted);
+}
+
+.modal,
+.field input,
+.tag-dropdown summary,
+.tag-choice {
+  background: var(--sheet-solid);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+[data-transparency="solid"] .primary-rail { background: var(--surface-rail); }
+[data-transparency="solid"] .sidebar { background: var(--surface-sidebar); }
+
+.tag-sort-control { grid-template-columns: repeat(3, 1fr); }
+.tag-create-control { display: grid; justify-items: end; gap: 5px; }
+.tag-create-control small { max-width: 220px; color: var(--muted); font-size: 11px; text-align: right; }
+.tag-rename-button { margin-left: auto; min-height: 30px; padding: 0 9px; border-radius: 7px; color: var(--blue-dark); font-size: 12px; font-weight: 600; }
+.tag-rename-button:hover { background: var(--surface-hover); }
