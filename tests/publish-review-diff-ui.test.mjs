@@ -42,13 +42,13 @@ assert.match(
 );
 assert.match(
   indexSource,
-  /app\.js\?v=20260730-table-insert-v3/,
+  /app\.js\?v=20260731-library-v1/,
   "the page should request the publish diff script instead of a cached script"
 );
 
 assert.match(
   indexSource,
-  /app\.css\?v=20260730-table-insert-v3/,
+  /app\.css\?v=20260731-library-v1/,
   "the page should request the publish diff styles instead of cached styles"
 );
 assert.match(
@@ -58,6 +58,6 @@ assert.match(
 );
 assert.match(
   appSource,
-  /from "\.\/publish-model\.mjs\?v=20260730-table-insert-v3"/,
+  /from "\.\/publish-model\.mjs\?v=20260731-library-v1"/,
   "the app should version the publish model import so Chrome does not reuse a stale cached module"
 );

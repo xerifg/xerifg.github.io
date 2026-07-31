@@ -17,10 +17,11 @@ import TableHeader from "https://esm.sh/@tiptap/extension-table-header@2.11.7";
 import TableCell from "https://esm.sh/@tiptap/extension-table-cell@2.11.7";
 import TaskList from "https://esm.sh/@tiptap/extension-task-list@2.11.7";
 import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
-import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
-import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260730-table-insert-v3";
+import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { LibraryHome, PrimaryRail, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -335,21 +336,20 @@ const seedHtml = [
 
 const seed = {
   query: "",
-  networkQuery: "",
-  view: "library",
+  view: "home",
   selectedTag: "",
   authenticated: false,
   pendingAuthAction: "",
   mode: "read",
-  activeId: "note-welcome",
+  activeId: "",
   modal: null,
   modalContext: null,
   openCreateMenu: null,
   collapsedFolders: {},
   deletedTags: [],
   syncStatus: "ready",
-  networkRestored: true,
   message: "",
+  uiPreferences: DEFAULT_UI_PREFERENCES,
   settings: {
     account: inferOwner(),
     owner: inferOwner(),
@@ -378,7 +378,11 @@ const seed = {
 };
 
 function App() {
-  const [state, setState] = useState(() => migrate(loadLocalState() || seed));
+  const [state, setState] = useState(() => {
+    const migrated = migrate(loadLocalState() || seed);
+    const uiPreferences = normalizeUiPreferences(migrated.uiPreferences);
+    return { ...migrated, uiPreferences, ...resolveStartupState(migrated, uiPreferences) };
+  });
   const [toast, setToast] = useState("");
   const [dragTarget, setDragTarget] = useState(null);
   const [draggedTreeItem, setDraggedTreeItem] = useState(null);
@@ -394,10 +398,10 @@ function App() {
           setState((current) => migrate({
             ...published,
             view: current.view,
+            activeId: current.activeId,
             selectedTag: current.selectedTag,
             query: current.query,
-            networkQuery: current.networkQuery,
-            networkRestored: current.networkRestored,
+            uiPreferences: current.uiPreferences,
             settings: { ...current.settings, token: current.settings.token }
           }));
         }
@@ -426,7 +430,9 @@ function App() {
 
   const note = currentNote(state);
   const visibleNotes = useMemo(() => filteredNotes(state), [state]);
-  const tagStats = useMemo(() => filteredTagStats(state), [state]);
+  const tagStats = useMemo(() => buildTagBrowser(state.notes).records, [state.notes]);
+  const summary = useMemo(() => buildLibrarySummary(state.folders, state.notes), [state.folders, state.notes]);
+  const areas = useMemo(() => buildKnowledgeAreas(state.folders, state.notes), [state.folders, state.notes]);
 
   const patchState = useCallback((recipe) => {
     setState((current) => {
@@ -538,6 +544,38 @@ function App() {
       draft.mode = "read";
       const matches = draft.notes.filter((item) => !tag || (item.tags || []).includes(tag));
       draft.activeId = tag && matches.length === 1 ? matches[0].id : "";
+    });
+  };
+  const navigate = (view) => {
+    const target = ["home", "library", "tags", "settings"].includes(view) ? view : "home";
+    patchState((draft) => {
+      draft.view = target;
+      draft.modal = null;
+      draft.modalContext = null;
+      draft.openCreateMenu = null;
+    });
+  };
+  const openArea = (folderId) => {
+    patchState((draft) => {
+      const folderIds = new Set([folderId]);
+      let foundChild = true;
+      while (foundChild) {
+        foundChild = false;
+        draft.folders.forEach((folder) => {
+          if (folder.parentId && folderIds.has(folder.parentId) && !folderIds.has(folder.id)) {
+            folderIds.add(folder.id);
+            foundChild = true;
+          }
+        });
+      }
+      draft.view = "library";
+      draft.selectedTag = "";
+      draft.query = "";
+      draft.activeId = draft.notes.find((item) => folderIds.has(item.folderId))?.id || draft.activeId;
+      draft.modal = null;
+      draft.modalContext = null;
+      draft.openCreateMenu = null;
+      if (draft.collapsedFolders) delete draft.collapsedFolders[folderId];
     });
   };
 
@@ -718,9 +756,8 @@ function App() {
         view: latest.view,
         selectedTag: latest.selectedTag,
         query: latest.query,
-        networkQuery: latest.networkQuery,
-        networkRestored: latest.networkRestored,
         settings: { ...latest.settings, token: latest.settings.token },
+        uiPreferences: latest.uiPreferences,
         modal: null,
         modalContext: null,
         mode: "read",
@@ -946,12 +983,9 @@ function App() {
     }
   };
   const handleAction = (action, targetFolderId) => {
-    if (action === "back-network") {
+    if (action === "search-library") {
       patchState((draft) => {
-        draft.view = "network";
-        draft.selectedTag = "";
-        draft.query = "";
-        draft.mode = "read";
+        draft.query = targetFolderId;
       });
     }
     if (action === "clear-selected-tag") {
@@ -1049,62 +1083,46 @@ function App() {
     }
   };
 
-  const showNetworkView = state.view === "network" && !isSmallScreen();
-
-  if (showNetworkView) {
+  const renderActiveView = () => {
+    if (state.view !== "library") {
+      const label = state.view === "tags" ? "标签浏览" : "知识库设置";
+      return h("section", { className: "empty library-placeholder" },
+        h("div", null, h("h2", null, label), h("p", null, "此视图将在下一阶段接入。"))
+      );
+    }
     return h(React.Fragment, null,
-      h(NetworkView, {
-        state,
-        tagStats,
-        onSearch: (value) => patchState((draft) => {
-          draft.networkQuery = value;
-        }),
-        onEnterTag: enterTag
-      }),
-      toast ? h("div", { className: "toast" }, toast) : null
+      renderTopbar(state, note, handleAction),
+      h(PaperScroll, null,
+        note
+          ? h(DocumentPaper, {
+              key: `${note.id}-${state.mode}`,
+              note,
+              state,
+              editable: state.mode === "edit",
+              updateNote,
+              patchState
+            })
+          : h("div", { className: "empty" },
+              h("div", null, h("h2", null, "选择一篇笔记"), h("p", null, "选择左侧文档开始阅读")))
+      )
     );
-  }
+  };
 
   return h(React.Fragment, null,
-    h("div", { className: "app-shell" },
-      h("aside", { className: "sidebar" },
-        h("div", { className: "traffic" },
-          h("span", { className: "dot red" }),
-          h("span", { className: "dot yellow" }),
-          h("span", { className: "dot green" })
-        ),
-        h("div", { className: "brand" },
-          h("h1", null, "Notes"),
-          h("p", null, "谢瑞峰的个人笔记本，也是博客站点")
-        ),
-        h("div", { className: "search-wrap" },
-          h("input", {
-            className: "search",
-            value: state.query,
-            placeholder: "搜索笔记、标签、正文",
-            onChange: (event) => patchState((draft) => {
-              draft.query = event.target.value;
-            })
-          })
-        ),
-        h("div", { className: "tree" },
-          renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget)
-        )
-      ),
+    h("div", { className: "app-shell", "data-view": state.view },
+      h(PrimaryRail, { view: state.view, onNavigate: navigate }),
+      renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget),
       h("main", { className: "content" },
-        renderTopbar(state, note, handleAction),
-        h(PaperScroll, null,
-          note
-            ? h(DocumentPaper, {
-                key: `${note.id}-${state.mode}`,
-                note,
-                state,
-                editable: state.mode === "edit",
-                updateNote,
-                patchState
-              })
-            : h("div", { className: "empty" }, h("div", null, h("h2", null, "还没有笔记"), h("p", null, "从左侧新建文件夹或笔记开始。")))
-        )
+        state.view === "home"
+          ? h(LibraryHome, {
+              summary,
+              areas,
+              tags: tagStats,
+              onCreateNote: () => createNote(),
+              onOpenArea: openArea,
+              onOpenTag: enterTag
+            })
+          : renderActiveView()
       )
     ),
     renderModal(state, handleAction),
@@ -1221,377 +1239,6 @@ function customScrollbarGeometry(scrollOffset, clientSize, scrollSize) {
   const offset = Math.max(0, Math.min(maxOffset, (scrollOffset / Math.max(1, scrollSize - clientSize)) * maxOffset));
   return { visible, size, offset };
 }
-function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-    const ctx = canvas.getContext("2d");
-    const palette = ["#7cc7ff", "#b9f6ca", "#ffd166", "#ff9aa2", "#c4b5fd", "#9bf6ff", "#a0c4ff"];
-    const hasNetworkQuery = Boolean((state.networkQuery || "").trim());
-    const sourceTags = tagStats.length ? tagStats : (hasNetworkQuery ? [] : [{ name: "Notes", count: state.notes.length }]);
-    const links = buildTagLinks(state.notes, sourceTags.map((tag) => tag.name));
-    let nodes = [];
-    let hoveredName = "";
-    let selectedName = sourceTags[0]?.name === "Notes" ? "" : sourceTags[0]?.name || "";
-    let detailRect = null;
-    let detailActionRect = null;
-    let disposed = false;
-
-    const nodeByName = () => new Map(nodes.map((node) => [node.name, node]));
-    const activeName = () => selectedName || hoveredName;
-
-    function resize() {
-      const rect = canvas.getBoundingClientRect();
-      const ratio = window.devicePixelRatio || 1;
-      canvas.width = Math.max(1, Math.floor(rect.width * ratio));
-      canvas.height = Math.max(1, Math.floor(rect.height * ratio));
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      nodes = layoutNetworkNodes(sourceTags, rect.width, rect.height)
-        .map((node, index) => ({ ...node, color: palette[index % palette.length] }));
-      draw();
-    }
-
-    function draw() {
-      if (disposed) return;
-      const rect = canvas.getBoundingClientRect();
-      const width = rect.width;
-      const height = rect.height;
-      const cx = width / 2;
-      ctx.clearRect(0, 0, width, height);
-
-      const glow = ctx.createRadialGradient(cx, height * .52, 0, cx, height * .52, Math.min(width, height) * .48);
-      glow.addColorStop(0, "rgba(255,255,255,.30)");
-      glow.addColorStop(.54, "rgba(255,255,255,.07)");
-      glow.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, width, height);
-      drawBackdropTexture(width, height);
-
-      if (!nodes.length) {
-        drawEmptyState(width, height);
-        return;
-      }
-
-      drawLinks();
-      nodes.forEach(drawNode);
-      if (selectedName && selectedName !== "Notes") drawDetailPanel();
-    }
-
-    function drawBackdropTexture(width, height) {
-      const scale = Math.min(width, height);
-      ctx.save();
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      const curves = [
-        {
-          points: [-0.06, 0.15, 0.07, 0.08, 0.18, 0.08, 0.28, 0.21, 0.40, 0.38, 0.45, 0.54, 0.56, 0.60],
-          color: "rgba(255, 255, 255, .26)",
-          width: .9
-        },
-        {
-          points: [-0.08, 0.80, 0.10, 0.67, 0.22, 0.84, 0.38, 0.78, 0.50, 0.70, 0.55, 0.74, 0.63, 0.86],
-          color: "rgba(255, 255, 255, .34)",
-          width: 1
-        },
-        {
-          points: [0.70, 0.44, 0.82, 0.32, 0.96, 0.30, 1.05, 0.42, 0.93, 0.55, 0.88, 0.72, 0.76, 0.96],
-          color: "rgba(255, 255, 255, .24)",
-          width: .9
-        },
-        {
-          points: [0.38, -0.04, 0.52, 0.08, 0.63, 0.04, 0.74, -0.02, 0.86, 0.04, 1.02, 0.00, 1.12, 0.12],
-          color: "rgba(255, 255, 255, .18)",
-          width: .8
-        },
-        {
-          points: [0.78, 1.06, 0.90, 0.88, 0.84, 0.72, 0.95, 0.56, 1.06, 0.40, 0.91, 0.30, 0.78, 0.38],
-          color: "rgba(190, 218, 246, .18)",
-          width: .8
-        }
-      ];
-
-      curves.forEach((curve) => {
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(curve.points[0] * width, curve.points[1] * height);
-        for (let index = 2; index < curve.points.length; index += 6) {
-          ctx.bezierCurveTo(
-            curve.points[index] * width,
-            curve.points[index + 1] * height,
-            curve.points[index + 2] * width,
-            curve.points[index + 3] * height,
-            curve.points[index + 4] * width,
-            curve.points[index + 5] * height
-          );
-        }
-        ctx.strokeStyle = curve.color;
-        ctx.lineWidth = curve.width;
-        ctx.shadowColor = "rgba(255,255,255,.30)";
-        ctx.shadowBlur = 5;
-        ctx.stroke();
-        ctx.restore();
-      });
-
-      const dots = [
-        [.07, .13, 2.2, .52], [.14, .18, 1.8, .42], [.20, .28, 2.0, .44],
-        [.31, .16, 1.4, .34], [.38, .44, 2.1, .46], [.52, .34, 1.5, .34],
-        [.66, .40, 1.5, .34], [.84, .28, 2.1, .44], [.90, .08, 2.2, .50],
-        [.92, .74, 2.0, .42], [.74, .86, 1.6, .34], [.21, .88, 1.9, .44]
-      ];
-      dots.forEach(([x, y, radius, alpha]) => {
-        ctx.beginPath();
-        ctx.arc(x * width, y * height, radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-        ctx.shadowColor = "rgba(255,255,255,.48)";
-        ctx.shadowBlur = radius * 4;
-        ctx.fill();
-      });
-
-      const clusters = [[.05, .84], [.92, .07]];
-      clusters.forEach(([baseX, baseY]) => {
-        for (let index = 0; index < 5; index += 1) {
-          const x = (baseX + (index % 2) * .012 + index * .004) * width;
-          const y = (baseY + Math.floor(index / 2) * .014) * height;
-          ctx.beginPath();
-          ctx.arc(x, y, Math.max(1, scale * .0016), 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255,255,255,.48)";
-          ctx.shadowBlur = 4;
-          ctx.fill();
-        }
-      });
-      ctx.restore();
-    }
-    function drawLinks() {
-      const lookup = nodeByName();
-      const active = activeName();
-      links.forEach((link) => {
-        const source = lookup.get(link.source);
-        const target = lookup.get(link.target);
-        if (!source || !target) return;
-        const linked = active && (link.source === active || link.target === active);
-        const maxWeight = Math.max(...links.map((item) => item.weight), 1);
-        const strength = link.weight / maxWeight;
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(source.x, source.y);
-        ctx.lineTo(target.x, target.y);
-        ctx.strokeStyle = linked ? "rgba(0, 122, 255, .42)" : `rgba(89, 114, 145, ${.10 + strength * .12})`;
-        ctx.lineWidth = linked ? 2.2 + strength * 1.4 : 1 + strength * 1.2;
-        ctx.setLineDash(linked ? [] : [3, 8]);
-        ctx.lineCap = "round";
-        ctx.stroke();
-        ctx.restore();
-      });
-    }
-
-    function drawNode(node) {
-      const active = activeName();
-      const related = !active || node.name === active || links.some((link) =>
-        (link.source === active && link.target === node.name) || (link.target === active && link.source === node.name)
-      );
-      const selected = selectedName === node.name;
-      const hovered = hoveredName === node.name;
-      const alpha = related ? 1 : .42;
-
-      const aura = ctx.createRadialGradient(node.x, node.y, node.radius * .25, node.x, node.y, node.radius * 2.2);
-      aura.addColorStop(0, hexToRgba(node.color, selected || hovered ? .44 : .24));
-      aura.addColorStop(.52, hexToRgba(node.color, selected || hovered ? .18 : .08));
-      aura.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, node.radius * 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = aura;
-      ctx.fill();
-
-      if (selected || hovered) {
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius + 9, 0, Math.PI * 2);
-        ctx.strokeStyle = hexToRgba(node.color, selected ? .68 : .42);
-        ctx.lineWidth = selected ? 2.2 : 1.5;
-        ctx.stroke();
-      }
-
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${.72 + alpha * .22})`;
-      ctx.shadowColor = hexToRgba(node.color, .36);
-      ctx.shadowBlur = selected || hovered ? 24 : 14;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.lineWidth = selected ? 1.6 : 1;
-      ctx.strokeStyle = selected ? hexToRgba(node.color, .82) : "rgba(255,255,255,.82)";
-      ctx.stroke();
-
-      ctx.fillStyle = `rgba(29,29,31,${.42 + alpha * .44})`;
-      ctx.font = `${selected ? "800" : "700"} 17px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(fitCanvasText(node.name, node.radius * 1.52), node.x, node.y - 7);
-      ctx.fillStyle = `rgba(99,105,116,${.35 + alpha * .42})`;
-      ctx.font = "13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.fillText(`${node.count} 篇`, node.x, node.y + 17);
-    }
-
-    function drawDetailPanel() {
-      const node = nodes.find((item) => item.name === selectedName);
-      if (!node) return;
-      const rect = canvas.getBoundingClientRect();
-      const panelWidth = Math.min(270, rect.width - 32);
-      const panelHeight = 164;
-      const x = Math.min(rect.width - panelWidth - 18, Math.max(18, node.x + node.radius + 28));
-      const y = Math.min(rect.height - panelHeight - 22, Math.max(72, node.y - panelHeight / 2));
-      const notes = noteSummariesForTag(state.notes, selectedName === "Notes" ? "" : selectedName, 3);
-      detailRect = { x, y, width: panelWidth, height: panelHeight };
-      detailActionRect = { x: x + 16, y: y + panelHeight - 42, width: panelWidth - 32, height: 28 };
-
-      drawRoundRect(x, y, panelWidth, panelHeight, 18);
-      ctx.fillStyle = "rgba(255,255,255,.86)";
-      ctx.shadowColor = "rgba(63, 78, 102, .14)";
-      ctx.shadowBlur = 28;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = "rgba(255,255,255,.92)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.fillStyle = "rgba(29,29,31,.88)";
-      ctx.font = "800 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(selectedName === "Notes" ? "全部笔记" : `# ${selectedName}`, x + 16, y + 27);
-      ctx.fillStyle = "rgba(105,112,124,.78)";
-      ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.fillText(`${notes.length} 条预览`, x + 16, y + 47);
-
-      notes.forEach((note, index) => {
-        const rowY = y + 69 + index * 19;
-        ctx.fillStyle = index === 0 ? hexToRgba(node.color, .26) : "rgba(92, 110, 133, .16)";
-        drawRoundRect(x + 16, rowY - 8, 7, 7, 3.5);
-        ctx.fill();
-        ctx.fillStyle = "rgba(56,62,72,.78)";
-        ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-        ctx.fillText(fitCanvasText(note.title || "未命名文档", panelWidth - 54), x + 30, rowY);
-      });
-
-      drawRoundRect(detailActionRect.x, detailActionRect.y, detailActionRect.width, detailActionRect.height, 10);
-      ctx.fillStyle = "rgba(0, 122, 255, .10)";
-      ctx.fill();
-      ctx.fillStyle = "rgba(0, 95, 199, .88)";
-      ctx.font = "700 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("进入标签", detailActionRect.x + detailActionRect.width / 2, detailActionRect.y + 18);
-    }
-
-    function drawEmptyState(width, height) {
-      ctx.fillStyle = "rgba(105,112,124,.72)";
-      ctx.font = "15px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("没有匹配的标签", width / 2, height * .62);
-    }
-
-    function drawRoundRect(x, y, width, height, radius) {
-      const r = Math.min(radius, width / 2, height / 2);
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + width, y, x + width, y + height, r);
-      ctx.arcTo(x + width, y + height, x, y + height, r);
-      ctx.arcTo(x, y + height, x, y, r);
-      ctx.arcTo(x, y, x + width, y, r);
-      ctx.closePath();
-    }
-
-    function fitCanvasText(text, maxWidth) {
-      if (ctx.measureText(text).width <= maxWidth) return text;
-      let next = text;
-      while (next.length > 1 && ctx.measureText(`${next}...`).width > maxWidth) {
-        next = next.slice(0, -1);
-      }
-      return `${next}...`;
-    }
-
-    function hitNode(x, y) {
-      const sorted = [...nodes].sort((a, b) => Math.hypot(x - a.x, y - a.y) - Math.hypot(x - b.x, y - b.y));
-      const hit = sorted[0];
-      return hit && Math.hypot(x - hit.x, y - hit.y) <= hit.radius + 12 ? hit : null;
-    }
-
-    function inside(rect, x, y) {
-      return rect && x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
-    }
-
-    function handlePointerMove(event) {
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const hit = hitNode(x, y);
-      const next = hit?.name || "";
-      const actionable = Boolean(hit || inside(detailActionRect, x, y));
-      canvas.style.cursor = actionable ? "pointer" : "default";
-      if (next !== hoveredName) {
-        hoveredName = next;
-        draw();
-      }
-    }
-
-    function handlePointerLeave() {
-      hoveredName = "";
-      canvas.style.cursor = "default";
-      draw();
-    }
-
-    function handleClick(event) {
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      if (inside(detailActionRect, x, y) && selectedName) {
-        onEnterTag(selectedName === "Notes" ? "" : selectedName);
-        return;
-      }
-      if (inside(detailRect, x, y)) return;
-      const hit = hitNode(x, y);
-      if (hit) {
-        if (hit.name === "Notes") {
-          onEnterTag("");
-          return;
-        }
-        selectedName = hit.name;
-        draw();
-        return;
-      }
-      selectedName = "";
-      draw();
-    }
-
-    resize();
-    window.addEventListener("resize", resize);
-    canvas.addEventListener("pointermove", handlePointerMove);
-    canvas.addEventListener("pointerleave", handlePointerLeave);
-    canvas.addEventListener("click", handleClick);
-
-    return () => {
-      disposed = true;
-      window.removeEventListener("resize", resize);
-      canvas.removeEventListener("pointermove", handlePointerMove);
-      canvas.removeEventListener("pointerleave", handlePointerLeave);
-      canvas.removeEventListener("click", handleClick);
-    };
-  }, [tagStats, onEnterTag, state.networkQuery, state.notes]);
-
-  return h("section", { className: "network-shell" },
-    h("canvas", { id: "network-canvas", ref: canvasRef, "aria-hidden": "true" }),
-    h("div", { className: "network-glass" },
-      h("div", { className: "network-search" },
-        h("input", {
-          value: state.networkQuery || "",
-          placeholder: "搜索标签、笔记标题、正文",
-          onChange: (event) => onSearch(event.target.value)
-        })
-      )
-    )
-  );
-}
-
 function DocumentPaper({ note, state, editable, updateNote }) {
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
@@ -2849,7 +2496,6 @@ function renderTopbar(state, note, handleAction) {
       h("em", null, documentStatusText(state, note))
     ),
     h("div", { className: "toolbar" },
-      h("button", { className: "ghost-btn network-toggle", onClick: () => handleAction("back-network") }, "知识网络"),
       note ? h("button", {
         className: `ghost-btn ${state.mode === "edit" ? "active" : ""}`,
         onClick: () => handleAction("toggle-mode")
@@ -2882,6 +2528,35 @@ function githubBrowserUrl(settings, path) {
   const branch = settings?.branch || "main";
   if (!owner || !repo || !path) return path || "notebooks/index.json";
   return `https://github.com/${owner}/${repo}/blob/${branch}/${trimSlash(path)}`;
+}
+function renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget) {
+  return h("aside", { className: "sidebar" },
+    h("header", { className: "sidebar-heading" },
+      h("div", null,
+        h("strong", null, "我的知识库"),
+        h("span", null, "个人笔记")
+      ),
+      h("button", {
+        className: "sidebar-add-note",
+        "aria-label": "新建笔记",
+        title: "新建笔记",
+        onClick: () => handleAction("new-note-in-folder", null)
+      }, icon("add"))
+    ),
+    h("label", { className: "search-wrap" },
+      icon("search", { size: 16 }),
+      h("span", { className: "sr-only" }, "搜索笔记"),
+      h("input", {
+        className: "search",
+        value: state.query,
+        placeholder: "搜索笔记、标签、内容",
+        onChange: (event) => handleAction("search-library", event.target.value)
+      })
+    ),
+    h("div", { className: "tree" },
+      renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget)
+    )
+  );
 }
 function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget) {
   const rootFolders = state.folders.filter((folder) => !folder.parentId);
@@ -4142,12 +3817,7 @@ function persist(state) {
   localStorage.setItem(storageKey, JSON.stringify(state));
 }
 
-function isSmallScreen() {
-  return typeof window !== "undefined" && window.matchMedia?.("(max-width: 900px)").matches;
-}
-
 function migrate(data) {
-  const shouldRestoreNetwork = data.networkRestored !== true;
   const merged = {
     ...seed,
     ...data,
@@ -4172,19 +3842,12 @@ function migrate(data) {
       html: noteHtml
     };
   });
-  if (!merged.notes.some((note) => note.id === merged.activeId)) merged.activeId = merged.notes[0]?.id || "";
-  if (shouldRestoreNetwork && !isSmallScreen()) {
-    merged.view = "network";
-    merged.selectedTag = "";
-    merged.query = "";
-  }
+  if (merged.activeId && !merged.notes.some((note) => note.id === merged.activeId)) merged.activeId = "";
   if (!data.view && isNotebookRoute()) {
     merged.view = "library";
     merged.selectedTag = "";
     merged.query = "";
   }
-  merged.networkQuery = merged.networkQuery || "";
-  merged.networkRestored = true;
   merged.authenticated = false;
   merged.pendingAuthAction = "";
   merged.settings = {
@@ -4270,26 +3933,6 @@ function filteredNotes(state) {
     const text = `${note.title} ${folderPath(state, note.folderId)} ${(note.tags || []).join(" ")} ${htmlToText(note.html || blocksToHtml(note.blocks))}`.toLowerCase();
     return text.includes(query);
   });
-}
-
-function filteredTagStats(state) {
-  const query = (state.networkQuery || "").trim().toLowerCase();
-  const matchedNotes = query
-    ? state.notes.filter((note) => {
-        const text = `${note.title} ${folderPath(state, note.folderId)} ${(note.tags || []).join(" ")} ${htmlToText(note.html || blocksToHtml(note.blocks))}`.toLowerCase();
-        return text.includes(query);
-      })
-    : state.notes;
-  const counts = new Map();
-  matchedNotes.forEach((note) => {
-    (note.tags || []).forEach((tag) => {
-      if (query && !tag.toLowerCase().includes(query)) return;
-      counts.set(tag, (counts.get(tag) || 0) + 1);
-    });
-  });
-  return Array.from(counts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "zh-Hans-CN"));
 }
 
 function folderPath(state, folderId) {
