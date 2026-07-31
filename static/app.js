@@ -17,7 +17,7 @@ import TableHeader from "https://esm.sh/@tiptap/extension-table-header@2.11.7";
 import TableCell from "https://esm.sh/@tiptap/extension-table-cell@2.11.7";
 import TaskList from "https://esm.sh/@tiptap/extension-task-list@2.11.7";
 import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
-import { Ellipsis } from "https://esm.sh/lucide-react@0.468.0?external=react";
+import { Ellipsis, X } from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
@@ -963,6 +963,7 @@ function App() {
           }
         };
         draft.openCreateMenu = null;
+        draft.syncStatus = "ready";
         draft.message = changeSet.changes.length ? "已检测到待发表改动" : "没有检测到待发表改动";
       });
     } catch (error) {
@@ -985,8 +986,8 @@ function App() {
     patchState((draft) => {
       draft.syncStatus = "publishing";
       draft.message = "正在发表选中的改动到 GitHub";
-      draft.modal = null;
-      draft.modalContext = null;
+      draft.modal = "publish-review";
+      draft.modalContext.review.selectedIds = Array.from(selectedIds);
     });
     try {
       const publishedAt = now();
@@ -1045,9 +1046,11 @@ function App() {
         if (merged.includeDeletedTags) next.deletedTags = [];
         next.syncStatus = "ready";
         next.message = `已发表 ${selectedIds.size} 项改动到 GitHub 仓库`;
+        next.modal = null;
+        next.modalContext = null;
         return next;
       });
-      setToast(`已发表 ${selectedIds.size} 项改动到 GitHub`);
+      setToast("已发表到 GitHub");
     } catch (error) {
       console.error(error);
       patchState((draft) => {
@@ -1137,20 +1140,25 @@ function App() {
     if (action === "confirm-auth") confirmAuth();
     if (action === "confirm-publish-tags") confirmPublishTags();
     if (action === "toggle-publish-selection") {
-      const inputs = Array.from(document.querySelectorAll("[data-publish-change-id]"));
-      const shouldSelect = inputs.some((input) => !input.checked);
-      inputs.forEach((input) => { input.checked = shouldSelect; });
-      const count = document.querySelector("[data-publish-selected-count]");
-      if (count) count.textContent = String(shouldSelect ? inputs.length : 0);
+      patchState((draft) => {
+        const review = draft.modalContext?.review;
+        if (!review) return;
+        review.selectedIds = review.selectedIds.length === review.changes.length
+          ? []
+          : review.changes.map((change) => change.id);
+      });
     }
     if (action === "update-publish-selection-count") {
-      const count = document.querySelector("[data-publish-selected-count]");
-      if (count) count.textContent = String(document.querySelectorAll("[data-publish-change-id]:checked").length);
+      const selectedIds = Array.from(
+        document.querySelectorAll("[data-publish-change-id]:checked"),
+        (input) => input.dataset.publishChangeId
+      );
+      patchState((draft) => {
+        if (draft.modalContext?.review) draft.modalContext.review.selectedIds = selectedIds;
+      });
     }
     if (action === "confirm-publish-selected") {
-      const selectedIds = new Set(
-        Array.from(document.querySelectorAll("[data-publish-change-id]:checked"), (input) => input.dataset.publishChangeId)
-      );
+      const selectedIds = new Set(state.modalContext?.review?.selectedIds || []);
       publishSelectedChanges(state.modalContext?.settings, state.modalContext?.review, selectedIds);
     }
     if (action === "confirm-delete-drafts") confirmDeleteDrafts();
@@ -3583,6 +3591,167 @@ function summaryList(items, emptyText) {
     values.length > 12 ? h("li", { key: "more" }, `还有 ${values.length - 12} 项...`) : null
   );
 }
+function PublishReviewSheet({ state, handleAction }) {
+  const closeButtonRef = useRef(null);
+  const sheetRef = useRef(null);
+  const review = state.modalContext?.review || { changes: [], selectedIds: [], localState: state, remoteState: state };
+  const destination = { ...state.settings, ...(state.modalContext?.settings || {}) };
+  const selectedIds = new Set(review.selectedIds || []);
+  const selectedCount = selectedIds.size;
+  const selectedNoteIds = new Set(review.changes
+    .filter((change) => selectedIds.has(change.id) && change.kind === "note")
+    .map((change) => change.noteId));
+  const publicTags = uniqueTags((review.localState?.notes || [])
+    .filter((note) => selectedNoteIds.has(note.id))
+    .flatMap((note) => ensureDefaultTags(note.tags)));
+  const isPublishing = state.syncStatus === "publishing";
+  const publishError = state.syncStatus === "error" ? state.message : "";
+  const typeLabels = { create: "新建", update: "修改", delete: "删除" };
+
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        handleAction("close-modal");
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(sheetRef.current?.querySelectorAll(
+        'button:not(:disabled), input:not(:disabled), summary, [href], [tabindex]:not([tabindex="-1"])'
+      ) || []);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus();
+    };
+  }, []);
+
+  const changeDescription = (change) => {
+    if (change.kind === "folders") return "目录结构会随必要的索引更新发表";
+    if (change.kind === "tags") return "已删除标签会从线上标签目录移除";
+    return `${typeLabels[change.action] || "修改"}文档`;
+  };
+
+  return h("div", {
+    className: "modal-backdrop publish-sheet-backdrop",
+    onMouseDown: (event) => {
+      if (event.target === event.currentTarget) handleAction("close-modal");
+    }
+  },
+    h("section", {
+      ref: sheetRef,
+      className: "publish-sheet",
+      role: "dialog", "aria-modal": "true", "aria-labelledby": "publish-sheet-title",
+      onMouseDown: (event) => event.stopPropagation()
+    },
+      h("header", { className: "publish-sheet-header" },
+        h("div", null,
+          h("span", { className: "publish-sheet-eyebrow" }, "发布审阅"),
+          h("h2", { id: "publish-sheet-title" }, "发表到 GitHub"),
+          h("p", null, "确认目标位置与本次公开的内容。")
+        ),
+        h("button", {
+          ref: closeButtonRef,
+          type: "button",
+          className: "publish-sheet-close",
+          "aria-label": "关闭发表审阅",
+          onClick: () => handleAction("close-modal")
+        }, h(X, { size: 18, strokeWidth: 1.8, "aria-hidden": "true" }))
+      ),
+      h("div", { className: "publish-sheet-body" },
+        h("section", { className: "publish-destination", "aria-label": "发表目标" },
+          h("div", null, h("span", null, "仓库"), h("strong", null, `${destination.owner || "—"}/${destination.repo || "—"}`)),
+          h("div", null, h("span", null, "分支"), h("strong", null, destination.branch || "main")),
+          h("span", { className: "publish-connection-status" }, state.authenticated ? "已连接" : "连接待确认")
+        ),
+        publishError ? h("div", { className: "publish-sheet-error", role: "alert" }, publishError) : null,
+        h("section", { className: "publish-change-section", "aria-labelledby": "publish-changes-title" },
+          h("div", { className: "publish-section-heading" },
+            h("div", null,
+              h("h3", { id: "publish-changes-title" }, "本次变更"),
+              h("p", null, "默认选中全部检测到的改动。")
+            ),
+            h("button", { type: "button", className: "ghost-btn publish-select-toggle", onClick: () => handleAction("toggle-publish-selection") }, "全选 / 取消全选")
+          ),
+          h("div", { className: "publish-change-list" },
+            review.changes.length
+              ? review.changes.map((change) => {
+                const details = buildPublishChangeDetails(review.localState, review.remoteState, change);
+                return h("div", {
+                  key: change.id,
+                  className: `publish-change-row ${change.action === "delete" ? "is-delete" : ""}`
+                },
+                h("input", {
+                  type: "checkbox",
+                  "data-publish-change-id": change.id,
+                  checked: selectedIds.has(change.id),
+                  onChange: () => handleAction("update-publish-selection-count")
+                }),
+                h("span", { className: "publish-change-type" }, typeLabels[change.action] || "更新"),
+                h("span", { className: "publish-change-content" },
+                  h("strong", null, change.title),
+                  h("small", null, changeDescription(change))
+                ),
+                h("details", { className: "publish-change-details" },
+                  h("summary", null, "查看发布差异"),
+                  details.length
+                    ? h("div", { className: "publish-diff-list" }, details.map((detail, index) => h("section", { key: `${change.id}-${detail.label}-${index}`, className: "publish-diff-item" },
+                      h("div", { className: "publish-diff-head" },
+                        h("strong", null, detail.label),
+                        detail.summary ? h("span", null, detail.summary) : null
+                      ),
+                      h("div", { className: "publish-diff-grid" },
+                        h("div", null, h("b", null, "远端"), h("pre", null, detail.remote)),
+                        h("div", null, h("b", null, "本地待发表"), h("pre", null, detail.local))
+                      )
+                    )))
+                    : h("p", { className: "empty" }, "没有可展示的字段差异。")
+                ));
+              })
+              : h("p", { className: "empty" }, "没有检测到待发表改动。")
+          )
+        ),
+        h("section", { className: "publish-tags", "aria-labelledby": "publish-tags-title" },
+          h("div", null,
+            h("h3", { id: "publish-tags-title" }, "公开标签"),
+            h("p", null, "随所选笔记公开，可作为 GitHub 内容索引。")
+          ),
+          h("div", { className: "publish-tag-list" },
+            publicTags.length
+              ? publicTags.map((tag) => h("span", { key: tag }, tag))
+              : h("span", { className: "publish-tags-empty" }, "所选改动不包含公开标签")
+          )
+        ),
+        h("p", { className: "publish-draft-note" }, "未选中的改动会继续保留为本地草稿")
+      ),
+      h("footer", { className: "publish-sheet-footer" },
+        h("span", null, "已选择 ", h("strong", { "data-publish-selected-count": "" }, String(selectedCount)), ` / ${review.changes.length} 项改动`),
+        h("div", { className: "publish-sheet-actions" },
+          h("button", { type: "button", className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
+          h("button", {
+            type: "button",
+            className: "primary-btn",
+            disabled: isPublishing || !review.changes.length || !selectedCount,
+            onClick: () => handleAction("confirm-publish-selected")
+          }, isPublishing ? "发表中…" : "确认发表")
+        )
+      )
+    )
+  );
+}
 function renderModal(state, handleAction) {
   if (!state.modal) return null;
   if (state.modal === "name-folder") {
@@ -3665,68 +3834,7 @@ function renderModal(state, handleAction) {
     );
   }
   if (state.modal === "publish-review") {
-    const review = state.modalContext?.review || { changes: [], selectedIds: [] };
-    const selectedCount = review.selectedIds?.length || 0;
-    const typeLabels = { create: "新建", update: "修改", delete: "删除" };
-    const changeDescription = (change) => {
-      if (change.kind === "folders") return "目录结构会随必要的索引更新发表";
-      if (change.kind === "tags") return "已删除标签会从线上标签目录移除";
-      return `${typeLabels[change.action] || "修改"}文档`;
-    };
-    return h("div", { className: "modal-backdrop" },
-      h("div", { className: "modal" },
-        h("h2", null, "选择要发表的改动"),
-        h("p", null, "默认已选中所有检测到的改动。未选中的内容会继续保留在本地草稿中。选中文档时，必要的索引、目录和标签信息会自动一并更新。"),
-        h("div", { className: "form" },
-          h("div", { className: "publish-review-summary" },
-            h("div", { className: "summary-row" }, h("strong", null, "已选择"), h("span", { "data-publish-selected-count": "" }, String(selectedCount))),
-            h("button", { type: "button", className: "ghost-btn publish-select-toggle", onClick: () => handleAction("toggle-publish-selection") }, "全选 / 取消全选")
-          ),
-          h("div", { className: "publish-change-list" },
-            review.changes.length
-              ? review.changes.map((change) => {
-                const details = buildPublishChangeDetails(review.localState, review.remoteState, change);
-                return h("div", {
-                  key: change.id,
-                  className: `publish-change-row ${change.action === "delete" ? "is-delete" : ""}`
-                },
-                h("input", { type: "checkbox", "data-publish-change-id": change.id, defaultChecked: review.selectedIds.includes(change.id), onChange: () => handleAction("update-publish-selection-count") }),
-                h("span", { className: "publish-change-type" }, typeLabels[change.action] || "更新"),
-                h("span", { className: "publish-change-content" },
-                  h("strong", null, change.title),
-                  h("small", null, changeDescription(change))
-                ),
-                h("details", { className: "publish-change-details" },
-                  h("summary", null, "查看差异"),
-                  details.length
-                    ? h("div", { className: "publish-diff-list" }, details.map((detail, index) => h("section", { key: `${change.id}-${detail.label}-${index}`, className: "publish-diff-item" },
-                      h("div", { className: "publish-diff-head" },
-                        h("strong", null, detail.label),
-                        detail.summary ? h("span", null, detail.summary) : null
-                      ),
-                      h("div", { className: "publish-diff-grid" },
-                        h("div", null,
-                          h("b", null, "远端"),
-                          h("pre", null, detail.remote)
-                        ),
-                        h("div", null,
-                          h("b", null, "本地待发表"),
-                          h("pre", null, detail.local)
-                        )
-                      )
-                    )))
-                    : h("p", { className: "empty" }, "没有可展示的字段差异。")
-                ));
-              })
-              : h("p", { className: "empty" }, "没有检测到待发表改动。")
-          )
-        ),
-        h("div", { className: "modal-actions" },
-          h("button", { className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
-          h("button", { className: "primary-btn", disabled: !review.changes.length, onClick: () => handleAction("confirm-publish-selected") }, "发表选中改动")
-        )
-      )
-    );
+    return h(PublishReviewSheet, { state, handleAction });
   }
   if (state.modal === "auth") {
     return modalShell("编辑验证", "验证通过后，文档会发表到当前笔记本 GitHub 仓库的 main 分支。",
