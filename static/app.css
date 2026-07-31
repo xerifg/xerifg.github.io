@@ -931,10 +931,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid rgba(31, 35, 41, .14);
+  border: 1px solid var(--line);
   border-radius: 5px;
-  background: rgba(255, 255, 255, .98);
-  color: #4e5969;
+  background: var(--surface-raised);
+  color: var(--text);
   box-shadow: 0 3px 10px rgba(31, 35, 41, .12);
   font-size: 13px;
   line-height: 1;
@@ -943,7 +943,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 .table-column-handle button:hover,
 .table-row-handle button:hover,
 .table-cell-toolbar button:hover {
-  background: #e8f3ff;
+  background: var(--surface-hover);
   color: var(--blue-dark);
 }
 
@@ -952,9 +952,9 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   align-items: center;
   gap: 2px;
   padding: 4px;
-  border: 1px solid rgba(31, 35, 41, .14);
+  border: 1px solid var(--line);
   border-radius: 7px;
-  background: rgba(255, 255, 255, .98);
+  background: var(--surface-raised);
   box-shadow: 0 8px 22px rgba(31, 35, 41, .16);
 }
 
@@ -967,9 +967,9 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   display: grid;
   gap: 2px;
   padding: 4px;
-  border: 1px solid rgba(31, 35, 41, .14);
+  border: 1px solid var(--line);
   border-radius: 7px;
-  background: rgba(255, 255, 255, .98);
+  background: var(--surface-raised);
   box-shadow: 0 8px 22px rgba(31, 35, 41, .16);
 }
 
@@ -977,20 +977,20 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   min-height: 28px;
   padding: 0 8px;
   border-radius: 4px;
-  color: #303034;
+  color: var(--text);
   font-size: 13px;
   text-align: left;
 }
 
-.table-action-menu button:hover { background: #e8f3ff; color: var(--blue-dark); }
+.table-action-menu button:hover { background: var(--surface-hover); color: var(--blue-dark); }
 
 .table-insert-grid {
   z-index: 82;
   width: 178px;
   padding: 10px;
-  border: 1px solid #dee0e3;
+  border: 1px solid var(--line);
   border-radius: 7px;
-  background: rgba(255, 255, 255, .99);
+  background: var(--surface-raised);
   box-shadow: 0 10px 28px rgba(31, 35, 41, .16);
 }
 
@@ -1004,14 +1004,14 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   width: 20px;
   height: 20px;
   padding: 0;
-  border: 1px solid #d4d7dd;
+  border: 1px solid var(--line);
   border-radius: 3px;
-  background: #fff;
+  background: var(--surface-control);
 }
 
-.table-grid-cells button.active { border-color: #3370ff; background: #dbeafe; }
+.table-grid-cells button.active { border-color: var(--blue); background: var(--surface-selected); }
 
-.table-grid-size { margin-top: 8px; color: #646a73; font-size: 12px; text-align: center; }
+.table-grid-size { margin-top: 8px; color: var(--muted); font-size: 12px; text-align: center; }
 
 .table-hover-line {
   position: absolute;
@@ -1096,9 +1096,9 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   max-width: none;
   padding: 5px 6px;
   overflow: visible;
-  border: 1px solid rgba(31, 35, 41, .14);
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: rgba(255, 255, 255, .98);
+  background: var(--surface-raised);
   box-shadow: 0 8px 22px rgba(31, 35, 41, .16);
 }
 
@@ -1110,12 +1110,12 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   place-items: center;
   padding: 0;
   border-radius: 4px;
-  color: #36363a;
+  color: var(--text);
   font-size: 14px;
   font-weight: 650;
 }
 
-.table-selection-toolbar button:hover { background: #e8f3ff; color: var(--blue-dark); }
+.table-selection-toolbar button:hover { background: var(--surface-hover); color: var(--blue-dark); }
 .table-selection-toolbar .table-toolbar-menu-trigger { width: auto; min-width: 34px; padding: 0 6px; }
 .table-selection-toolbar .table-highlight-trigger { color: #a47700; background: #fff8b8; }
 .table-selection-toolbar .table-highlight-trigger:hover { background: #fff3a0; color: #765700; }
@@ -1137,7 +1137,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   height: 20px;
   flex: none;
   margin: 0 3px;
-  background: #dfe3eb;
+  background: var(--line);
 }
 
 .table-toolbar-popover {
@@ -1148,9 +1148,9 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   display: grid;
   min-width: 126px;
   padding: 4px;
-  border: 1px solid #dfe3eb;
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--surface-raised);
   box-shadow: 0 8px 20px rgba(31, 35, 41, .16);
 }
 
@@ -1178,12 +1178,12 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 .table-toolbar-popover-divider {
   height: 1px;
   margin: 4px 2px;
-  background: #e5e7eb;
+  background: var(--line);
 }
 
 .feishu-editor th,
 .tiptap-reader th {
-  background: #f5f7fb;
+  background: var(--surface-subtle);
   font-weight: 650;
 }
 
@@ -1193,10 +1193,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   z-index: 12;
   width: 28px;
   height: 28px;
-  border: 1px solid #dfe3eb;
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
-  color: #4e5969;
+  background: var(--surface-raised);
+  color: var(--text);
   font-size: 20px;
   line-height: 1;
   box-shadow: 0 2px 8px rgba(31,35,41,.08);
@@ -1204,8 +1204,8 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .feishu-plus:hover {
-  background: #f5f7fb;
-  color: #245bdb;
+  background: var(--surface-hover);
+  color: var(--blue-dark);
   transform: translateY(-1px);
 }
 
@@ -1216,18 +1216,18 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   max-height: min(644px, calc(100vh - 88px));
   overflow: auto;
   padding: 10px 8px;
-  border: 1px solid #dee0e3;
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: rgba(255,255,255,.985);
+  background: var(--sheet);
   box-shadow: 0 8px 24px rgba(31,35,41,.16);
-  color: #1f2329;
+  color: var(--text);
   backdrop-filter: blur(10px) saturate(150%);
   animation: menuIn .14s cubic-bezier(.2, .8, .2, 1);
 }
 
 .feishu-menu-title {
   padding: 7px 4px 6px;
-  color: #646a73;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -1240,14 +1240,14 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   gap: 4px;
   padding: 4px 8px;
   border-radius: 5px;
-  color: #1f2329;
+  color: var(--text);
   font-size: 14px;
   text-align: left;
   line-height: 1.35;
 }
 
 .feishu-menu-section button:hover {
-  background: #f2f3f5;
+  background: var(--surface-hover);
 }
 
 .feishu-menu-icon {
@@ -1264,7 +1264,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .feishu-menu-section i {
-  color: #8f959e;
+  color: var(--muted);
   font-style: normal;
   text-align: right;
 }
@@ -1277,7 +1277,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   gap: 2px;
   min-height: 40px;
   padding: 4px 5px;
-  border: 1px solid rgba(31, 35, 41, .11);
+  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--sheet);
   box-shadow: 0 10px 28px rgba(31, 35, 41, .14);
@@ -1316,13 +1316,13 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   height: 30px;
   padding: 0 7px;
   border-radius: 4px;
-  color: #1f2329;
+  color: var(--text);
   font-weight: 600;
   font-size: 14px;
 }
 
 .feishu-bubble button:hover {
-  background: #f2f3f5;
+  background: var(--surface-hover);
 }
 
 .feishu-bubble button.active {
@@ -1334,7 +1334,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   width: 1px;
   height: 24px;
   margin: 0 4px;
-  background: #dee0e3;
+  background: var(--line);
 }
 
 .feishu-color-panel {
@@ -1343,11 +1343,11 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   top: calc(100% + 6px);
   width: 228px;
   padding: 10px 12px 12px;
-  border: 1px solid #dee0e3;
+  border: 1px solid var(--line);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--surface-raised);
   box-shadow: 0 10px 28px rgba(31,35,41,.16), 0 1px 3px rgba(31,35,41,.08);
-  color: #1f2329;
+  color: var(--text);
 }
 
 .feishu-color-section + .feishu-color-section {
@@ -1356,7 +1356,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
 .feishu-color-title {
   margin-bottom: 6px;
-  color: #4e5969;
+  color: var(--muted);
   font-size: 12px;
   line-height: 1;
   font-weight: 500;
@@ -1375,13 +1375,13 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   min-width: 22px;
   height: 22px;
   padding: 0;
-  border: 1px solid #e5e6eb;
+  border: 1px solid var(--line);
   border-radius: 2px;
   display: grid;
   place-items: center;
   font-size: 15px;
   font-weight: 600;
-  background: #fff;
+  background: var(--surface-control);
 }
 
 .feishu-color-panel .feishu-text-color-swatch:hover,
@@ -1393,7 +1393,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 .feishu-color-panel .feishu-bg-color-swatch.empty {
   background:
     linear-gradient(135deg, transparent calc(50% - 1px), #3370ff calc(50% - 1px), #3370ff calc(50% + 1px), transparent calc(50% + 1px)),
-    #fff !important;
+    var(--surface-control) !important;
   border-color: #3370ff;
 }
 
@@ -1403,16 +1403,16 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   height: 24px !important;
   margin-top: 10px;
   padding: 0 !important;
-  border: 1px solid #dee0e3;
+  border: 1px solid var(--line);
   border-radius: 0 !important;
-  color: #1f2329 !important;
-  background: #fff;
+  color: var(--text) !important;
+  background: var(--surface-control);
   font-size: 12px !important;
   font-weight: 400 !important;
 }
 
 .feishu-color-reset:hover {
-  background: #f7f8fa !important;
+  background: var(--surface-hover) !important;
 }
 
 .tiptap-reader hr,
@@ -1974,7 +1974,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   padding: 6px 0 8px 16px;
   border-radius: 0;
   background: transparent;
-  color: #62666d;
+  color: var(--muted);
   box-shadow: none;
   backdrop-filter: none;
 }
@@ -1982,7 +1982,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 .document-outline-title {
   margin: 0 0 12px;
   padding: 0 7px;
-  color: #6f747c;
+  color: var(--muted);
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0;
@@ -2025,7 +2025,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .document-outline-item.level-1 button {
-  color: #303236;
+  color: var(--text);
   font-weight: 700;
 }
 
@@ -2034,7 +2034,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .document-outline-item.level-3 button {
-  color: #858991;
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -2051,15 +2051,15 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
 .document-outline button:hover,
 .document-outline button:focus-visible {
-  background: rgba(0, 122, 255, .10);
-  color: #005fc7;
-  box-shadow: inset 0 0 0 1px rgba(0, 122, 255, .08);
+  background: var(--surface-hover);
+  color: var(--blue-dark);
+  box-shadow: inset 0 0 0 1px var(--line);
   transform: translateX(1px);
 }
 
 .document-outline-item.is-active button {
   background: transparent;
-  color: #005fc7;
+  color: var(--blue-dark);
   box-shadow: none;
   font-weight: 600;
 }
@@ -2083,7 +2083,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 .document-outline-empty {
   margin: 0;
   padding: 4px 6px;
-  color: #a0a3aa;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -2638,7 +2638,7 @@ body { background: #fff; }
   font-size: 11px;
 }
 .rail-item:hover { background: rgba(255, 255, 255, .72); color: #3c4654; }
-.rail-item.is-active { background: #e3ebf7; color: #126bd4; }
+.rail-item.is-active { background: var(--surface-selected); color: var(--blue-dark); }
 .rail-item svg { width: 19px; height: 19px; }
 
 .sidebar {
@@ -2669,7 +2669,7 @@ body { background: #fff; }
 .tree-section { margin-bottom: 3px; }
 .tree-folder, .tree-note { min-height: 34px; border-radius: 8px; }
 .tree-folder:hover, .tree-note:hover { background: #eef1f5; transform: none; }
-.tree-note.active { background: #dfeafb; color: #145fac; box-shadow: inset 3px 0 #1677e8; }
+.tree-note.active { background: var(--surface-selected); color: var(--blue-dark); box-shadow: inset 3px 0 var(--blue); }
 
 .content { min-width: 0; height: 100vh; background: #fff; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; overflow: hidden; }
 .app-shell[data-view="home"] .content, .app-shell[data-view="tags"] .content, .app-shell[data-view="settings"] .content { display: block; }
@@ -2735,8 +2735,8 @@ body { background: #fff; }
 .tree-note-icon { color: #7c8490; }
 .tree-note-icon-wrap { position: relative; display: grid; place-items: center; }
 .tree-note-dirty { position: absolute; right: 0; bottom: 1px; width: 5px; height: 5px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 0 1px #f8f9fb; }
-.tree-note.active { background: #dfeafb; color: #145fac; box-shadow: inset 3px 0 #1677e8; }
-.tree-note.active .tree-note-icon { color: #126bd4; }
+.tree-note.active { background: var(--surface-selected); color: var(--blue-dark); box-shadow: inset 3px 0 var(--blue); }
+.tree-note.active .tree-note-icon { color: var(--blue-dark); }
 .tree-folder:hover, .tree-note:hover { transform: none; }
 .tree-folder:focus-visible, .tree-note:focus-visible { outline: 2px solid #1677e8; outline-offset: 1px; }
 [data-density="compact"] .tree-folder, [data-density="compact"] .tree-note { min-height: 34px; }
@@ -3042,6 +3042,11 @@ body { background: #fff; }
   .context-sidebar.is-open {
     transform: translateX(0);
   }
+  .context-sidebar.is-open .sidebar-heading,
+  .context-sidebar.is-open .settings-sidebar-header {
+    padding-left: 104px;
+  }
+
 
   .context-sidebar-toggle {
     position: fixed;
@@ -3193,7 +3198,11 @@ body { background: #fff; }
   color: var(--muted);
 }
 
-.rail-item.is-active,
+.rail-item.is-active {
+  background: var(--surface-selected);
+  color: var(--blue-dark);
+}
+
 .tag-browser-row.is-selected,
 .settings-navigation-item.is-active,
 .tag-sort-control button.is-active,

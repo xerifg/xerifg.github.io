@@ -135,6 +135,11 @@ assert.match(app, /className:\s*"mini-action"[^}]*"aria-label":\s*"更多文档�
 const narrowDrawerCss = css.slice(css.lastIndexOf("@media (max-width: 900px)"));
 assert.match(narrowDrawerCss, /\.context-sidebar\s*\{[^}]*z-index:\s*35/s);
 assert.match(narrowDrawerCss, /\.context-sidebar-toggle\s*\{[^}]*z-index:\s*(?:3[6-9]|[4-9]\d)/s, "the visible directory control must remain above its open drawer");
+assert.match(
+  narrowDrawerCss,
+  /\.context-sidebar\.is-open\s+\.sidebar-heading,\s*\.context-sidebar\.is-open\s+\.settings-sidebar-header\s*\{[^}]*padding-left:\s*(?:9[2-9]|[1-9]\d{2,})px/s,
+  "an open narrow drawer must reserve enough header space for the directory control"
+);
 
 const folderActionSource = app.slice(app.indexOf("function renderFolder"), app.indexOf("function tableSelectionInfo"));
 const noteActionSource = app.slice(app.indexOf("function renderNoteItem"), app.indexOf("function buildDraftDeletionSummary"));

@@ -85,7 +85,7 @@ assert.match(
 
 assert.match(
   cssSource,
-  /\.document-outline-item\.is-active button\s*\{[^}]*background:\s*transparent;[^}]*color:\s*#005fc7;[^}]*font-weight:\s*600;/,
+  /\.document-outline-item\.is-active button\s*\{[^}]*background:\s*transparent;[^}]*color:\s*var\(--blue-dark\);[^}]*font-weight:\s*600;/,
   "document outline should emphasize the nearest heading without turning it into a card"
 );
 

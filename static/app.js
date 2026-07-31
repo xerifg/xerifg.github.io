@@ -21,7 +21,7 @@ import { Ellipsis, X } from "https://esm.sh/lucide-react@0.468.0?external=react"
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, localPersistenceStatusText, notebookStateForPersistence, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -624,12 +624,8 @@ function App() {
     selectNote(noteId);
   };
   const navigate = (view) => {
-    const target = ["home", "library", "tags", "settings"].includes(view) ? view : "home";
     patchState((draft) => {
-      draft.view = target;
-      draft.modal = null;
-      draft.modalContext = null;
-      draft.openCreateMenu = null;
+      Object.assign(draft, navigatePrimaryView(draft, view));
     });
     setIsContextSidebarOpen(false);
   };
@@ -3887,12 +3883,10 @@ function renderModal(state, handleAction) {
   }
   if (state.modal === "delete-drafts") {
     const summary = state.modalContext?.summary || buildDraftDeletionSummary(state, state.modalContext?.published || state);
-    return h("div", { className: "modal-backdrop" },
-      h("div", { className: "modal" },
-        h("h2", null, "删除本地草稿"),
-        h("p", null, "此操作只清理当前浏览器里的本地草稿缓存，不会删除 GitHub 上已经发表的内容。确认后页面会恢复为最近一次发表版本。"),
-        h("div", { className: "form" },
-          h("div", { className: "publish-summary" },
+    return modalShell(
+      "删除本地草稿",
+      "此操作只清理当前浏览器里的本地草稿缓存，不会删除 GitHub 上已经发表的内容。确认后页面会恢复为最近一次发表版本。",
+      h("div", { className: "publish-summary" },
             h("div", { className: `summary-row ${summary.hasChanges ? "danger" : ""}` }, h("strong", null, "结果"), h("span", null, summary.hasChanges ? "将丢弃本地未发表内容" : "没有检测到本地草稿差异")),
             h("h3", null, "将删除的本地草稿 / 未发表文档"),
             summaryList(summary.dirtyNotes, "没有本地草稿。"),
@@ -3905,12 +3899,11 @@ function renderModal(state, handleAction) {
             summary.folderChanged ? h("div", { className: "summary-row danger" }, h("strong", null, "目录"), h("span", null, "本地目录改动会恢复为已发表版本")) : null,
             summary.deletedTags.length ? h("div", { className: "summary-row danger" }, h("strong", null, "标签"), h("span", null, summary.deletedTags.join("、"))) : null
           )
-        ),
-        h("div", { className: "modal-actions" },
-          h("button", { className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
-          h("button", { className: "danger-btn", onClick: () => handleAction("confirm-delete-drafts") }, "确认删除草稿")
-        )
-      )
+      ),
+      "确认删除草稿",
+      "confirm-delete-drafts",
+      handleAction,
+      { confirmClassName: "danger-btn" }
     );
   }
   if (state.modal === "publish-review") {
@@ -3927,7 +3920,7 @@ function renderModal(state, handleAction) {
   return null;
 }
 
-function ModalShell({ title, text, body, confirmText, action, handleAction }) {
+function ModalShell({ title, text, body, confirmText, action, handleAction, confirmClassName = "primary-btn" }) {
   const modalRef = useRef(null);
   const titleId = `modal-title-${action}`;
   useEffect(() => {
@@ -3981,14 +3974,14 @@ function ModalShell({ title, text, body, confirmText, action, handleAction }) {
       h("div", { className: "form" }, body),
       h("div", { className: "modal-actions" },
         h("button", { type: "button", className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
-        h("button", { type: "button", className: "primary-btn", onClick: () => handleAction(action) }, confirmText)
+        h("button", { type: "button", className: confirmClassName, onClick: () => handleAction(action) }, confirmText)
       )
     )
   );
 }
 
-function modalShell(title, text, body, confirmText, action, handleAction) {
-  return h(ModalShell, { key: action, title, text, body, confirmText, action, handleAction });
+function modalShell(title, text, body, confirmText, action, handleAction, options = {}) {
+  return h(ModalShell, { key: action, title, text, body, confirmText, action, handleAction, ...options });
 }
 
 async function loadPublishedLibrary() {
