@@ -16,6 +16,9 @@ function ruleBodies(selector) {
 }
 
 const tokenContracts = [
+  [".search", /background:\s*var\(--surface-control\)/, /color:\s*var\(--text\)/, /border-color:\s*var\(--line\)/],
+  [".settings-group h2", /color:\s*var\(--text\)/],
+  [".settings-row-copy strong", /color:\s*var\(--text\)/],
   [".rail-item.is-active", /background:\s*var\(--surface-selected\)/, /color:\s*var\(--blue-dark\)/],
   [".tree-note.active", /background:\s*var\(--surface-selected\)/, /color:\s*var\(--blue-dark\)/, /box-shadow:[^;}]*var\(--blue\)/],
   [".document-outline", /color:\s*var\(--muted\)/],
