@@ -17,19 +17,23 @@ import TableHeader from "https://esm.sh/@tiptap/extension-table-header@2.11.7";
 import TableCell from "https://esm.sh/@tiptap/extension-table-cell@2.11.7";
 import TaskList from "https://esm.sh/@tiptap/extension-task-list@2.11.7";
 import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
-import { buildTagLinks, layoutNetworkNodes, noteSummariesForTag } from "./network-model.mjs";
+import { Ellipsis, X } from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
-import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260730-table-insert-v3";
+import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
+const uiPreferencesStorageKey = "personal-notebook-ui-preferences-v1";
 const blockNoteStorageKey = "personal-notebook-blocknote-v1";
 const legacyStorageKey = "personal-notebook-v2";
 const publishedIndexPath = "notebooks/index.json";
 const localAssetPrefix = "/api/local-assets/";
 const assetRootPath = "notebooks/assets";
 const documentOutlinePanelWidth = 196;
+const publishTriggerSelector = "[data-publish-trigger]";
 const now = () => new Date().toISOString();
 const mathInlineType = "mathInline";
 const mathBlockType = "mathBlock";
@@ -335,20 +339,22 @@ const seedHtml = [
 
 const seed = {
   query: "",
-  networkQuery: "",
-  view: "library",
+  view: "home",
   selectedTag: "",
+  settingsCategory: "general",
+  tagQuery: "",
+  tagSort: "popular",
+  tagReturnContext: null,
   authenticated: false,
   pendingAuthAction: "",
   mode: "read",
-  activeId: "note-welcome",
+  activeId: "",
   modal: null,
   modalContext: null,
   openCreateMenu: null,
   collapsedFolders: {},
   deletedTags: [],
   syncStatus: "ready",
-  networkRestored: true,
   message: "",
   settings: {
     account: inferOwner(),
@@ -378,10 +384,18 @@ const seed = {
 };
 
 function App() {
-  const [state, setState] = useState(() => migrate(loadLocalState() || seed));
+  const [state, setState] = useState(() => {
+    const migrated = migrate(loadLocalState() || seed);
+    const uiPreferences = loadUiPreferences();
+    return { ...migrated, ...resolveStartupState(migrated, uiPreferences), uiPreferences };
+  });
   const [toast, setToast] = useState("");
+  const [localPersistenceStatus, setLocalPersistenceStatus] = useState("saved");
   const [dragTarget, setDragTarget] = useState(null);
   const [draggedTreeItem, setDraggedTreeItem] = useState(null);
+  const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(false);
+  const [treeFocusId, setTreeFocusId] = useState("");
+  const notebookPersistencePayload = JSON.stringify(notebookStateForPersistence(state));
 
   useEffect(() => {
     let cancelled = false;
@@ -394,10 +408,13 @@ function App() {
           setState((current) => migrate({
             ...published,
             view: current.view,
+            activeId: current.activeId,
             selectedTag: current.selectedTag,
+            tagQuery: current.tagQuery,
+            tagSort: current.tagSort,
+            tagReturnContext: current.tagReturnContext,
             query: current.query,
-            networkQuery: current.networkQuery,
-            networkRestored: current.networkRestored,
+            uiPreferences: current.uiPreferences,
             settings: { ...current.settings, token: current.settings.token }
           }));
         }
@@ -409,13 +426,40 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    let savedTimer = 0;
+    setLocalPersistenceStatus(resolveLocalPersistenceStatus("start"));
     try {
-      persist(state);
+      persist(notebookPersistencePayload);
+      savedTimer = window.setTimeout(() => {
+        if (!cancelled) setLocalPersistenceStatus(resolveLocalPersistenceStatus("success"));
+      }, 120);
     } catch (error) {
       console.error("Draft persistence failed", error);
+      setLocalPersistenceStatus(resolveLocalPersistenceStatus("failure"));
       setToast("本地草稿保存失败，请减少图片大小后重试");
     }
-  }, [state]);
+    return () => {
+      cancelled = true;
+      if (savedTimer) window.clearTimeout(savedTimer);
+    };
+  }, [notebookPersistencePayload]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(uiPreferencesStorageKey, JSON.stringify(state.uiPreferences));
+    } catch (error) {
+      console.error("UI preference persistence failed", error);
+      setToast("界面偏好保存失败");
+    }
+  }, [state.uiPreferences]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = state.uiPreferences.theme;
+    document.documentElement.dataset.density = state.uiPreferences.sidebarDensity;
+    document.documentElement.dataset.transparency = state.uiPreferences.translucentMaterials ? "translucent" : "solid";
+    document.documentElement.style.setProperty("--document-width", `${state.uiPreferences.contentWidth}px`);
+  }, [state.uiPreferences]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -426,7 +470,25 @@ function App() {
 
   const note = currentNote(state);
   const visibleNotes = useMemo(() => filteredNotes(state), [state]);
-  const tagStats = useMemo(() => filteredTagStats(state), [state]);
+  const tagStats = useMemo(() => buildTagBrowser(state.notes).records, [state.notes]);
+  const summary = useMemo(() => buildLibrarySummary(state.folders, state.notes), [state.folders, state.notes]);
+  const tagBrowserModel = useMemo(() => {
+    const browser = buildTagBrowser(state.notes, {
+      query: state.tagQuery,
+      sort: state.tagSort,
+      selectedTag: state.selectedTag
+    });
+    return {
+      ...browser,
+      groups: groupTagRecords(browser.records),
+      query: state.tagQuery,
+      sort: state.tagSort,
+      notesById: Object.fromEntries(state.notes.map((item) => [item.id, item]))
+    };
+  }, [state.notes, state.tagQuery, state.tagSort, state.selectedTag]);
+  const visibleTreeItems = useMemo(() => buildVisibleTreeItems(state.folders, visibleNotes, state.collapsedFolders, { isSearching: Boolean(state.query.trim()) }), [state.folders, visibleNotes, state.collapsedFolders, state.query]);
+
+  const areas = useMemo(() => buildKnowledgeAreas(state.folders, state.notes), [state.folders, state.notes]);
 
   const patchState = useCallback((recipe) => {
     setState((current) => {
@@ -435,10 +497,24 @@ function App() {
       return next;
     });
   }, []);
+  const updateUiPreferences = useCallback((nextPreferences) => {
+    patchState((draft) => {
+      draft.uiPreferences = normalizeUiPreferences({ ...draft.uiPreferences, ...nextPreferences });
+    });
+  }, [patchState]);
+  const updateGitHubSettings = useCallback((nextSettings) => {
+    patchState((draft) => {
+      draft.settings = {
+        ...draft.settings,
+        ...nextSettings,
+        branch: "main"
+      };
+    });
+  }, [patchState]);
   useEffect(() => {
     if (!state.openCreateMenu) return undefined;
     const closeCreateMenu = (event) => {
-      if (event.target.closest?.(".create-menu, .mini-action")) return;
+      if (event.target.closest?.(".create-menu, .mini-action, .document-overflow-menu, .document-overflow-trigger")) return;
       patchState((draft) => {
         draft.openCreateMenu = null;
       });
@@ -461,11 +537,12 @@ function App() {
   const selectNote = (noteId) => {
     patchState((draft) => {
       draft.activeId = noteId;
-      draft.mode = "read";
+      draft.mode = draft.uiPreferences.defaultMode;
       draft.view = "library";
       draft.modal = null;
       draft.openCreateMenu = null;
     });
+    setIsContextSidebarOpen(false);
   };
 
   const treeDragDisabled = Boolean(state.query.trim());
@@ -532,12 +609,48 @@ function App() {
 
   const enterTag = (tag) => {
     patchState((draft) => {
-      draft.selectedTag = tag;
-      draft.query = "";
+      Object.assign(draft, enterTagView(draft, tag, { clearQuery: true }));
+    });
+  };
+  const selectTag = (tag) => {
+    patchState((draft) => {
+      Object.assign(draft, enterTagView(draft, tag));
+    });
+  };
+  const openTagNote = (noteId) => {
+    patchState((draft) => {
+      draft.tagReturnContext = buildTagReturnContext(draft);
+    });
+    selectNote(noteId);
+  };
+  const navigate = (view) => {
+    patchState((draft) => {
+      Object.assign(draft, navigatePrimaryView(draft, view));
+    });
+    setIsContextSidebarOpen(false);
+  };
+  const openArea = (folderId) => {
+    patchState((draft) => {
+      const folderIds = new Set([folderId]);
+      let foundChild = true;
+      while (foundChild) {
+        foundChild = false;
+        draft.folders.forEach((folder) => {
+          if (folder.parentId && folderIds.has(folder.parentId) && !folderIds.has(folder.id)) {
+            folderIds.add(folder.id);
+            foundChild = true;
+          }
+        });
+      }
       draft.view = "library";
-      draft.mode = "read";
-      const matches = draft.notes.filter((item) => !tag || (item.tags || []).includes(tag));
-      draft.activeId = tag && matches.length === 1 ? matches[0].id : "";
+      draft.selectedTag = "";
+      draft.query = "";
+      draft.activeId = draft.notes.find((item) => folderIds.has(item.folderId))?.id || draft.activeId;
+      draft.mode = draft.uiPreferences.defaultMode;
+      draft.modal = null;
+      draft.modalContext = null;
+      draft.openCreateMenu = null;
+      if (draft.collapsedFolders) delete draft.collapsedFolders[folderId];
     });
   };
 
@@ -589,7 +702,7 @@ function App() {
       });
       if (folderId) delete draft.collapsedFolders?.[folderId];
       draft.activeId = id;
-      draft.mode = "edit";
+      draft.mode = draft.uiPreferences.defaultMode;
       draft.view = "library";
       draft.selectedTag = "";
       draft.query = "";
@@ -718,9 +831,8 @@ function App() {
         view: latest.view,
         selectedTag: latest.selectedTag,
         query: latest.query,
-        networkQuery: latest.networkQuery,
-        networkRestored: latest.networkRestored,
         settings: { ...latest.settings, token: latest.settings.token },
+        uiPreferences: latest.uiPreferences,
         modal: null,
         modalContext: null,
         mode: "read",
@@ -759,6 +871,56 @@ function App() {
     }
   };
 
+  const openLocalTagModal = (mode, selectedTag = state.selectedTag) => {
+    if (mode === "create" && !note) {
+      setToast("先打开一篇笔记，再为它新建标签");
+      return;
+    }
+    if (mode === "rename" && !selectedTag) return;
+    if (!requireEditPermission("edit")) return;
+    patchState((draft) => {
+      draft.modal = "manage-tag";
+      draft.modalContext = { mode, noteId: note?.id || "", selectedTag };
+      draft.openCreateMenu = null;
+    });
+  };
+
+  const confirmLocalTag = () => {
+    const mode = state.modalContext?.mode;
+    const name = document.querySelector("[data-local-tag-name]")?.value.trim() || "";
+    const result = applyLocalTagMutation(state.notes, {
+      mode,
+      noteId: state.modalContext?.noteId,
+      selectedTag: state.modalContext?.selectedTag,
+      name,
+      timestamp: now()
+    });
+    if (!result.changed) {
+      if (result.error === "duplicate") {
+        patchState((draft) => {
+          draft.selectedTag = result.selectedTag;
+          draft.view = "tags";
+          draft.modal = null;
+          draft.modalContext = null;
+        });
+        setToast("这个标签已经存在");
+      } else {
+        setToast(result.error === "no-note" ? "先打开一篇笔记，再为它新建标签" : "请输入标签名称");
+      }
+      return;
+    }
+    patchState((draft) => {
+      draft.notes = result.notes;
+      draft.selectedTag = result.selectedTag;
+      draft.tagQuery = "";
+      draft.view = "tags";
+      draft.modal = null;
+      draft.modalContext = null;
+      draft.message = "标签改动已保存为本地草稿";
+    });
+    setToast(mode === "rename" ? "标签已重命名并保存为本地草稿" : "标签已创建并保存为本地草稿");
+  };
+
   const openPublishTagModal = () => {
     if (!note) return;
     patchState((draft) => {
@@ -770,28 +932,24 @@ function App() {
 
   const confirmPublishTags = () => {
     if (!note) return;
-    const renameMap = new Map();
     const deletedTags = new Set();
     const selected = [];
     document.querySelectorAll("[data-tag-row]").forEach((row) => {
       const original = row.getAttribute("data-tag-row") || "";
       const isDeleted = original !== "Notes" && Boolean(row.querySelector("[data-tag-delete]")?.checked);
-      const renamed = row.querySelector("[data-tag-name]")?.value.trim() || original;
       if (isDeleted) {
         deletedTags.add(original);
         return;
       }
-      if (original && renamed && original !== renamed) renameMap.set(original, renamed);
-      if (row.querySelector("[data-tag-selected]")?.checked && renamed) selected.push(renamed);
+      if (row.querySelector("[data-tag-selected]")?.checked && original) selected.push(original);
     });
-    const extraTags = parseTagInput(document.querySelector("[data-tag-new]")?.value || "");
-    const nextTags = ensureDefaultTags(uniqueTags([...selected, ...extraTags]).filter((tag) => !deletedTags.has(tag)));
+    const nextTags = ensureDefaultTags(uniqueTags(selected).filter((tag) => !deletedTags.has(tag)));
     const noteId = state.modalContext?.noteId || note.id;
     const updatedNotes = state.notes.map((item) => {
-      const renamedTags = ensureDefaultTags(item.tags)
-        .filter((tag) => !deletedTags.has(tag))
-        .map((tag) => renameMap.get(tag) || tag);
-      return { ...item, tags: item.id === noteId ? nextTags : ensureDefaultTags(renamedTags) };
+      const remainingTags = ensureDefaultTags(item.tags).filter((tag) => !deletedTags.has(tag));
+      const tags = item.id === noteId ? nextTags : ensureDefaultTags(remainingTags);
+      const changed = JSON.stringify(tags) !== JSON.stringify(ensureDefaultTags(item.tags));
+      return changed ? { ...item, tags, date: now(), dirty: true } : item;
     });
     const localState = {
       ...state,
@@ -851,6 +1009,7 @@ function App() {
           }
         };
         draft.openCreateMenu = null;
+        draft.syncStatus = "ready";
         draft.message = changeSet.changes.length ? "已检测到待发表改动" : "没有检测到待发表改动";
       });
     } catch (error) {
@@ -873,8 +1032,8 @@ function App() {
     patchState((draft) => {
       draft.syncStatus = "publishing";
       draft.message = "正在发表选中的改动到 GitHub";
-      draft.modal = null;
-      draft.modalContext = null;
+      draft.modal = "publish-review";
+      draft.modalContext.review.selectedIds = Array.from(selectedIds);
     });
     try {
       const publishedAt = now();
@@ -933,9 +1092,11 @@ function App() {
         if (merged.includeDeletedTags) next.deletedTags = [];
         next.syncStatus = "ready";
         next.message = `已发表 ${selectedIds.size} 项改动到 GitHub 仓库`;
+        next.modal = null;
+        next.modalContext = null;
         return next;
       });
-      setToast(`已发表 ${selectedIds.size} 项改动到 GitHub`);
+      setToast("已发表到 GitHub");
     } catch (error) {
       console.error(error);
       patchState((draft) => {
@@ -946,17 +1107,19 @@ function App() {
     }
   };
   const handleAction = (action, targetFolderId) => {
-    if (action === "back-network") {
+    if (action === "search-library") {
       patchState((draft) => {
-        draft.view = "network";
-        draft.selectedTag = "";
-        draft.query = "";
-        draft.mode = "read";
+        draft.query = targetFolderId;
       });
     }
     if (action === "clear-selected-tag") {
       patchState((draft) => {
         draft.selectedTag = "";
+      });
+    }
+    if (action === "back-to-tag") {
+      patchState((draft) => {
+        Object.assign(draft, restoreTagView(draft));
       });
     }
     if (action === "toggle-mode") {
@@ -966,6 +1129,17 @@ function App() {
       }
       patchState((draft) => {
         draft.mode = draft.mode === "edit" ? "read" : "edit";
+        draft.openCreateMenu = null;
+      });
+    }
+    if (action === "close-document-actions") {
+      patchState((draft) => {
+        draft.openCreateMenu = null;
+      });
+    }
+    if (action === "toggle-document-actions") {
+      patchState((draft) => {
+        draft.openCreateMenu = draft.openCreateMenu === "document-actions" ? null : "document-actions";
       });
     }
     if (action === "publish") preparePublish();
@@ -1011,21 +1185,27 @@ function App() {
     if (action === "confirm-rename-note") renameNote();
     if (action === "confirm-auth") confirmAuth();
     if (action === "confirm-publish-tags") confirmPublishTags();
+    if (action === "confirm-local-tag") confirmLocalTag();
     if (action === "toggle-publish-selection") {
-      const inputs = Array.from(document.querySelectorAll("[data-publish-change-id]"));
-      const shouldSelect = inputs.some((input) => !input.checked);
-      inputs.forEach((input) => { input.checked = shouldSelect; });
-      const count = document.querySelector("[data-publish-selected-count]");
-      if (count) count.textContent = String(shouldSelect ? inputs.length : 0);
+      patchState((draft) => {
+        const review = draft.modalContext?.review;
+        if (!review) return;
+        review.selectedIds = review.selectedIds.length === review.changes.length
+          ? []
+          : review.changes.map((change) => change.id);
+      });
     }
     if (action === "update-publish-selection-count") {
-      const count = document.querySelector("[data-publish-selected-count]");
-      if (count) count.textContent = String(document.querySelectorAll("[data-publish-change-id]:checked").length);
+      const selectedIds = Array.from(
+        document.querySelectorAll("[data-publish-change-id]:checked"),
+        (input) => input.dataset.publishChangeId
+      );
+      patchState((draft) => {
+        if (draft.modalContext?.review) draft.modalContext.review.selectedIds = selectedIds;
+      });
     }
     if (action === "confirm-publish-selected") {
-      const selectedIds = new Set(
-        Array.from(document.querySelectorAll("[data-publish-change-id]:checked"), (input) => input.dataset.publishChangeId)
-      );
+      const selectedIds = new Set(state.modalContext?.review?.selectedIds || []);
       publishSelectedChanges(state.modalContext?.settings, state.modalContext?.review, selectedIds);
     }
     if (action === "confirm-delete-drafts") confirmDeleteDrafts();
@@ -1049,62 +1229,113 @@ function App() {
     }
   };
 
-  const showNetworkView = state.view === "network" && !isSmallScreen();
+  const defaultTreeFocusId = visibleTreeItems.some((item) => item.id === treeFocusId)
+    ? treeFocusId
+    : visibleTreeItems.some((item) => item.id === state.activeId)
+      ? state.activeId
+      : visibleTreeItems[0]?.id || "";
+  const focusTreeItem = (id) => {
+    setTreeFocusId(id);
+    window.requestAnimationFrame(() => {
+      const target = Array.from(document.querySelectorAll("[data-tree-id]")).find((element) => element.dataset.treeId === id);
+      target?.focus();
+    });
+  };
+  const treeKeyboard = {
+    focusedId: defaultTreeFocusId,
+    onFocus: setTreeFocusId,
+    onKeyDown: (event) => {
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      const currentId = event.currentTarget.dataset.treeId;
+      const action = resolveTreeKeyboard(visibleTreeItems, currentId, event.key);
+      event.preventDefault();
+      event.stopPropagation();
+      if (action.toggleFolderId) handleAction("toggle-folder", action.toggleFolderId);
+      if (action.focusId) focusTreeItem(action.focusId);
+    }
+  };
 
-  if (showNetworkView) {
+  const renderActiveView = () => {
+    if (state.view === "tags") {
+      return h(TagBrowser, {
+        model: tagBrowserModel,
+        onQuery: (query) => patchState((draft) => { draft.tagQuery = query; }),
+        onSort: (sort) => patchState((draft) => { draft.tagSort = sort; }),
+        onSelectTag: selectTag,
+        onOpenNote: openTagNote,
+        canCreateTag: Boolean(note),
+        onCreateTag: () => openLocalTagModal("create"),
+        onRenameTag: (tag) => openLocalTagModal("rename", tag)
+      });
+    }
+    if (state.view === "settings") {
+      return h(SettingsPage, {
+        category: state.settingsCategory,
+        preferences: state.uiPreferences,
+        github: state.settings,
+        onChangePreferences: updateUiPreferences,
+        onChangeGitHubSettings: updateGitHubSettings
+      });
+    }
+    if (state.view !== "library") {
+      return h("section", { className: "empty library-placeholder" },
+        h("div", null, h("h2", null, "知识库设置"), h("p", null, "此视图将在下一阶段接入。"))
+      );
+    }
     return h(React.Fragment, null,
-      h(NetworkView, {
-        state,
-        tagStats,
-        onSearch: (value) => patchState((draft) => {
-          draft.networkQuery = value;
-        }),
-        onEnterTag: enterTag
-      }),
-      toast ? h("div", { className: "toast" }, toast) : null
+      renderDocumentTopbar(state, note, state.uiPreferences, localPersistenceStatus, handleAction),
+      h(PaperScroll, null,
+        note
+          ? h(DocumentPaper, {
+              key: `${note.id}-${state.mode}`,
+              note,
+              state,
+              editable: state.mode === "edit",
+              updateNote,
+              patchState
+            })
+          : h("div", { className: "empty" },
+              h("div", null, h("h2", null, "选择一篇笔记"), h("p", null, "选择左侧文档开始阅读")))
+      )
     );
-  }
+  };
 
   return h(React.Fragment, null,
-    h("div", { className: "app-shell" },
-      h("aside", { className: "sidebar" },
-        h("div", { className: "traffic" },
-          h("span", { className: "dot red" }),
-          h("span", { className: "dot yellow" }),
-          h("span", { className: "dot green" })
-        ),
-        h("div", { className: "brand" },
-          h("h1", null, "Notes"),
-          h("p", null, "谢瑞峰的个人笔记本，也是博客站点")
-        ),
-        h("div", { className: "search-wrap" },
-          h("input", {
-            className: "search",
-            value: state.query,
-            placeholder: "搜索笔记、标签、正文",
-            onChange: (event) => patchState((draft) => {
-              draft.query = event.target.value;
-            })
-          })
-        ),
-        h("div", { className: "tree" },
-          renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget)
-        )
-      ),
+    h("div", { className: "app-shell", "data-view": state.view },
+      h(PrimaryRail, { view: state.view, onNavigate: navigate }),
+      state.view === "settings"
+        ? h("div", {
+            id: "context-sidebar",
+            className: `context-sidebar settings-sidebar-shell ${isContextSidebarOpen ? "is-open" : ""}`,
+            role: "navigation",
+            "aria-label": "设置目录"
+          }, h(SettingsSidebar, {
+              activeCategory: state.settingsCategory,
+              onSelectCategory: (settingsCategory) => {
+                patchState((draft) => { draft.settingsCategory = settingsCategory; });
+                setIsContextSidebarOpen(false);
+              }
+            }))
+        : renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen),
       h("main", { className: "content" },
-        renderTopbar(state, note, handleAction),
-        h(PaperScroll, null,
-          note
-            ? h(DocumentPaper, {
-                key: `${note.id}-${state.mode}`,
-                note,
-                state,
-                editable: state.mode === "edit",
-                updateNote,
-                patchState
-              })
-            : h("div", { className: "empty" }, h("div", null, h("h2", null, "还没有笔记"), h("p", null, "从左侧新建文件夹或笔记开始。")))
-        )
+        h("button", {
+          type: "button",
+          className: "context-sidebar-toggle",
+          "aria-controls": "context-sidebar",
+          "aria-expanded": isContextSidebarOpen,
+          "aria-label": isContextSidebarOpen ? "关闭目录" : "打开目录",
+          onClick: () => setIsContextSidebarOpen(toggleContextDrawer)
+        }, icon("library", { size: 17 }), h("span", null, "目录")),
+        state.view === "home"
+          ? h(LibraryHome, {
+              summary,
+              areas,
+              tags: tagStats,
+              onCreateNote: () => createNote(),
+              onOpenArea: openArea,
+              onOpenTag: enterTag
+            })
+          : renderActiveView()
       )
     ),
     renderModal(state, handleAction),
@@ -1221,377 +1452,6 @@ function customScrollbarGeometry(scrollOffset, clientSize, scrollSize) {
   const offset = Math.max(0, Math.min(maxOffset, (scrollOffset / Math.max(1, scrollSize - clientSize)) * maxOffset));
   return { visible, size, offset };
 }
-function NetworkView({ state, tagStats, onSearch, onEnterTag }) {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-    const ctx = canvas.getContext("2d");
-    const palette = ["#7cc7ff", "#b9f6ca", "#ffd166", "#ff9aa2", "#c4b5fd", "#9bf6ff", "#a0c4ff"];
-    const hasNetworkQuery = Boolean((state.networkQuery || "").trim());
-    const sourceTags = tagStats.length ? tagStats : (hasNetworkQuery ? [] : [{ name: "Notes", count: state.notes.length }]);
-    const links = buildTagLinks(state.notes, sourceTags.map((tag) => tag.name));
-    let nodes = [];
-    let hoveredName = "";
-    let selectedName = sourceTags[0]?.name === "Notes" ? "" : sourceTags[0]?.name || "";
-    let detailRect = null;
-    let detailActionRect = null;
-    let disposed = false;
-
-    const nodeByName = () => new Map(nodes.map((node) => [node.name, node]));
-    const activeName = () => selectedName || hoveredName;
-
-    function resize() {
-      const rect = canvas.getBoundingClientRect();
-      const ratio = window.devicePixelRatio || 1;
-      canvas.width = Math.max(1, Math.floor(rect.width * ratio));
-      canvas.height = Math.max(1, Math.floor(rect.height * ratio));
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      nodes = layoutNetworkNodes(sourceTags, rect.width, rect.height)
-        .map((node, index) => ({ ...node, color: palette[index % palette.length] }));
-      draw();
-    }
-
-    function draw() {
-      if (disposed) return;
-      const rect = canvas.getBoundingClientRect();
-      const width = rect.width;
-      const height = rect.height;
-      const cx = width / 2;
-      ctx.clearRect(0, 0, width, height);
-
-      const glow = ctx.createRadialGradient(cx, height * .52, 0, cx, height * .52, Math.min(width, height) * .48);
-      glow.addColorStop(0, "rgba(255,255,255,.30)");
-      glow.addColorStop(.54, "rgba(255,255,255,.07)");
-      glow.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, width, height);
-      drawBackdropTexture(width, height);
-
-      if (!nodes.length) {
-        drawEmptyState(width, height);
-        return;
-      }
-
-      drawLinks();
-      nodes.forEach(drawNode);
-      if (selectedName && selectedName !== "Notes") drawDetailPanel();
-    }
-
-    function drawBackdropTexture(width, height) {
-      const scale = Math.min(width, height);
-      ctx.save();
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      const curves = [
-        {
-          points: [-0.06, 0.15, 0.07, 0.08, 0.18, 0.08, 0.28, 0.21, 0.40, 0.38, 0.45, 0.54, 0.56, 0.60],
-          color: "rgba(255, 255, 255, .26)",
-          width: .9
-        },
-        {
-          points: [-0.08, 0.80, 0.10, 0.67, 0.22, 0.84, 0.38, 0.78, 0.50, 0.70, 0.55, 0.74, 0.63, 0.86],
-          color: "rgba(255, 255, 255, .34)",
-          width: 1
-        },
-        {
-          points: [0.70, 0.44, 0.82, 0.32, 0.96, 0.30, 1.05, 0.42, 0.93, 0.55, 0.88, 0.72, 0.76, 0.96],
-          color: "rgba(255, 255, 255, .24)",
-          width: .9
-        },
-        {
-          points: [0.38, -0.04, 0.52, 0.08, 0.63, 0.04, 0.74, -0.02, 0.86, 0.04, 1.02, 0.00, 1.12, 0.12],
-          color: "rgba(255, 255, 255, .18)",
-          width: .8
-        },
-        {
-          points: [0.78, 1.06, 0.90, 0.88, 0.84, 0.72, 0.95, 0.56, 1.06, 0.40, 0.91, 0.30, 0.78, 0.38],
-          color: "rgba(190, 218, 246, .18)",
-          width: .8
-        }
-      ];
-
-      curves.forEach((curve) => {
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(curve.points[0] * width, curve.points[1] * height);
-        for (let index = 2; index < curve.points.length; index += 6) {
-          ctx.bezierCurveTo(
-            curve.points[index] * width,
-            curve.points[index + 1] * height,
-            curve.points[index + 2] * width,
-            curve.points[index + 3] * height,
-            curve.points[index + 4] * width,
-            curve.points[index + 5] * height
-          );
-        }
-        ctx.strokeStyle = curve.color;
-        ctx.lineWidth = curve.width;
-        ctx.shadowColor = "rgba(255,255,255,.30)";
-        ctx.shadowBlur = 5;
-        ctx.stroke();
-        ctx.restore();
-      });
-
-      const dots = [
-        [.07, .13, 2.2, .52], [.14, .18, 1.8, .42], [.20, .28, 2.0, .44],
-        [.31, .16, 1.4, .34], [.38, .44, 2.1, .46], [.52, .34, 1.5, .34],
-        [.66, .40, 1.5, .34], [.84, .28, 2.1, .44], [.90, .08, 2.2, .50],
-        [.92, .74, 2.0, .42], [.74, .86, 1.6, .34], [.21, .88, 1.9, .44]
-      ];
-      dots.forEach(([x, y, radius, alpha]) => {
-        ctx.beginPath();
-        ctx.arc(x * width, y * height, radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-        ctx.shadowColor = "rgba(255,255,255,.48)";
-        ctx.shadowBlur = radius * 4;
-        ctx.fill();
-      });
-
-      const clusters = [[.05, .84], [.92, .07]];
-      clusters.forEach(([baseX, baseY]) => {
-        for (let index = 0; index < 5; index += 1) {
-          const x = (baseX + (index % 2) * .012 + index * .004) * width;
-          const y = (baseY + Math.floor(index / 2) * .014) * height;
-          ctx.beginPath();
-          ctx.arc(x, y, Math.max(1, scale * .0016), 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255,255,255,.48)";
-          ctx.shadowBlur = 4;
-          ctx.fill();
-        }
-      });
-      ctx.restore();
-    }
-    function drawLinks() {
-      const lookup = nodeByName();
-      const active = activeName();
-      links.forEach((link) => {
-        const source = lookup.get(link.source);
-        const target = lookup.get(link.target);
-        if (!source || !target) return;
-        const linked = active && (link.source === active || link.target === active);
-        const maxWeight = Math.max(...links.map((item) => item.weight), 1);
-        const strength = link.weight / maxWeight;
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(source.x, source.y);
-        ctx.lineTo(target.x, target.y);
-        ctx.strokeStyle = linked ? "rgba(0, 122, 255, .42)" : `rgba(89, 114, 145, ${.10 + strength * .12})`;
-        ctx.lineWidth = linked ? 2.2 + strength * 1.4 : 1 + strength * 1.2;
-        ctx.setLineDash(linked ? [] : [3, 8]);
-        ctx.lineCap = "round";
-        ctx.stroke();
-        ctx.restore();
-      });
-    }
-
-    function drawNode(node) {
-      const active = activeName();
-      const related = !active || node.name === active || links.some((link) =>
-        (link.source === active && link.target === node.name) || (link.target === active && link.source === node.name)
-      );
-      const selected = selectedName === node.name;
-      const hovered = hoveredName === node.name;
-      const alpha = related ? 1 : .42;
-
-      const aura = ctx.createRadialGradient(node.x, node.y, node.radius * .25, node.x, node.y, node.radius * 2.2);
-      aura.addColorStop(0, hexToRgba(node.color, selected || hovered ? .44 : .24));
-      aura.addColorStop(.52, hexToRgba(node.color, selected || hovered ? .18 : .08));
-      aura.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, node.radius * 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = aura;
-      ctx.fill();
-
-      if (selected || hovered) {
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius + 9, 0, Math.PI * 2);
-        ctx.strokeStyle = hexToRgba(node.color, selected ? .68 : .42);
-        ctx.lineWidth = selected ? 2.2 : 1.5;
-        ctx.stroke();
-      }
-
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${.72 + alpha * .22})`;
-      ctx.shadowColor = hexToRgba(node.color, .36);
-      ctx.shadowBlur = selected || hovered ? 24 : 14;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.lineWidth = selected ? 1.6 : 1;
-      ctx.strokeStyle = selected ? hexToRgba(node.color, .82) : "rgba(255,255,255,.82)";
-      ctx.stroke();
-
-      ctx.fillStyle = `rgba(29,29,31,${.42 + alpha * .44})`;
-      ctx.font = `${selected ? "800" : "700"} 17px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(fitCanvasText(node.name, node.radius * 1.52), node.x, node.y - 7);
-      ctx.fillStyle = `rgba(99,105,116,${.35 + alpha * .42})`;
-      ctx.font = "13px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.fillText(`${node.count} 篇`, node.x, node.y + 17);
-    }
-
-    function drawDetailPanel() {
-      const node = nodes.find((item) => item.name === selectedName);
-      if (!node) return;
-      const rect = canvas.getBoundingClientRect();
-      const panelWidth = Math.min(270, rect.width - 32);
-      const panelHeight = 164;
-      const x = Math.min(rect.width - panelWidth - 18, Math.max(18, node.x + node.radius + 28));
-      const y = Math.min(rect.height - panelHeight - 22, Math.max(72, node.y - panelHeight / 2));
-      const notes = noteSummariesForTag(state.notes, selectedName === "Notes" ? "" : selectedName, 3);
-      detailRect = { x, y, width: panelWidth, height: panelHeight };
-      detailActionRect = { x: x + 16, y: y + panelHeight - 42, width: panelWidth - 32, height: 28 };
-
-      drawRoundRect(x, y, panelWidth, panelHeight, 18);
-      ctx.fillStyle = "rgba(255,255,255,.86)";
-      ctx.shadowColor = "rgba(63, 78, 102, .14)";
-      ctx.shadowBlur = 28;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = "rgba(255,255,255,.92)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.fillStyle = "rgba(29,29,31,.88)";
-      ctx.font = "800 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(selectedName === "Notes" ? "全部笔记" : `# ${selectedName}`, x + 16, y + 27);
-      ctx.fillStyle = "rgba(105,112,124,.78)";
-      ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.fillText(`${notes.length} 条预览`, x + 16, y + 47);
-
-      notes.forEach((note, index) => {
-        const rowY = y + 69 + index * 19;
-        ctx.fillStyle = index === 0 ? hexToRgba(node.color, .26) : "rgba(92, 110, 133, .16)";
-        drawRoundRect(x + 16, rowY - 8, 7, 7, 3.5);
-        ctx.fill();
-        ctx.fillStyle = "rgba(56,62,72,.78)";
-        ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-        ctx.fillText(fitCanvasText(note.title || "未命名文档", panelWidth - 54), x + 30, rowY);
-      });
-
-      drawRoundRect(detailActionRect.x, detailActionRect.y, detailActionRect.width, detailActionRect.height, 10);
-      ctx.fillStyle = "rgba(0, 122, 255, .10)";
-      ctx.fill();
-      ctx.fillStyle = "rgba(0, 95, 199, .88)";
-      ctx.font = "700 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("进入标签", detailActionRect.x + detailActionRect.width / 2, detailActionRect.y + 18);
-    }
-
-    function drawEmptyState(width, height) {
-      ctx.fillStyle = "rgba(105,112,124,.72)";
-      ctx.font = "15px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("没有匹配的标签", width / 2, height * .62);
-    }
-
-    function drawRoundRect(x, y, width, height, radius) {
-      const r = Math.min(radius, width / 2, height / 2);
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + width, y, x + width, y + height, r);
-      ctx.arcTo(x + width, y + height, x, y + height, r);
-      ctx.arcTo(x, y + height, x, y, r);
-      ctx.arcTo(x, y, x + width, y, r);
-      ctx.closePath();
-    }
-
-    function fitCanvasText(text, maxWidth) {
-      if (ctx.measureText(text).width <= maxWidth) return text;
-      let next = text;
-      while (next.length > 1 && ctx.measureText(`${next}...`).width > maxWidth) {
-        next = next.slice(0, -1);
-      }
-      return `${next}...`;
-    }
-
-    function hitNode(x, y) {
-      const sorted = [...nodes].sort((a, b) => Math.hypot(x - a.x, y - a.y) - Math.hypot(x - b.x, y - b.y));
-      const hit = sorted[0];
-      return hit && Math.hypot(x - hit.x, y - hit.y) <= hit.radius + 12 ? hit : null;
-    }
-
-    function inside(rect, x, y) {
-      return rect && x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height;
-    }
-
-    function handlePointerMove(event) {
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const hit = hitNode(x, y);
-      const next = hit?.name || "";
-      const actionable = Boolean(hit || inside(detailActionRect, x, y));
-      canvas.style.cursor = actionable ? "pointer" : "default";
-      if (next !== hoveredName) {
-        hoveredName = next;
-        draw();
-      }
-    }
-
-    function handlePointerLeave() {
-      hoveredName = "";
-      canvas.style.cursor = "default";
-      draw();
-    }
-
-    function handleClick(event) {
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      if (inside(detailActionRect, x, y) && selectedName) {
-        onEnterTag(selectedName === "Notes" ? "" : selectedName);
-        return;
-      }
-      if (inside(detailRect, x, y)) return;
-      const hit = hitNode(x, y);
-      if (hit) {
-        if (hit.name === "Notes") {
-          onEnterTag("");
-          return;
-        }
-        selectedName = hit.name;
-        draw();
-        return;
-      }
-      selectedName = "";
-      draw();
-    }
-
-    resize();
-    window.addEventListener("resize", resize);
-    canvas.addEventListener("pointermove", handlePointerMove);
-    canvas.addEventListener("pointerleave", handlePointerLeave);
-    canvas.addEventListener("click", handleClick);
-
-    return () => {
-      disposed = true;
-      window.removeEventListener("resize", resize);
-      canvas.removeEventListener("pointermove", handlePointerMove);
-      canvas.removeEventListener("pointerleave", handlePointerLeave);
-      canvas.removeEventListener("click", handleClick);
-    };
-  }, [tagStats, onEnterTag, state.networkQuery, state.notes]);
-
-  return h("section", { className: "network-shell" },
-    h("canvas", { id: "network-canvas", ref: canvasRef, "aria-hidden": "true" }),
-    h("div", { className: "network-glass" },
-      h("div", { className: "network-search" },
-        h("input", {
-          value: state.networkQuery || "",
-          placeholder: "搜索标签、笔记标题、正文",
-          onChange: (event) => onSearch(event.target.value)
-        })
-      )
-    )
-  );
-}
-
 function DocumentPaper({ note, state, editable, updateNote }) {
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
@@ -1601,8 +1461,8 @@ function DocumentPaper({ note, state, editable, updateNote }) {
     if (!editable && readerRef.current) renderMathElements(readerRef.current);
   }, [editable, html]);
 
-  return h("div", { className: `document-workspace ${outline.length ? "has-outline" : "has-empty-outline"}` },
-    h(DocumentOutline, { noteId: note.id, outline }),
+  const showOutline = state.uiPreferences.showOutline;
+  return h("div", { className: `document-workspace ${showOutline ? (outline.length ? "has-outline" : "has-empty-outline") : "without-outline"}` },
     h("article", { className: `paper ${editable ? "is-editing" : ""}`, "data-note-id": note.id },
       editable
         ? h("input", {
@@ -1640,7 +1500,8 @@ function DocumentPaper({ note, state, editable, updateNote }) {
               dangerouslySetInnerHTML: { __html: sanitizeHtml(html) }
             })
       )
-    )
+    ),
+    state.uiPreferences.showOutline ? h(DocumentOutline, { noteId: note.id, outline }) : null
   );
 }
 
@@ -2841,30 +2702,112 @@ function tablePickerPositionForTrigger(event, shell, menuPosition) {
   };
 }
 
-function renderTopbar(state, note, handleAction) {
-  return h("header", { className: "topbar" },
-    h("div", { className: "crumb" },
+function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, handleAction) {
+  return h("header", {
+    className: "topbar document-topbar",
+    "data-outline-visible": preferences.showOutline ? "true" : "false"
+  },
+    h("div", { className: "document-breadcrumb" },
+      state.tagReturnContext ? h("button", {
+        className: "tag-return-button",
+        onClick: () => handleAction("back-to-tag"),
+        "aria-label": `返回标签：${state.tagReturnContext.selectedTag}`
+      }, icon("back", { size: 16 }), "返回标签") : null,
       h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "未归档" : "没有笔记"),
-      h("strong", null, note ? note.title : "创建第一篇笔记"),
-      h("em", null, documentStatusText(state, note))
+      note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null,
+      h("strong", null, note ? note.title : "创建第一篇笔记")
     ),
+    note ? h("span", {
+      className: "document-save-status",
+      role: "status",
+      title: localPersistenceStatusText(localPersistenceStatus)
+    }, localPersistenceStatusText(localPersistenceStatus)) : null,
     h("div", { className: "toolbar" },
-      h("button", { className: "ghost-btn network-toggle", onClick: () => handleAction("back-network") }, "知识网络"),
       note ? h("button", {
-        className: `ghost-btn ${state.mode === "edit" ? "active" : ""}`,
-        onClick: () => handleAction("toggle-mode")
+        className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`,
+        onClick: () => handleAction("toggle-mode"),
+        "aria-pressed": state.mode === "edit"
       }, state.mode === "edit" ? "阅读" : "编辑") : null,
+      note ? h(DocumentOverflowMenu, { state, note, handleAction }) : null,
       note ? h("button", {
-        className: "danger-btn",
-        disabled: state.syncStatus === "publishing",
-        onClick: () => handleAction("delete-drafts")
-      }, "删除草稿") : null,
-      note ? h("button", {
-        className: "primary-btn",
+        className: "primary-btn document-publish-button",
+        "data-publish-trigger": "",
         disabled: state.syncStatus === "publishing",
         onClick: () => handleAction("publish")
       }, state.syncStatus === "publishing" ? "发表中" : "发表") : null
     )
+  );
+}
+
+function DocumentOverflowMenu({ state, note, handleAction }) {
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const isOpen = state.openCreateMenu === "document-actions";
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      menuRef.current?.querySelector("[role=menuitem]:not(:disabled)")?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isOpen]);
+
+  const restoreTriggerFocus = () => {
+    window.requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  const closeMenu = () => {
+    handleAction("close-document-actions");
+    restoreTriggerFocus();
+  };
+
+  const runMenuAction = (action) => {
+    handleAction("close-document-actions");
+    handleAction(action, note.id);
+    restoreTriggerFocus();
+  };
+
+  const handleMenuKeyDown = (event) => {
+    const items = Array.from(menuRef.current?.querySelectorAll("[role=menuitem]:not(:disabled)") || []);
+    const currentIndex = items.indexOf(document.activeElement);
+    const result = resolveMenuKeyboard(currentIndex, event.key, items.length);
+    if (result.close) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu();
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    items[result.focusIndex]?.focus();
+  };
+
+  return h("div", { className: "document-overflow", onKeyDown: handleMenuKeyDown },
+    h("button", {
+      ref: triggerRef,
+      className: "ghost-btn document-overflow-trigger",
+      type: "button",
+      "aria-label": "更多文档操作",
+      "aria-haspopup": "menu",
+      "aria-expanded": isOpen,
+      onClick: () => handleAction("toggle-document-actions")
+    }, h(Ellipsis, { size: 18, strokeWidth: 1.8, "aria-hidden": "true" })),
+    isOpen ? renderDocumentActionsMenu(state, menuRef, handleMenuKeyDown, runMenuAction) : null
+  );
+}
+
+function renderDocumentActionsMenu(state, menuRef, handleMenuKeyDown, onAction) {
+  return h("div", { ref: menuRef, className: "document-overflow-menu", role: "menu", "aria-label": "文档操作" },
+    h("button", { type: "button", role: "menuitem", onClick: () => onAction("rename-note") }, "重命名"),
+    h("button", { type: "button", role: "menuitem", onClick: () => onAction("delete-drafts") }, "删除本地草稿"),
+    h("button", {
+      type: "button",
+      role: "menuitem",
+      className: "danger-menu-item",
+      disabled: state.syncStatus === "publishing",
+      onClick: () => onAction("delete-note")
+    }, "删除文档")
   );
 }
 
@@ -2883,12 +2826,45 @@ function githubBrowserUrl(settings, path) {
   if (!owner || !repo || !path) return path || "notebooks/index.json";
   return `https://github.com/${owner}/${repo}/blob/${branch}/${trimSlash(path)}`;
 }
-function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget) {
+function renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen) {
+  return h("nav", {
+    id: "context-sidebar",
+    className: `sidebar context-sidebar ${isContextSidebarOpen ? "is-open" : ""}`,
+    "aria-label": "知识库目录"
+  },
+    h("header", { className: "sidebar-heading" },
+      h("div", null,
+        h("strong", null, "我的知识库"),
+        h("span", null, "个人笔记")
+      ),
+      h("button", {
+        className: "sidebar-add-note",
+        "aria-label": "新建笔记",
+        title: "新建笔记",
+        onClick: () => handleAction("new-note-in-folder", null)
+      }, icon("add"))
+    ),
+    h("label", { className: "search-wrap" },
+      icon("search", { size: 16 }),
+      h("span", { className: "sr-only" }, "搜索笔记"),
+      h("input", {
+        className: "search",
+        value: state.query,
+        placeholder: "搜索笔记、标签、内容",
+        onChange: (event) => handleAction("search-library", event.target.value)
+      })
+    ),
+    h("div", { className: "tree", role: "tree", "aria-label": "文档目录" },
+      renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)
+    )
+  );
+}
+function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
   const rootFolders = state.folders.filter((folder) => !folder.parentId);
   const orphanNotes = visibleNotes.filter((note) => !note.folderId);
   const children = [
-    ...rootFolders.map((folder) => renderFolder(state, folder, 0, visibleNotes, selectNote, handleAction, treeDrag, dragTarget)),
-    ...orphanNotes.map((note) => renderNoteItem(state, note, 0, selectNote, handleAction, treeDrag, dragTarget))
+    ...rootFolders.map((folder) => renderFolder(state, folder, 0, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)),
+    ...orphanNotes.map((note) => renderNoteItem(state, note, 0, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard))
   ];
   if (!visibleNotes.length) {
     children.push(h("div", { className: "empty", key: "empty" }, h("div", null, h("strong", null, "没有找到笔记"), h("p", null, "换个关键词试试。"))));
@@ -2896,7 +2872,7 @@ function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dra
   return children;
 }
 
-function renderFolder(state, folder, depth, visibleNotes, selectNote, handleAction, treeDrag, dragTarget) {
+function renderFolder(state, folder, depth, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
   const children = state.folders.filter((item) => item.parentId === folder.id);
   const notes = visibleNotes.filter((note) => note.folderId === folder.id);
   const count = countNotes(state, folder.id, visibleNotes);
@@ -2906,8 +2882,11 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
   return h("div", { className: "tree-section", key: folder.id },
     h("button", {
       className: `tree-folder indent-${Math.min(depth, 3)} ${isCollapsed ? "collapsed" : ""} ${dragTarget?.type === "folder" && dragTarget.id === folder.id ? `drop-${dragTarget.position}` : ""}`,
-      "aria-expanded": !isCollapsed,
       title: isCollapsed ? "展开目录" : "收起目录",
+      "data-tree-id": folder.id,
+      tabIndex: treeKeyboard.focusedId === folder.id ? 0 : -1,
+      onFocus: () => treeKeyboard.onFocus(folder.id),
+      onKeyDown: (event) => treeKeyboard.onKeyDown(event),
       draggable: !treeDrag.disabled,
       onDragStart: (event) => treeDrag.start(event, { type: "folder", id: folder.id }),
       onDragOver: (event) => treeDrag.over(event, { type: "folder", id: folder.id }),
@@ -2915,6 +2894,9 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
       onDragEnd: treeDrag.end,
       onDrop: (event) => treeDrag.drop(event, { type: "folder", id: folder.id }),
       onClick: () => handleAction("toggle-folder", folder.id),
+      role: "treeitem",
+      "aria-level": depth + 1,
+      "aria-expanded": !isCollapsed,
       onDoubleClick: () => handleAction("rename-folder", folder.id)
     },
       h("span", {
@@ -2923,17 +2905,21 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
           event.stopPropagation();
           handleAction("toggle-folder", folder.id);
         }
-      }, isCollapsed ? "▸" : "▾"),
+      }, icon(isCollapsed ? "expand" : "collapse", { size: 14 })),
+      icon("folder", { className: "tree-folder-icon" }),
       h("strong", null, folder.name),
-      h("span", {
-        className: "mini-action",
-        title: "新建",
-        onClick: (event) => {
-          event.stopPropagation();
-          handleAction("toggle-create-menu", folder.id);
-        }
-      }, "+")
+
     ),
+    h("button", {
+      className: "mini-action",
+      type: "button",
+      "aria-label": "新建子项",
+      title: "新建",
+      onClick: (event) => {
+        event.stopPropagation();
+        handleAction("toggle-create-menu", folder.id);
+      }
+    }, icon("add", { size: 15 })),
     state.openCreateMenu === folder.id
       ? h("div", { className: "create-menu" },
           h("button", { onClick: () => handleAction("new-folder-in-folder", folder.id) }, "新建文件夹"),
@@ -2941,8 +2927,10 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
           h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-folder", folder.id) }, "删除文件夹")
         )
       : null,
-    isCollapsed ? null : notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction, treeDrag, dragTarget)),
-    isCollapsed ? null : children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, treeDrag, dragTarget))
+    isCollapsed ? null : h("div", { role: "group" },
+      notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)),
+      children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard))
+    )
   );
 }
 
@@ -3566,12 +3554,20 @@ function TableInsertGrid({ position, onSelect }) {
   );
 }
 
-function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, dragTarget) {
+function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
+  const isActive = note.id === state.activeId;
   return h("div", { className: "tree-section", key: note.id },
     h("button", {
-      className: `tree-note indent-${Math.min(depth, 3)} ${note.id === state.activeId ? "active" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
+      className: `tree-note indent-${Math.min(depth, 3)} ${isActive ? "active" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
+      role: "treeitem",
+      "aria-level": depth + 1,
+      "aria-current": isActive ? "page" : undefined,
       draggable: !treeDrag.disabled,
       onDragStart: (event) => treeDrag.start(event, { type: "note", id: note.id }),
+      "data-tree-id": note.id,
+      tabIndex: treeKeyboard.focusedId === note.id ? 0 : -1,
+      onFocus: () => treeKeyboard.onFocus(note.id),
+      onKeyDown: (event) => treeKeyboard.onKeyDown(event),
       onDragOver: (event) => treeDrag.over(event, { type: "note", id: note.id }),
       onDragLeave: treeDrag.leave,
       onDragEnd: treeDrag.end,
@@ -3579,17 +3575,23 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
       onClick: () => selectNote(note.id),
       onDoubleClick: () => handleAction("rename-note", note.id)
     },
-      h("span", null, note.dirty ? "●" : "◦"),
+      h("span", { className: "tree-note-icon-wrap" },
+        icon("file", { className: "tree-note-icon" }),
+        note.dirty ? h("span", { className: "tree-note-dirty", title: "本地草稿" }) : null
+      ),
       h("strong", null, note.title || "未命名笔记"),
-      h("span", {
-        className: "mini-action",
-        title: "更多",
-        onClick: (event) => {
-          event.stopPropagation();
-          handleAction("toggle-create-menu", note.id);
-        }
-      }, "+")
+
     ),
+    h("button", {
+      className: "mini-action",
+      type: "button",
+      "aria-label": "更多文档操作",
+      title: "更多",
+      onClick: (event) => {
+        event.stopPropagation();
+        handleAction("toggle-create-menu", note.id);
+      }
+    }, icon("more", { size: 16 })),
     state.openCreateMenu === note.id
       ? h("div", { className: "create-menu" },
           h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-note", note.id) }, "删除文档")
@@ -3660,6 +3662,168 @@ function summaryList(items, emptyText) {
     values.length > 12 ? h("li", { key: "more" }, `还有 ${values.length - 12} 项...`) : null
   );
 }
+function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
+  const closeButtonRef = useRef(null);
+  const sheetRef = useRef(null);
+  const review = state.modalContext?.review || { changes: [], selectedIds: [], localState: state, remoteState: state };
+  const destination = { ...state.settings, ...(state.modalContext?.settings || {}) };
+  const selectedIds = new Set(review.selectedIds || []);
+  const selectedCount = selectedIds.size;
+  const selectedNoteIds = new Set(review.changes
+    .filter((change) => selectedIds.has(change.id) && change.kind === "note")
+    .map((change) => change.noteId));
+  const publicTags = uniqueTags((review.localState?.notes || [])
+    .filter((note) => selectedNoteIds.has(note.id))
+    .flatMap((note) => ensureDefaultTags(note.tags)));
+  const isPublishing = state.syncStatus === "publishing";
+  const publishError = state.syncStatus === "error" ? state.message : "";
+  const typeLabels = { create: "新建", update: "修改", delete: "删除" };
+
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        handleAction("close-modal");
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(sheetRef.current?.querySelectorAll(
+        'button:not(:disabled), input:not(:disabled), summary, [href], [tabindex]:not([tabindex="-1"])'
+      ) || []);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      const explicitReturnFocus = returnFocusSelector ? document.querySelector(returnFocusSelector) : null;
+      resolvePublishReviewReturnTarget(explicitReturnFocus, previousFocus)?.focus();
+    };
+  }, []);
+
+  const changeDescription = (change) => {
+    if (change.kind === "folders") return "目录结构会随必要的索引更新发表";
+    if (change.kind === "tags") return "已删除标签会从线上标签目录移除";
+    return `${typeLabels[change.action] || "修改"}文档`;
+  };
+
+  return h("div", {
+    className: "modal-backdrop publish-sheet-backdrop",
+    onMouseDown: (event) => {
+      if (event.target === event.currentTarget) handleAction("close-modal");
+    }
+  },
+    h("section", {
+      ref: sheetRef,
+      className: "publish-sheet",
+      role: "dialog", "aria-modal": "true", "aria-labelledby": "publish-sheet-title",
+      onMouseDown: (event) => event.stopPropagation()
+    },
+      h("header", { className: "publish-sheet-header" },
+        h("div", null,
+          h("span", { className: "publish-sheet-eyebrow" }, "发布审阅"),
+          h("h2", { id: "publish-sheet-title" }, "发表到 GitHub"),
+          h("p", null, "确认目标位置与本次公开的内容。")
+        ),
+        h("button", {
+          ref: closeButtonRef,
+          type: "button",
+          className: "publish-sheet-close",
+          "aria-label": "关闭发表审阅",
+          onClick: () => handleAction("close-modal")
+        }, h(X, { size: 18, strokeWidth: 1.8, "aria-hidden": "true" }))
+      ),
+      h("div", { className: "publish-sheet-body" },
+        h("section", { className: "publish-destination", "aria-label": "发表目标" },
+          h("div", null, h("span", null, "仓库"), h("strong", null, `${destination.owner || "—"}/${destination.repo || "—"}`)),
+          h("div", null, h("span", null, "分支"), h("strong", null, destination.branch || "main")),
+          h("span", { className: "publish-connection-status" }, state.authenticated ? "已连接" : "连接待确认")
+        ),
+        publishError ? h("div", { className: "publish-sheet-error", role: "alert" }, publishError) : null,
+        h("section", { className: "publish-change-section", "aria-labelledby": "publish-changes-title" },
+          h("div", { className: "publish-section-heading" },
+            h("div", null,
+              h("h3", { id: "publish-changes-title" }, "本次变更"),
+              h("p", null, "默认选中全部检测到的改动。")
+            ),
+            h("button", { type: "button", className: "ghost-btn publish-select-toggle", onClick: () => handleAction("toggle-publish-selection") }, "全选 / 取消全选")
+          ),
+          h("div", { className: "publish-change-list" },
+            review.changes.length
+              ? review.changes.map((change) => {
+                const details = buildPublishChangeDetails(review.localState, review.remoteState, change);
+                return h("div", {
+                  key: change.id,
+                  className: `publish-change-row ${change.action === "delete" ? "is-delete" : ""}`
+                },
+                h("input", {
+                  type: "checkbox",
+                  "data-publish-change-id": change.id,
+                  checked: selectedIds.has(change.id),
+                  onChange: () => handleAction("update-publish-selection-count")
+                }),
+                h("span", { className: "publish-change-type" }, typeLabels[change.action] || "更新"),
+                h("span", { className: "publish-change-content" },
+                  h("strong", null, change.title),
+                  h("small", null, changeDescription(change))
+                ),
+                h("details", { className: "publish-change-details" },
+                  h("summary", null, "查看发布差异"),
+                  details.length
+                    ? h("div", { className: "publish-diff-list" }, details.map((detail, index) => h("section", { key: `${change.id}-${detail.label}-${index}`, className: "publish-diff-item" },
+                      h("div", { className: "publish-diff-head" },
+                        h("strong", null, detail.label),
+                        detail.summary ? h("span", null, detail.summary) : null
+                      ),
+                      h("div", { className: "publish-diff-grid" },
+                        h("div", null, h("b", null, "远端"), h("pre", null, detail.remote)),
+                        h("div", null, h("b", null, "本地待发表"), h("pre", null, detail.local))
+                      )
+                    )))
+                    : h("p", { className: "empty" }, "没有可展示的字段差异。")
+                ));
+              })
+              : h("p", { className: "empty" }, "没有检测到待发表改动。")
+          )
+        ),
+        h("section", { className: "publish-tags", "aria-labelledby": "publish-tags-title" },
+          h("div", null,
+            h("h3", { id: "publish-tags-title" }, "公开标签"),
+            h("p", null, "随所选笔记公开，可作为 GitHub 内容索引。")
+          ),
+          h("div", { className: "publish-tag-list" },
+            publicTags.length
+              ? publicTags.map((tag) => h("span", { key: tag }, tag))
+              : h("span", { className: "publish-tags-empty" }, "所选改动不包含公开标签")
+          )
+        ),
+        h("p", { className: "publish-draft-note" }, "未选中的改动会继续保留为本地草稿")
+      ),
+      h("footer", { className: "publish-sheet-footer" },
+        h("span", null, "已选择 ", h("strong", { "data-publish-selected-count": "" }, String(selectedCount)), ` / ${review.changes.length} 项改动`),
+        h("div", { className: "publish-sheet-actions" },
+          h("button", { type: "button", className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
+          h("button", {
+            type: "button",
+            className: "primary-btn",
+            disabled: isPublishing || !review.changes.length || !selectedCount,
+            onClick: () => handleAction("confirm-publish-selected")
+          }, isPublishing ? "发表中…" : "确认发表")
+        )
+      )
+    )
+  );
+}
 function renderModal(state, handleAction) {
   if (!state.modal) return null;
   if (state.modal === "name-folder") {
@@ -3684,11 +3848,19 @@ function renderModal(state, handleAction) {
       h("div", { className: "field" }, h("label", null, "文档名"), h("input", { "data-modal-input": "renameNote", defaultValue: note?.title || "", placeholder: "文档名" })),
       "保存", "confirm-rename-note", handleAction);
   }
+  if (state.modal === "manage-tag") {
+    const isRename = state.modalContext?.mode === "rename";
+    const selectedTag = state.modalContext?.selectedTag || "";
+    return modalShell(isRename ? "重命名标签" : "新建标签", isRename ? "名称会在所有使用此标签的本地笔记中更新，不会触发发表。" : "标签会附加到当前笔记并保存为本地草稿，不会触发发表。",
+      h("div", { className: "field" }, h("label", null, "标签名称"), h("input", { "data-local-tag-name": "", "data-modal-initial-focus": "", defaultValue: selectedTag, placeholder: "例如 阅读" })),
+      isRename ? "保存" : "创建", "confirm-local-tag", handleAction);
+  }
+
   if (state.modal === "publish-tags") {
     const note = state.notes.find((item) => item.id === state.modalContext?.noteId) || currentNote(state);
     const selectedTags = new Set(ensureDefaultTags(note?.tags));
     const tags = tagCatalog(state);
-    return modalShell("选择发表标签", "选择一个或多个标签后再发表。可以新增标签，也可以直接修改已有标签名称；改名会同步更新所有使用该标签的文档。",
+    return modalShell("选择发表标签", "选择当前笔记要公开的标签。删除标签会继续进入发表审阅并检查依赖。",
       h("div", { className: "tag-publish-panel" },
         h("details", { className: "tag-dropdown" },
           h("summary", null, `管理标签（已选 ${selectedTags.size} 个）`),
@@ -3698,29 +3870,23 @@ function renderModal(state, handleAction) {
                 h("input", { type: "checkbox", "data-tag-selected": "", defaultChecked: selectedTags.has(tag) }),
                 h("span", null, "选择")
               ),
-              h("input", { "data-tag-name": "", defaultValue: tag, title: "修改标签名称" }),
+              h("span", { className: "tag-choice-name" }, tag),
               h("label", { className: "tag-delete" },
                 h("input", { type: "checkbox", "data-tag-delete": "", disabled: tag === "Notes" }),
                 h("span", null, tag === "Notes" ? "默认" : "删除")
               )
             ))
           )
-        ),
-        h("div", { className: "field" },
-          h("label", null, "新增标签"),
-          h("input", { "data-tag-new": "", placeholder: "多个标签用逗号分隔" })
         )
       ),
-      "确认并发表", "confirm-publish-tags", handleAction);
+      "继续发表审阅", "confirm-publish-tags", handleAction);
   }
   if (state.modal === "delete-drafts") {
     const summary = state.modalContext?.summary || buildDraftDeletionSummary(state, state.modalContext?.published || state);
-    return h("div", { className: "modal-backdrop" },
-      h("div", { className: "modal" },
-        h("h2", null, "删除本地草稿"),
-        h("p", null, "此操作只清理当前浏览器里的本地草稿缓存，不会删除 GitHub 上已经发表的内容。确认后页面会恢复为最近一次发表版本。"),
-        h("div", { className: "form" },
-          h("div", { className: "publish-summary" },
+    return modalShell(
+      "删除本地草稿",
+      "此操作只清理当前浏览器里的本地草稿缓存，不会删除 GitHub 上已经发表的内容。确认后页面会恢复为最近一次发表版本。",
+      h("div", { className: "publish-summary" },
             h("div", { className: `summary-row ${summary.hasChanges ? "danger" : ""}` }, h("strong", null, "结果"), h("span", null, summary.hasChanges ? "将丢弃本地未发表内容" : "没有检测到本地草稿差异")),
             h("h3", null, "将删除的本地草稿 / 未发表文档"),
             summaryList(summary.dirtyNotes, "没有本地草稿。"),
@@ -3732,78 +3898,15 @@ function renderModal(state, handleAction) {
             summaryList(summary.changedPublishedNotes, "没有已发表文档的本地改动。"),
             summary.folderChanged ? h("div", { className: "summary-row danger" }, h("strong", null, "目录"), h("span", null, "本地目录改动会恢复为已发表版本")) : null,
             summary.deletedTags.length ? h("div", { className: "summary-row danger" }, h("strong", null, "标签"), h("span", null, summary.deletedTags.join("、"))) : null
-          )
-        ),
-        h("div", { className: "modal-actions" },
-          h("button", { className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
-          h("button", { className: "danger-btn", onClick: () => handleAction("confirm-delete-drafts") }, "确认删除草稿")
-        )
-      )
+          ),
+      "确认删除草稿",
+      "confirm-delete-drafts",
+      handleAction,
+      { confirmClassName: "danger-btn" }
     );
   }
   if (state.modal === "publish-review") {
-    const review = state.modalContext?.review || { changes: [], selectedIds: [] };
-    const selectedCount = review.selectedIds?.length || 0;
-    const typeLabels = { create: "新建", update: "修改", delete: "删除" };
-    const changeDescription = (change) => {
-      if (change.kind === "folders") return "目录结构会随必要的索引更新发表";
-      if (change.kind === "tags") return "已删除标签会从线上标签目录移除";
-      return `${typeLabels[change.action] || "修改"}文档`;
-    };
-    return h("div", { className: "modal-backdrop" },
-      h("div", { className: "modal" },
-        h("h2", null, "选择要发表的改动"),
-        h("p", null, "默认已选中所有检测到的改动。未选中的内容会继续保留在本地草稿中。选中文档时，必要的索引、目录和标签信息会自动一并更新。"),
-        h("div", { className: "form" },
-          h("div", { className: "publish-review-summary" },
-            h("div", { className: "summary-row" }, h("strong", null, "已选择"), h("span", { "data-publish-selected-count": "" }, String(selectedCount))),
-            h("button", { type: "button", className: "ghost-btn publish-select-toggle", onClick: () => handleAction("toggle-publish-selection") }, "全选 / 取消全选")
-          ),
-          h("div", { className: "publish-change-list" },
-            review.changes.length
-              ? review.changes.map((change) => {
-                const details = buildPublishChangeDetails(review.localState, review.remoteState, change);
-                return h("div", {
-                  key: change.id,
-                  className: `publish-change-row ${change.action === "delete" ? "is-delete" : ""}`
-                },
-                h("input", { type: "checkbox", "data-publish-change-id": change.id, defaultChecked: review.selectedIds.includes(change.id), onChange: () => handleAction("update-publish-selection-count") }),
-                h("span", { className: "publish-change-type" }, typeLabels[change.action] || "更新"),
-                h("span", { className: "publish-change-content" },
-                  h("strong", null, change.title),
-                  h("small", null, changeDescription(change))
-                ),
-                h("details", { className: "publish-change-details" },
-                  h("summary", null, "查看差异"),
-                  details.length
-                    ? h("div", { className: "publish-diff-list" }, details.map((detail, index) => h("section", { key: `${change.id}-${detail.label}-${index}`, className: "publish-diff-item" },
-                      h("div", { className: "publish-diff-head" },
-                        h("strong", null, detail.label),
-                        detail.summary ? h("span", null, detail.summary) : null
-                      ),
-                      h("div", { className: "publish-diff-grid" },
-                        h("div", null,
-                          h("b", null, "远端"),
-                          h("pre", null, detail.remote)
-                        ),
-                        h("div", null,
-                          h("b", null, "本地待发表"),
-                          h("pre", null, detail.local)
-                        )
-                      )
-                    )))
-                    : h("p", { className: "empty" }, "没有可展示的字段差异。")
-                ));
-              })
-              : h("p", { className: "empty" }, "没有检测到待发表改动。")
-          )
-        ),
-        h("div", { className: "modal-actions" },
-          h("button", { className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
-          h("button", { className: "primary-btn", disabled: !review.changes.length, onClick: () => handleAction("confirm-publish-selected") }, "发表选中改动")
-        )
-      )
-    );
+    return h(PublishReviewSheet, { state, handleAction, returnFocusSelector: publishTriggerSelector });
   }
   if (state.modal === "auth") {
     return modalShell("编辑验证", "验证通过后，文档会发表到当前笔记本 GitHub 仓库的 main 分支。",
@@ -3816,18 +3919,68 @@ function renderModal(state, handleAction) {
   return null;
 }
 
-function modalShell(title, text, body, confirmText, action, handleAction) {
-  return h("div", { className: "modal-backdrop" },
-    h("div", { className: "modal" },
-      h("h2", null, title),
+function ModalShell({ title, text, body, confirmText, action, handleAction, confirmClassName = "primary-btn" }) {
+  const modalRef = useRef(null);
+  const titleId = `modal-title-${action}`;
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    const modal = modalRef.current;
+    modal?.querySelector('[data-modal-initial-focus], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)')?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        handleAction("close-modal");
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(modal?.querySelectorAll('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [href], [tabindex]:not([tabindex="-1"])') || []);
+      if (!focusable.length) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      if (previousFocus?.isConnected && typeof previousFocus.focus === "function") previousFocus.focus();
+    };
+  }, []);
+  return h("div", {
+    className: "modal-backdrop",
+    onMouseDown: (event) => {
+      if (event.target === event.currentTarget) handleAction("close-modal");
+    }
+  },
+    h("div", {
+      ref: modalRef,
+      className: "modal",
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-labelledby": titleId,
+      onMouseDown: (event) => event.stopPropagation()
+    },
+      h("h2", { id: titleId }, title),
       h("p", null, text),
       h("div", { className: "form" }, body),
       h("div", { className: "modal-actions" },
-        h("button", { className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
-        h("button", { className: "primary-btn", onClick: () => handleAction(action) }, confirmText)
+        h("button", { type: "button", className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
+        h("button", { type: "button", className: confirmClassName, onClick: () => handleAction(action) }, confirmText)
       )
     )
   );
+}
+
+function modalShell(title, text, body, confirmText, action, handleAction, options = {}) {
+  return h(ModalShell, { key: action, title, text, body, confirmText, action, handleAction, ...options });
 }
 
 async function loadPublishedLibrary() {
@@ -4116,6 +4269,14 @@ async function safeJson(response) {
   }
 }
 
+function loadUiPreferences() {
+  try {
+    return normalizeUiPreferences(JSON.parse(localStorage.getItem(uiPreferencesStorageKey) || "{}"));
+  } catch {
+    return normalizeUiPreferences();
+  }
+}
+
 function loadLocalState() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
@@ -4138,16 +4299,11 @@ function loadLocalState() {
   return null;
 }
 
-function persist(state) {
-  localStorage.setItem(storageKey, JSON.stringify(state));
-}
-
-function isSmallScreen() {
-  return typeof window !== "undefined" && window.matchMedia?.("(max-width: 900px)").matches;
+function persist(notebookPersistencePayload) {
+  localStorage.setItem(storageKey, notebookPersistencePayload);
 }
 
 function migrate(data) {
-  const shouldRestoreNetwork = data.networkRestored !== true;
   const merged = {
     ...seed,
     ...data,
@@ -4172,19 +4328,12 @@ function migrate(data) {
       html: noteHtml
     };
   });
-  if (!merged.notes.some((note) => note.id === merged.activeId)) merged.activeId = merged.notes[0]?.id || "";
-  if (shouldRestoreNetwork && !isSmallScreen()) {
-    merged.view = "network";
-    merged.selectedTag = "";
-    merged.query = "";
-  }
+  if (merged.activeId && !merged.notes.some((note) => note.id === merged.activeId)) merged.activeId = "";
   if (!data.view && isNotebookRoute()) {
     merged.view = "library";
     merged.selectedTag = "";
     merged.query = "";
   }
-  merged.networkQuery = merged.networkQuery || "";
-  merged.networkRestored = true;
   merged.authenticated = false;
   merged.pendingAuthAction = "";
   merged.settings = {
@@ -4238,10 +4387,6 @@ function tagCatalog(state) {
   ]).filter((tag) => !deleted.has(tag));
 }
 
-function parseTagInput(value) {
-  return String(value || "").split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
-}
-
 function normalizeTagName(tag) {
   const text = String(tag || "").trim();
   if (/^notes?$/i.test(text)) return "Notes";
@@ -4270,26 +4415,6 @@ function filteredNotes(state) {
     const text = `${note.title} ${folderPath(state, note.folderId)} ${(note.tags || []).join(" ")} ${htmlToText(note.html || blocksToHtml(note.blocks))}`.toLowerCase();
     return text.includes(query);
   });
-}
-
-function filteredTagStats(state) {
-  const query = (state.networkQuery || "").trim().toLowerCase();
-  const matchedNotes = query
-    ? state.notes.filter((note) => {
-        const text = `${note.title} ${folderPath(state, note.folderId)} ${(note.tags || []).join(" ")} ${htmlToText(note.html || blocksToHtml(note.blocks))}`.toLowerCase();
-        return text.includes(query);
-      })
-    : state.notes;
-  const counts = new Map();
-  matchedNotes.forEach((note) => {
-    (note.tags || []).forEach((tag) => {
-      if (query && !tag.toLowerCase().includes(query)) return;
-      counts.set(tag, (counts.get(tag) || 0) + 1);
-    });
-  });
-  return Array.from(counts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "zh-Hans-CN"));
 }
 
 function folderPath(state, folderId) {
