@@ -95,3 +95,39 @@ assert.match(css, /\.document-topbar\s*\{[^}]*background:\s*var\(--sheet\);/s);
 assert.match(css, /\.document-overflow-menu\s*\{[^}]*background:\s*var\(--sheet\);/s);
 assert.match(css, /\.feishu-bubble\s*\{[^}]*background:\s*var\(--sheet\);/s);
 assert.match(css, /\.feishu-bubble::after\s*\{[^}]*display:\s*none;/s);
+
+const primaryRailSource = ui.slice(ui.indexOf("export function PrimaryRail"), ui.indexOf("export function LibraryHome"));
+const settingsSidebarSource = ui.slice(ui.indexOf("export function SettingsSidebar"), ui.indexOf("function settingRow"));
+const contextSidebarSource = app.slice(app.indexOf("function renderContextSidebar"), app.indexOf("function renderTree"));
+const publishSheetSource = app.slice(app.indexOf("function PublishReviewSheet"), app.indexOf("function renderModal"));
+
+assert.match(primaryRailSource, /h\("nav",\s*\{[^}]*"aria-label":\s*"\u4e3b\u5bfc\u822a"/s);
+assert.match(settingsSidebarSource, /h\("nav",\s*\{[^}]*"aria-label":\s*"\u8bbe\u7f6e\u5206\u7c7b"/s);
+assert.match(contextSidebarSource, /h\("nav",\s*\{[^}]*className:\s*`sidebar context-sidebar[^`]*`[^}]*"aria-label":\s*"\u77e5\u8bc6\u5e93\u76ee\u5f55"/s);
+assert.match(primaryRailSource, /"aria-current":\s*view\s*===\s*target\s*\?\s*"page"\s*:\s*undefined/);
+assert.match(contextSidebarSource, /role:\s*"tree"[^}]*"aria-label":\s*"\u6587\u6863\u76ee\u5f55"/s);
+assert.match(publishSheetSource, /role:\s*"dialog"/);
+assert.match(publishSheetSource, /"aria-modal":\s*"true"/);
+
+assert.match(app, /const \[isContextSidebarOpen,\s*setIsContextSidebarOpen\]\s*=\s*useState\(false\)/);
+assert.match(app, /className:\s*"context-sidebar-toggle"/);
+assert.match(app, /"aria-controls":\s*"context-sidebar"/);
+assert.match(app, /"aria-expanded":\s*isContextSidebarOpen/);
+assert.match(app, /"aria-label":\s*isContextSidebarOpen\s*\?\s*"\u5173\u95ed\u76ee\u5f55"\s*:\s*"\u6253\u5f00\u76ee\u5f55"/);
+assert.match(app, /h\("span",\s*null,\s*"\u76ee\u5f55"\)/);
+assert.match(contextSidebarSource, /id:\s*"context-sidebar"/);
+assert.match(contextSidebarSource, /isContextSidebarOpen\s*\?\s*"is-open"\s*:\s*""/);
+
+assert.match(css, /@media\s*\(max-width:\s*1100px\)[\s\S]*?\.document-outline[\s\S]*?display:\s*none/);
+assert.match(css, /@media\s*\(max-width:\s*1100px\)[\s\S]*?\.tag-detail[\s\S]*?display:\s*none/);
+assert.match(css, /@media\s*\(max-width:\s*900px\)[\s\S]*?\.app-shell[\s\S]*?grid-template-columns:\s*56px minmax\(0,\s*1fr\)/);
+assert.match(css, /@media\s*\(max-width:\s*900px\)[\s\S]*?\.context-sidebar[\s\S]*?position:\s*fixed/);
+assert.match(css, /@media\s*\(max-width:\s*900px\)[\s\S]*?\.context-sidebar\.is-open[\s\S]*?transform:\s*translateX\(0\)/);
+assert.match(css, /@media\s*\(max-width:\s*900px\)[\s\S]*?\.context-sidebar-toggle[\s\S]*?display:\s*inline-flex/);
+assert.match(css, /@media\s*\(max-width:\s*640px\)[\s\S]*?\.primary-rail[\s\S]*?position:\s*fixed[\s\S]*?bottom:\s*0/);
+assert.match(css, /@media\s*\(max-width:\s*640px\)[\s\S]*?\.rail-items[\s\S]*?grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/);
+assert.match(css, /@media\s*\(prefers-reduced-transparency:\s*reduce\)/);
+assert.match(css, /@media\s*\(prefers-contrast:\s*more\)/);
+assert.match(app, /className:\s*"mini-action"[^}]*"aria-label":\s*"新建子项"/s);
+assert.match(app, /className:\s*"mini-action"[^}]*"aria-label":\s*"更多文档操作"/s);

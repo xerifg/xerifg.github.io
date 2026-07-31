@@ -1,15 +1,16 @@
 # Personal Notebook
 
-一个部署在 GitHub Pages 上的个人知识库和笔记本。前端直接运行在浏览器中，阅读、编辑、标签网络、附件预览和发布都围绕 `notebooks/` 目录工作；本地辅助服务只用于本地预览、附件缓存和可选的 GitHub 写入代理。
+一个部署在 GitHub Pages 上的个人知识库和笔记本。前端直接运行在浏览器中，知识库首页、文档树、标签浏览、设置、阅读、编辑、附件预览和发布都围绕 `notebooks/` 目录工作；本地辅助服务只用于本地预览、附件缓存和可选的 GitHub 写入代理。
 
 ## 当前功能
 
 - GitHub Pages 静态访问，入口为 `index.html`。
 - Tiptap/ProseMirror 富文本编辑器，支持标题、列表、引用、代码块、表格、任务列表、链接、高亮、图片、视频和文件附件。
-- 左侧文档库支持文件夹、文档、标签、搜索、重命名和删除。
-- 标签网络视图用于查看标签关系和相关笔记。
+- 56px 主功能轨提供首页、笔记、标签和设置入口；上下文目录保留文件夹、文档、搜索、重命名和删除能力。
+- 知识库首页汇总知识领域、常用标签和库概览；标签浏览器支持搜索、排序、分组筛选和打开相关笔记。
+- 默认从知识库首页启动；可在“通用”设置中选择记住上次位置。
 - 浏览器本地草稿自动保存，未发布内容不会丢失。
-- 发布时把文档索引写入 `notebooks/index.json`，把单篇文档写入 `notebooks/docs/`。
+- 发布保持选择性与 GitHub-backed：审阅后只提交勾选的文档、目录和标签索引，未选改动继续保留为本地草稿。
 - 附件先缓存在本地或浏览器中，发布后上传到 `notebooks/assets/{noteId}/` 并替换为仓库相对路径。
 - 发布前验证 GitHub token，并处理文档路径去重、删除文档同步和 GitHub 写入冲突重试。
 
@@ -19,7 +20,7 @@
 
 1. 页面由 `index.html` 加载 `static/app.css` 和 `static/app.js`。
 2. `static/app.js` 负责 React UI、Tiptap 编辑器、文档库状态、发布流程和 GitHub Contents API 调用。
-3. `static/network-model.mjs` 提供标签关系计算和网络布局，相关逻辑有独立测试。
+3. `static/library-ui-model.mjs` 提供启动偏好、首页概览和标签浏览计算，`static/library-ui.mjs` 提供主功能轨、首页、标签和设置视图。
 4. `server.py` 是本地辅助服务，提供静态文件服务和本地附件缓存接口。
 5. 已发布内容存放在 `notebooks/` 下，GitHub Pages 直接读取这些 JSON 和资源文件。
 
@@ -30,13 +31,14 @@ index.html              # GitHub Pages 入口
 static/
   app.js                # 前端应用、编辑器、发布逻辑
   app.css               # 页面样式
-  network-model.mjs     # 标签网络数据模型
+  library-ui.mjs        # 主功能轨、首页、标签与设置视图
+  library-ui-model.mjs  # 启动偏好、知识库概览与标签浏览模型
 notebooks/
   index.json            # 已发布文档索引
   docs/                 # 已发布文档 JSON
   assets/               # 已发布附件资源
 tests/
-  network-model.test.mjs # 标签网络模型测试
+  *.test.mjs             # 数据模型、交互、编辑器、发布与 shell 回归测试
 server.py               # 本地辅助服务
 start-notebook.cmd      # Windows 本地启动脚本
 ```
@@ -139,10 +141,10 @@ PORT=8000
 
 ## 测试
 
-运行标签网络模型测试：
+运行完整测试：
 
-```bash
-node tests/network-model.test.mjs
+```powershell
+Get-ChildItem tests\*.test.mjs | ForEach-Object { node $_.FullName }
 ```
 
 检查前端脚本语法：

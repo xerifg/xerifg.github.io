@@ -393,6 +393,7 @@ function App() {
   const [localPersistenceStatus, setLocalPersistenceStatus] = useState("saved");
   const [dragTarget, setDragTarget] = useState(null);
   const [draggedTreeItem, setDraggedTreeItem] = useState(null);
+  const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(false);
   const [treeFocusId, setTreeFocusId] = useState("");
   const notebookPersistencePayload = JSON.stringify(notebookStateForPersistence(state));
 
@@ -541,6 +542,7 @@ function App() {
       draft.modal = null;
       draft.openCreateMenu = null;
     });
+    setIsContextSidebarOpen(false);
   };
 
   const treeDragDisabled = Boolean(state.query.trim());
@@ -629,6 +631,7 @@ function App() {
       draft.modalContext = null;
       draft.openCreateMenu = null;
     });
+    setIsContextSidebarOpen(false);
   };
   const openArea = (folderId) => {
     patchState((draft) => {
@@ -1259,14 +1262,28 @@ function App() {
     h("div", { className: "app-shell", "data-view": state.view },
       h(PrimaryRail, { view: state.view, onNavigate: navigate }),
       state.view === "settings"
-        ? h(SettingsSidebar, {
-            activeCategory: state.settingsCategory,
-            onSelectCategory: (settingsCategory) => patchState((draft) => {
-              draft.settingsCategory = settingsCategory;
-            })
-          })
-        : renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard),
+        ? h("div", {
+            id: "context-sidebar",
+            className: `context-sidebar settings-sidebar-shell ${isContextSidebarOpen ? "is-open" : ""}`,
+            role: "navigation",
+            "aria-label": "设置目录"
+          }, h(SettingsSidebar, {
+              activeCategory: state.settingsCategory,
+              onSelectCategory: (settingsCategory) => {
+                patchState((draft) => { draft.settingsCategory = settingsCategory; });
+                setIsContextSidebarOpen(false);
+              }
+            }))
+        : renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen),
       h("main", { className: "content" },
+        h("button", {
+          type: "button",
+          className: "context-sidebar-toggle",
+          "aria-controls": "context-sidebar",
+          "aria-expanded": isContextSidebarOpen,
+          "aria-label": isContextSidebarOpen ? "关闭目录" : "打开目录",
+          onClick: () => setIsContextSidebarOpen((isOpen) => !isOpen)
+        }, icon("library", { size: 17 }), h("span", null, "目录")),
         state.view === "home"
           ? h(LibraryHome, {
               summary,
@@ -2767,8 +2784,12 @@ function githubBrowserUrl(settings, path) {
   if (!owner || !repo || !path) return path || "notebooks/index.json";
   return `https://github.com/${owner}/${repo}/blob/${branch}/${trimSlash(path)}`;
 }
-function renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
-  return h("aside", { className: "sidebar" },
+function renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen) {
+  return h("nav", {
+    id: "context-sidebar",
+    className: `sidebar context-sidebar ${isContextSidebarOpen ? "is-open" : ""}`,
+    "aria-label": "知识库目录"
+  },
     h("header", { className: "sidebar-heading" },
       h("div", null,
         h("strong", null, "我的知识库"),
@@ -2847,6 +2868,7 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
       h("strong", null, folder.name),
       h("span", {
         className: "mini-action",
+        "aria-label": "新建子项",
         title: "新建",
         onClick: (event) => {
           event.stopPropagation();
@@ -3516,6 +3538,7 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
       h("strong", null, note.title || "未命名笔记"),
       h("span", {
         className: "mini-action",
+        "aria-label": "更多文档操作",
         title: "更多",
         onClick: (event) => {
           event.stopPropagation();
