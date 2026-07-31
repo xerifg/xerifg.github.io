@@ -2839,9 +2839,9 @@ function renderContextSidebar(state, visibleNotes, selectNote, handleAction, tre
       ),
       h("button", {
         className: "sidebar-add-note",
-        "aria-label": "新建笔记",
-        title: "新建笔记",
-        onClick: () => handleAction("new-note-in-folder", null)
+        "aria-label": "\u65b0\u5efa\u9876\u7ea7\u6587\u4ef6\u5939",
+        title: "\u65b0\u5efa\u9876\u7ea7\u6587\u4ef6\u5939",
+        onClick: () => handleAction("new-folder-in-folder", null)
       }, icon("add"))
     ),
     h("label", { className: "search-wrap" },
@@ -3799,7 +3799,7 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
         h("section", { className: "publish-tags", "aria-labelledby": "publish-tags-title" },
           h("div", null,
             h("h3", { id: "publish-tags-title" }, "公开标签"),
-            h("p", null, "随所选笔记公开，可作为 GitHub 内容索引。")
+            h("p", null, "随笔记公开，可作为 GitHub 内容索引")
           ),
           h("div", { className: "publish-tag-list" },
             publicTags.length

@@ -101,6 +101,16 @@ const settingsSidebarSource = ui.slice(ui.indexOf("export function SettingsSideb
 const contextSidebarSource = app.slice(app.indexOf("function renderContextSidebar"), app.indexOf("function renderTree"));
 const publishSheetSource = app.slice(app.indexOf("function PublishReviewSheet"), app.indexOf("function renderModal"));
 
+assert.ok(
+  contextSidebarSource.includes('"aria-label": "\\u65b0\\u5efa\\u9876\\u7ea7\\u6587\\u4ef6\\u5939"'),
+  "the library header plus button should announce top-level folder creation"
+);
+assert.match(
+  contextSidebarSource,
+  /className:\s*"sidebar-add-note"[^}]*onClick:\s*\(\)\s*=>\s*handleAction\("new-folder-in-folder",\s*null\)/s,
+  "the library header plus button should create a top-level folder"
+);
+
 assert.match(primaryRailSource, /h\("nav",\s*\{[^}]*"aria-label":\s*"\u4e3b\u5bfc\u822a"/s);
 assert.match(settingsSidebarSource, /h\("nav",\s*\{[^}]*"aria-label":\s*"\u8bbe\u7f6e\u5206\u7c7b"/s);
 assert.match(contextSidebarSource, /h\("nav",\s*\{[^}]*className:\s*`sidebar context-sidebar[^`]*`[^}]*"aria-label":\s*"\u77e5\u8bc6\u5e93\u76ee\u5f55"/s);

@@ -2234,9 +2234,8 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 
 .publish-sheet-backdrop {
-  align-items: start;
-  justify-items: end;
-  padding: 66px 24px 24px;
+  place-items: center;
+  padding: 24px;
   background: rgba(20, 22, 26, .2);
   backdrop-filter: blur(6px);
   animation: publishBackdropIn 220ms ease-out;

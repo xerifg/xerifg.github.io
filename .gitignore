@@ -21,4 +21,5 @@ dev/selenium-debug.log
 *.njsproj
 *.sln
 dev/package-lock.json
+.superpowers/
 
