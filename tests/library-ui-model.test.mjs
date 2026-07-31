@@ -37,6 +37,10 @@ assert.deepEqual(
   buildTagBrowser(notes, { query: "a", sort: "popular", selectedTag: "AI" }).selected.noteIds,
   ["vit", "bert"]
 );
+assert.deepEqual(
+  buildTagBrowser(notes, { sort: "name" }).records.map((tag) => tag.name),
+  ["AI", "NLP", "Tool", "Vision"]
+);
 
 assert.deepEqual(
   buildLibrarySummary([], [

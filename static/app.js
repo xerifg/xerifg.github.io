@@ -21,7 +21,7 @@ import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
 import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser } from "./library-ui-model.mjs?v=20260731-library-v1";
-import { LibraryHome, PrimaryRail, icon } from "./library-ui.mjs?v=20260731-library-v1";
+import { LibraryHome, PrimaryRail, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -338,6 +338,9 @@ const seed = {
   query: "",
   view: "home",
   selectedTag: "",
+  tagQuery: "",
+  tagSort: "popular",
+  tagReturnContext: null,
   authenticated: false,
   pendingAuthAction: "",
   mode: "read",
@@ -400,6 +403,9 @@ function App() {
             view: current.view,
             activeId: current.activeId,
             selectedTag: current.selectedTag,
+            tagQuery: current.tagQuery,
+            tagSort: current.tagSort,
+            tagReturnContext: current.tagReturnContext,
             query: current.query,
             uiPreferences: current.uiPreferences,
             settings: { ...current.settings, token: current.settings.token }
@@ -432,6 +438,17 @@ function App() {
   const visibleNotes = useMemo(() => filteredNotes(state), [state]);
   const tagStats = useMemo(() => buildTagBrowser(state.notes).records, [state.notes]);
   const summary = useMemo(() => buildLibrarySummary(state.folders, state.notes), [state.folders, state.notes]);
+  const tagBrowserModel = useMemo(() => ({
+    ...buildTagBrowser(state.notes, {
+      query: state.tagQuery,
+      sort: state.tagSort,
+      selectedTag: state.selectedTag
+    }),
+    query: state.tagQuery,
+    sort: state.tagSort,
+    notesById: Object.fromEntries(state.notes.map((item) => [item.id, item]))
+  }), [state.notes, state.tagQuery, state.tagSort, state.selectedTag]);
+
   const areas = useMemo(() => buildKnowledgeAreas(state.folders, state.notes), [state.folders, state.notes]);
 
   const patchState = useCallback((recipe) => {
@@ -539,12 +556,23 @@ function App() {
   const enterTag = (tag) => {
     patchState((draft) => {
       draft.selectedTag = tag;
-      draft.query = "";
-      draft.view = "library";
+      draft.tagQuery = "";
+      draft.view = "tags";
       draft.mode = "read";
-      const matches = draft.notes.filter((item) => !tag || (item.tags || []).includes(tag));
-      draft.activeId = tag && matches.length === 1 ? matches[0].id : "";
+      draft.modal = null;
+      draft.modalContext = null;
+      draft.openCreateMenu = null;
     });
+  };
+  const openTagNote = (noteId) => {
+    patchState((draft) => {
+      draft.tagReturnContext = {
+        selectedTag: draft.selectedTag,
+        query: draft.tagQuery,
+        sort: draft.tagSort
+      };
+    });
+    selectNote(noteId);
   };
   const navigate = (view) => {
     const target = ["home", "library", "tags", "settings"].includes(view) ? view : "home";
@@ -993,6 +1021,20 @@ function App() {
         draft.selectedTag = "";
       });
     }
+    if (action === "back-to-tag") {
+      patchState((draft) => {
+        const context = draft.tagReturnContext;
+        if (!context) return;
+        draft.view = "tags";
+        draft.selectedTag = context.selectedTag;
+        draft.tagQuery = context.query;
+        draft.tagSort = context.sort;
+        draft.tagReturnContext = null;
+        draft.modal = null;
+        draft.modalContext = null;
+        draft.openCreateMenu = null;
+      });
+    }
     if (action === "toggle-mode") {
       if (state.mode !== "edit" && !hasEditSession) {
         requireEditPermission("edit");
@@ -1084,10 +1126,22 @@ function App() {
   };
 
   const renderActiveView = () => {
+    if (state.view === "tags") {
+      return h(TagBrowser, {
+        model: tagBrowserModel,
+        onQuery: (query) => patchState((draft) => { draft.tagQuery = query; }),
+        onSort: (sort) => patchState((draft) => { draft.tagSort = sort; }),
+        onSelectTag: enterTag,
+        onOpenNote: openTagNote,
+        onCreateTag: () => {
+          if (note) openPublishTagModal();
+          else setToast("先打开一篇笔记，再为它新建标签");
+        }
+      });
+    }
     if (state.view !== "library") {
-      const label = state.view === "tags" ? "标签浏览" : "知识库设置";
       return h("section", { className: "empty library-placeholder" },
-        h("div", null, h("h2", null, label), h("p", null, "此视图将在下一阶段接入。"))
+        h("div", null, h("h2", null, "知识库设置"), h("p", null, "此视图将在下一阶段接入。"))
       );
     }
     return h(React.Fragment, null,
@@ -2491,6 +2545,11 @@ function tablePickerPositionForTrigger(event, shell, menuPosition) {
 function renderTopbar(state, note, handleAction) {
   return h("header", { className: "topbar" },
     h("div", { className: "crumb" },
+      state.tagReturnContext ? h("button", {
+        className: "tag-return-button",
+        onClick: () => handleAction("back-to-tag"),
+        "aria-label": `返回标签：${state.tagReturnContext.selectedTag}`
+      }, icon("back", { size: 16 }), "返回标签") : null,
       h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "未归档" : "没有笔记"),
       h("strong", null, note ? note.title : "创建第一篇笔记"),
       h("em", null, documentStatusText(state, note))
@@ -2553,7 +2612,7 @@ function renderContextSidebar(state, visibleNotes, selectNote, handleAction, tre
         onChange: (event) => handleAction("search-library", event.target.value)
       })
     ),
-    h("div", { className: "tree" },
+    h("div", { className: "tree", role: "tree", "aria-label": "文档目录" },
       renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget)
     )
   );
@@ -2581,7 +2640,6 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
   return h("div", { className: "tree-section", key: folder.id },
     h("button", {
       className: `tree-folder indent-${Math.min(depth, 3)} ${isCollapsed ? "collapsed" : ""} ${dragTarget?.type === "folder" && dragTarget.id === folder.id ? `drop-${dragTarget.position}` : ""}`,
-      "aria-expanded": !isCollapsed,
       title: isCollapsed ? "展开目录" : "收起目录",
       draggable: !treeDrag.disabled,
       onDragStart: (event) => treeDrag.start(event, { type: "folder", id: folder.id }),
@@ -2590,6 +2648,9 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
       onDragEnd: treeDrag.end,
       onDrop: (event) => treeDrag.drop(event, { type: "folder", id: folder.id }),
       onClick: () => handleAction("toggle-folder", folder.id),
+      role: "treeitem",
+      "aria-level": depth + 1,
+      "aria-expanded": !isCollapsed,
       onDoubleClick: () => handleAction("rename-folder", folder.id)
     },
       h("span", {
@@ -2599,6 +2660,7 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
           handleAction("toggle-folder", folder.id);
         }
       }, isCollapsed ? "▸" : "▾"),
+      icon("folder", { className: "tree-folder-icon" }),
       h("strong", null, folder.name),
       h("span", {
         className: "mini-action",
@@ -3242,9 +3304,13 @@ function TableInsertGrid({ position, onSelect }) {
 }
 
 function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, dragTarget) {
+  const isActive = note.id === state.activeId;
   return h("div", { className: "tree-section", key: note.id },
     h("button", {
-      className: `tree-note indent-${Math.min(depth, 3)} ${note.id === state.activeId ? "active" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
+      className: `tree-note indent-${Math.min(depth, 3)} ${isActive ? "active" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
+      role: "treeitem",
+      "aria-level": depth + 1,
+      "aria-current": isActive ? "page" : undefined,
       draggable: !treeDrag.disabled,
       onDragStart: (event) => treeDrag.start(event, { type: "note", id: note.id }),
       onDragOver: (event) => treeDrag.over(event, { type: "note", id: note.id }),
@@ -3254,7 +3320,10 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
       onClick: () => selectNote(note.id),
       onDoubleClick: () => handleAction("rename-note", note.id)
     },
-      h("span", null, note.dirty ? "●" : "◦"),
+      h("span", { className: "tree-note-icon-wrap" },
+        icon("file", { className: "tree-note-icon" }),
+        note.dirty ? h("span", { className: "tree-note-dirty", title: "本地草稿" }) : null
+      ),
       h("strong", null, note.title || "未命名笔记"),
       h("span", {
         className: "mini-action",
