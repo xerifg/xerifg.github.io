@@ -21,10 +21,11 @@ import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
 import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, resolveTreeKeyboard, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
-import { LibraryHome, PrimaryRail, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
+import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
+const uiPreferencesStorageKey = "personal-notebook-ui-preferences-v1";
 const blockNoteStorageKey = "personal-notebook-blocknote-v1";
 const legacyStorageKey = "personal-notebook-v2";
 const publishedIndexPath = "notebooks/index.json";
@@ -338,6 +339,7 @@ const seed = {
   query: "",
   view: "home",
   selectedTag: "",
+  settingsCategory: "general",
   tagQuery: "",
   tagSort: "popular",
   tagReturnContext: null,
@@ -352,7 +354,6 @@ const seed = {
   deletedTags: [],
   syncStatus: "ready",
   message: "",
-  uiPreferences: DEFAULT_UI_PREFERENCES,
   settings: {
     account: inferOwner(),
     owner: inferOwner(),
@@ -383,8 +384,8 @@ const seed = {
 function App() {
   const [state, setState] = useState(() => {
     const migrated = migrate(loadLocalState() || seed);
-    const uiPreferences = normalizeUiPreferences(migrated.uiPreferences);
-    return { ...migrated, uiPreferences, ...resolveStartupState(migrated, uiPreferences) };
+    const uiPreferences = loadUiPreferences();
+    return { ...migrated, ...resolveStartupState(migrated, uiPreferences), uiPreferences };
   });
   const [toast, setToast] = useState("");
   const [dragTarget, setDragTarget] = useState(null);
@@ -429,6 +430,22 @@ function App() {
   }, [state]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(uiPreferencesStorageKey, JSON.stringify(state.uiPreferences));
+    } catch (error) {
+      console.error("UI preference persistence failed", error);
+      setToast("界面偏好保存失败");
+    }
+  }, [state.uiPreferences]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = state.uiPreferences.theme;
+    document.documentElement.dataset.density = state.uiPreferences.sidebarDensity;
+    document.documentElement.dataset.transparency = state.uiPreferences.translucentMaterials ? "translucent" : "solid";
+    document.documentElement.style.setProperty("--document-width", `${state.uiPreferences.contentWidth}px`);
+  }, [state.uiPreferences]);
+
+  useEffect(() => {
     if (!toast) return undefined;
     const timer = window.setTimeout(() => setToast(""), 2600);
     return () => window.clearTimeout(timer);
@@ -464,6 +481,20 @@ function App() {
       return next;
     });
   }, []);
+  const updateUiPreferences = useCallback((nextPreferences) => {
+    patchState((draft) => {
+      draft.uiPreferences = normalizeUiPreferences({ ...draft.uiPreferences, ...nextPreferences });
+    });
+  }, [patchState]);
+  const updateGitHubSettings = useCallback((nextSettings) => {
+    patchState((draft) => {
+      draft.settings = {
+        ...draft.settings,
+        ...nextSettings,
+        branch: "main"
+      };
+    });
+  }, [patchState]);
   useEffect(() => {
     if (!state.openCreateMenu) return undefined;
     const closeCreateMenu = (event) => {
@@ -490,7 +521,7 @@ function App() {
   const selectNote = (noteId) => {
     patchState((draft) => {
       draft.activeId = noteId;
-      draft.mode = "read";
+      draft.mode = draft.uiPreferences.defaultMode;
       draft.view = "library";
       draft.modal = null;
       draft.openCreateMenu = null;
@@ -601,6 +632,7 @@ function App() {
       draft.selectedTag = "";
       draft.query = "";
       draft.activeId = draft.notes.find((item) => folderIds.has(item.folderId))?.id || draft.activeId;
+      draft.mode = draft.uiPreferences.defaultMode;
       draft.modal = null;
       draft.modalContext = null;
       draft.openCreateMenu = null;
@@ -656,7 +688,7 @@ function App() {
       });
       if (folderId) delete draft.collapsedFolders?.[folderId];
       draft.activeId = id;
-      draft.mode = "edit";
+      draft.mode = draft.uiPreferences.defaultMode;
       draft.view = "library";
       draft.selectedTag = "";
       draft.query = "";
@@ -1157,6 +1189,15 @@ function App() {
         }
       });
     }
+    if (state.view === "settings") {
+      return h(SettingsPage, {
+        category: state.settingsCategory,
+        preferences: state.uiPreferences,
+        github: state.settings,
+        onChangePreferences: updateUiPreferences,
+        onChangeGitHubSettings: updateGitHubSettings
+      });
+    }
     if (state.view !== "library") {
       return h("section", { className: "empty library-placeholder" },
         h("div", null, h("h2", null, "知识库设置"), h("p", null, "此视图将在下一阶段接入。"))
@@ -1183,7 +1224,14 @@ function App() {
   return h(React.Fragment, null,
     h("div", { className: "app-shell", "data-view": state.view },
       h(PrimaryRail, { view: state.view, onNavigate: navigate }),
-      renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard),
+      state.view === "settings"
+        ? h(SettingsSidebar, {
+            activeCategory: state.settingsCategory,
+            onSelectCategory: (settingsCategory) => patchState((draft) => {
+              draft.settingsCategory = settingsCategory;
+            })
+          })
+        : renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard),
       h("main", { className: "content" },
         state.view === "home"
           ? h(LibraryHome, {
@@ -1320,8 +1368,9 @@ function DocumentPaper({ note, state, editable, updateNote }) {
     if (!editable && readerRef.current) renderMathElements(readerRef.current);
   }, [editable, html]);
 
-  return h("div", { className: `document-workspace ${outline.length ? "has-outline" : "has-empty-outline"}` },
-    h(DocumentOutline, { noteId: note.id, outline }),
+  const showOutline = state.uiPreferences.showOutline;
+  return h("div", { className: `document-workspace ${showOutline ? (outline.length ? "has-outline" : "has-empty-outline") : "without-outline"}` },
+    state.uiPreferences.showOutline ? h(DocumentOutline, { noteId: note.id, outline }) : null,
     h("article", { className: `paper ${editable ? "is-editing" : ""}`, "data-note-id": note.id },
       editable
         ? h("input", {
@@ -3888,6 +3937,14 @@ async function safeJson(response) {
   }
 }
 
+function loadUiPreferences() {
+  try {
+    return normalizeUiPreferences(JSON.parse(localStorage.getItem(uiPreferencesStorageKey) || "{}"));
+  } catch {
+    return normalizeUiPreferences();
+  }
+}
+
 function loadLocalState() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
@@ -3911,7 +3968,8 @@ function loadLocalState() {
 }
 
 function persist(state) {
-  localStorage.setItem(storageKey, JSON.stringify(state));
+  const { uiPreferences, ...notebookState } = state;
+  localStorage.setItem(storageKey, JSON.stringify(notebookState));
 }
 
 function migrate(data) {

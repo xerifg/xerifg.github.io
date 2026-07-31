@@ -21,6 +21,24 @@ assert.deepEqual(
   { view: "library", activeId: "note-1", selectedTag: "AI" }
 );
 
+assert.deepEqual(
+  normalizeUiPreferences({ contentWidth: 480, theme: "sepia", sidebarDensity: "compact" }),
+  {
+    ...DEFAULT_UI_PREFERENCES,
+    contentWidth: 640,
+    theme: "auto",
+    sidebarDensity: "compact"
+  }
+);
+assert.deepEqual(
+  normalizeUiPreferences({ contentWidth: 1200 }),
+  { ...DEFAULT_UI_PREFERENCES, contentWidth: 920 }
+);
+assert.deepEqual(
+  normalizeUiPreferences({ contentWidth: 800, translucentMaterials: false, showOutline: false, defaultMode: "edit" }),
+  { ...DEFAULT_UI_PREFERENCES, contentWidth: 800, translucentMaterials: false, showOutline: false, defaultMode: "edit" }
+);
+
 const folders = [
   { id: "models", name: "妯″瀷鐮旂┒", parentId: null },
   { id: "tools", name: "宸ョ▼瀹炶返", parentId: null }

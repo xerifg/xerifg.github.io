@@ -155,3 +155,137 @@ export function TagBrowser({ model, onQuery, onSort, onSelectTag, onOpenNote, on
     )
   );
 }
+
+const settingCategories = [
+  ["general", "通用"],
+  ["appearance", "外观"],
+  ["reading", "阅读与编辑"],
+  ["sync", "数据与同步"],
+  ["github", "GitHub 发布"],
+  ["shortcuts", "快捷键"],
+  ["about", "关于"]
+];
+
+export function SettingsSidebar({ activeCategory, onSelectCategory }) {
+  return h("aside", { className: "sidebar settings-sidebar" },
+    h("header", { className: "settings-sidebar-header" },
+      h("strong", null, "设置"),
+      h("span", null, "知识库偏好")
+    ),
+    h("nav", { className: "settings-navigation", "aria-label": "设置分类" },
+      settingCategories.map(([id, label]) => h("button", {
+        key: id,
+        className: `settings-navigation-item ${activeCategory === id ? "is-active" : ""}`,
+        "aria-current": activeCategory === id ? "page" : undefined,
+        onClick: () => onSelectCategory(id)
+      }, h("span", null, label), icon("next", { size: 15 })))
+    )
+  );
+}
+
+function settingRow(label, description, control) {
+  return h("div", { className: "settings-row" },
+    h("div", { className: "settings-row-copy" },
+      h("strong", null, label),
+      description ? h("p", null, description) : null
+    ),
+    h("div", { className: "settings-row-control" }, control)
+  );
+}
+
+function settingsGroup(title, children) {
+  return h("section", { className: "settings-group" },
+    title ? h("h2", null, title) : null,
+    h("div", { className: "settings-group-rows" }, ...children)
+  );
+}
+
+function preferenceSelect(value, label, options, onChange) {
+  return h("select", { value, "aria-label": label, onChange: (event) => onChange(event.target.value) },
+    options.map(([optionValue, optionLabel]) => h("option", { key: optionValue, value: optionValue }, optionLabel))
+  );
+}
+
+function segmentedPreference(value, label, options, onChange) {
+  return h("div", { className: "settings-segmented", role: "group", "aria-label": label },
+    options.map(([optionValue, optionLabel]) => h("button", {
+      key: optionValue,
+      type: "button",
+      className: value === optionValue ? "is-active" : "",
+      "aria-pressed": value === optionValue,
+      onClick: () => onChange(optionValue)
+    }, optionLabel))
+  );
+}
+
+function settingSwitch(checked, label, onChange) {
+  return h("label", { className: "settings-switch" },
+    h("input", { type: "checkbox", checked, "aria-label": label, onChange: (event) => onChange(event.target.checked) }),
+    h("span", { "aria-hidden": "true" })
+  );
+}
+
+function generalSettings(preferences, onChangePreferences) {
+  return [settingsGroup("启动", [
+    settingRow("打开应用时", "默认回到知识库首页，也可以继续上次浏览位置。",
+      preferenceSelect(preferences.rememberLastLocation ? "last" : "home", "启动视图", [["home", "知识库首页"], ["last", "上次位置"]], (value) => onChangePreferences({ rememberLastLocation: value === "last" })))
+  ])];
+}
+
+function appearanceSettings(preferences, onChangePreferences) {
+  return [settingsGroup("界面", [
+    settingRow("主题", "自动模式会跟随系统外观。",
+      segmentedPreference(preferences.theme, "主题", [["auto", "自动"], ["light", "浅色"], ["dark", "深色"]], (theme) => onChangePreferences({ theme }))),
+    settingRow("侧栏密度", "调整目录和导航行的垂直间距。",
+      segmentedPreference(preferences.sidebarDensity, "侧栏密度", [["comfortable", "舒适"], ["compact", "紧凑"]], (sidebarDensity) => onChangePreferences({ sidebarDensity }))),
+    settingRow("半透明材质", "允许侧栏和浮层使用系统式模糊材质。",
+      settingSwitch(preferences.translucentMaterials, "半透明材质", (translucentMaterials) => onChangePreferences({ translucentMaterials })))
+  ])];
+}
+
+function readingSettings(preferences, onChangePreferences) {
+  return [settingsGroup("文档", [
+    settingRow("正文宽度", `${preferences.contentWidth}px`,
+      h("input", { type: "range", min: 640, max: 920, step: 20, value: preferences.contentWidth, "aria-label": "正文宽度", onChange: (event) => onChangePreferences({ contentWidth: Number(event.target.value) }) })),
+    settingRow("显示文档大纲", "在文档旁显示标题导航。",
+      settingSwitch(preferences.showOutline, "显示文档大纲", (showOutline) => onChangePreferences({ showOutline }))),
+    settingRow("默认模式", "选择或新建笔记时使用的模式。",
+      preferenceSelect(preferences.defaultMode, "默认模式", [["read", "阅读"], ["edit", "编辑"]], (defaultMode) => onChangePreferences({ defaultMode })))
+  ])];
+}
+
+function githubSettings(settings, onChangeGitHubSettings) {
+  const input = (name, label, type = "text") => h("input", {
+    type,
+    value: settings[name] || "",
+    "aria-label": label,
+    autoComplete: name === "token" ? "off" : undefined,
+    onChange: (event) => onChangeGitHubSettings({ [name]: event.target.value })
+  });
+  return [settingsGroup("仓库", [
+    settingRow("所有者", "GitHub 用户或组织。", input("owner", "GitHub 所有者")),
+    settingRow("仓库", "发布笔记和索引的目标仓库。", input("repo", "GitHub 仓库")),
+    settingRow("分支", "当前发布流程固定使用 main。", h("input", { value: settings.branch || "main", readOnly: true, "aria-label": "GitHub 分支" })),
+    settingRow("访问令牌", "令牌只在此密码输入框中编辑。", input("token", "GitHub Token", "password"))
+  ])];
+}
+
+export function SettingsPage({ category, preferences, github, onChangePreferences, onChangeGitHubSettings }) {
+  const meta = Object.fromEntries(settingCategories);
+  let groups;
+  if (category === "general") groups = generalSettings(preferences, onChangePreferences);
+  else if (category === "appearance") groups = appearanceSettings(preferences, onChangePreferences);
+  else if (category === "reading") groups = readingSettings(preferences, onChangePreferences);
+  else if (category === "github") groups = githubSettings(github, onChangeGitHubSettings);
+  else if (category === "sync") groups = [settingsGroup("本地数据", [settingRow("草稿与同步", "笔记草稿保存在此浏览器；发表继续使用现有 GitHub 同步流程。", h("span", { className: "settings-value" }, "浏览器本地"))])];
+  else if (category === "shortcuts") groups = [settingsGroup("键盘", [settingRow("编辑器快捷键", "编辑器保留系统和 Tiptap 的原生快捷键。", h("span", { className: "settings-value" }, "系统默认"))])];
+  else groups = [settingsGroup("个人知识库", [settingRow("Notebook Library", "本地优先、选择性发表到 GitHub 的个人知识库。", h("span", { className: "settings-value" }, "v1"))])];
+
+  return h("section", { className: "settings-page", "aria-labelledby": "settings-page-title" },
+    h("header", { className: "settings-page-header" },
+      h("h1", { id: "settings-page-title" }, meta[category] || meta.general),
+      h("p", null, category === "github" ? "管理现有 GitHub 发布目标和凭据。" : "更改会自动保存在此浏览器。")
+    ),
+    h("div", { className: "settings-page-groups" }, ...groups)
+  );
+}

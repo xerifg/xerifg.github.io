@@ -11,8 +11,28 @@ assert.match(app, /h\(PrimaryRail,/);
 assert.match(app, /h\(LibraryHome,/);
 assert.match(app, /h\(TagBrowser,/);
 assert.match(ui, /from "https:\/\/esm\.sh\/lucide-react@0\.468\.0/);
+assert.match(ui, /export function SettingsSidebar/);
+assert.match(ui, /export function SettingsPage/);
+for (const category of ["通用", "外观", "阅读与编辑", "数据与同步", "GitHub 发布", "快捷键", "关于"]) {
+  assert.match(ui, new RegExp(`"${category}"`));
+}
 assert.match(ui, /aria-label:\s*label/);
 assert.match(ui, /export function TagBrowser/);
+assert.match(app, /const uiPreferencesStorageKey = "personal-notebook-ui-preferences-v1"/);
+assert.match(app, /function loadUiPreferences\(\)/);
+assert.match(app, /localStorage\.setItem\(uiPreferencesStorageKey/);
+assert.match(app, /document\.documentElement\.dataset\.theme\s*=\s*state\.uiPreferences\.theme/);
+assert.match(app, /document\.documentElement\.dataset\.density\s*=\s*state\.uiPreferences\.sidebarDensity/);
+assert.match(app, /document\.documentElement\.dataset\.transparency\s*=\s*state\.uiPreferences\.translucentMaterials\s*\?\s*"translucent"\s*:\s*"solid"/);
+assert.match(app, /style\.setProperty\("--document-width",\s*`\$\{state\.uiPreferences\.contentWidth\}px`\)/);
+assert.match(app, /h\(SettingsSidebar,/);
+assert.match(app, /h\(SettingsPage,/);
+assert.match(app, /draft\.mode\s*=\s*draft\.uiPreferences\.defaultMode/);
+assert.match(app, /state\.uiPreferences\.showOutline\s*\?\s*h\(DocumentOutline/);
+assert.match(css, /\[data-theme="dark"\]/);
+assert.match(css, /\[data-density="compact"\]/);
+assert.match(css, /\[data-transparency="solid"\]/);
+assert.match(css, /max-width:\s*var\(--document-width\)/);
 assert.match(app, /icon\("folder",\s*\{\s*className:\s*"tree-folder-icon"\s*\}\)/);
 assert.match(app, /icon\("file",\s*\{\s*className:\s*"tree-note-icon"\s*\}\)/);
 assert.match(app, /"aria-current":\s*isActive\s*\?\s*"page"\s*:\s*undefined/);
@@ -37,3 +57,6 @@ const tagOpenSource = app.slice(app.indexOf("const openTagNote ="), app.indexOf(
 assert.match(tagOpenSource, /buildTagReturnContext\(draft\)/);
 assert.match(tagOpenSource, /selectNote\(noteId\)/);
 assert.match(app, /back-to-tag/);
+
+const openAreaSource = app.slice(app.indexOf("const openArea ="), app.indexOf("const updateNote ="));
+assert.match(openAreaSource, /draft\.mode\s*=\s*draft\.uiPreferences\.defaultMode/);
