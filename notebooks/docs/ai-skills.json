@@ -9,8 +9,8 @@
     "AI",
     "skills"
   ],
-  "createdAt": "2026-07-30T01:58:51.926Z",
-  "updatedAt": "2026-07-30T01:59:38.185Z",
+  "createdAt": "2026-07-31T02:13:17.438Z",
+  "updatedAt": "2026-07-31T02:13:31.073Z",
   "assets": [],
-  "html": "<ul><li><p><strong>苹果的设计理念</strong>：<code>https://github.com/emilkowalski/skills</code></p></li></ul><p></p><p></p>"
+  "html": "<h2><strong>苹果的设计理念</strong></h2><p><code>https://github.com/emilkowalski/skills</code></p><h2>Ponytail-极简代码主义</h2><p><code>https://github.com/DietrichGebert/ponytail</code></p><p>Ponytail是一个专为 AI Agent（如 Claude Code、Codex、Cursor、Copilot 等）设计的<strong>代码瘦身与规范插件</strong>。</p><p>它的核心理念是让 AI Agent 像<strong>经验极其丰富且极简主义的高级开发者</strong>一样思考——<strong>“最好的代码就是你从来没写过的代码”</strong>。它通过严格的决策阶梯限制 AI 过度设计（Over-engineering），旨在生成最精简、最高效、安全无死角且易于维护的代码。也就是说通过最少代码改动原则完成任务。</p>"
 }
