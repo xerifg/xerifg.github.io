@@ -21,7 +21,7 @@ import { Ellipsis, X } from "https://esm.sh/lucide-react@0.468.0?external=react"
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyTagOrder, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -921,13 +921,22 @@ function App() {
   const confirmLocalTag = () => {
     const mode = state.modalContext?.mode;
     const name = document.querySelector("[data-local-tag-name]")?.value.trim() || "";
-    const result = applyLocalTagMutation(state.notes, {
-      mode,
-      noteId: state.modalContext?.noteId,
-      selectedTag: state.modalContext?.selectedTag,
-      name,
-      timestamp: now()
-    });
+    const isNoteScopedRename = mode === "rename-note";
+    const result = isNoteScopedRename
+      ? applyNoteTagMutation(state.notes, {
+          mode: "rename",
+          noteId: state.modalContext?.noteId,
+          selectedTag: state.modalContext?.selectedTag,
+          name,
+          timestamp: now()
+        })
+      : applyLocalTagMutation(state.notes, {
+          mode,
+          noteId: state.modalContext?.noteId,
+          selectedTag: state.modalContext?.selectedTag,
+          name,
+          timestamp: now()
+        });
     if (!result.changed) {
       if (result.error === "duplicate") {
         patchState((draft) => {
@@ -944,14 +953,16 @@ function App() {
     }
     patchState((draft) => {
       draft.notes = result.notes;
-      draft.selectedTag = result.selectedTag;
-      draft.tagQuery = "";
-      draft.view = "tags";
+      if (!isNoteScopedRename) {
+        draft.selectedTag = result.selectedTag;
+        draft.tagQuery = "";
+        draft.view = "tags";
+      }
       draft.modal = null;
       draft.modalContext = null;
       draft.message = "标签改动已保存为本地草稿";
     });
-    setToast(mode === "rename" ? "标签已重命名并保存为本地草稿" : "标签已创建并保存为本地草稿");
+    setToast(mode === "rename" || mode === "rename-note" ? "标签已重命名并保存为本地草稿" : "标签已创建并保存为本地草稿");
   };
 
   const openPublishTagModal = () => {
@@ -1238,6 +1249,32 @@ function App() {
     if (action === "confirm-delete-drafts") confirmDeleteDrafts();
     if (action === "delete-note") deleteNote(targetFolderId || state.activeId);
     if (action === "delete-folder") deleteFolder(targetFolderId);
+    if (action === "rename-note-tag") {
+      if (!targetFolderId || !note || !requireEditPermission("edit")) return;
+      patchState((draft) => {
+        draft.modalContext = { mode: "rename-note", noteId: note.id, selectedTag: targetFolderId };
+        draft.openCreateMenu = null;
+        draft.modal = "manage-tag";
+      });
+    }
+    if (action === "delete-note-tag") {
+      if (!targetFolderId || !note || !requireEditPermission("edit")) return;
+      const result = applyNoteTagMutation(state.notes, {
+        mode: "delete",
+        noteId: note?.id,
+        selectedTag: targetFolderId,
+        timestamp: now()
+      });
+      if (!result.changed) {
+        setToast("没有找到这个标签");
+        return;
+      }
+      patchState((draft) => {
+        draft.notes = result.notes;
+        draft.message = "标签已从当前文档中删除";
+      });
+      setToast("标签已从当前文档删除");
+    }
     if (action === "rename-folder") {
       if (!requireEditPermission("edit")) return;
       patchState((draft) => {
@@ -1322,7 +1359,7 @@ function App() {
               state,
               editable: state.mode === "edit",
               updateNote,
-              patchState
+              handleAction
             })
           : h("div", { className: "empty" },
               h("div", null, h("h2", null, "选择一篇笔记"), h("p", null, "选择左侧文档开始阅读")))
@@ -1486,7 +1523,31 @@ function customScrollbarGeometry(scrollOffset, clientSize, scrollSize) {
   const offset = Math.max(0, Math.min(maxOffset, (scrollOffset / Math.max(1, scrollSize - clientSize)) * maxOffset));
   return { visible, size, offset };
 }
-function DocumentPaper({ note, state, editable, updateNote }) {
+function renderNoteTagPill(tag, note, handleAction) {
+  return h("span", { className: "pill note-tag-pill", key: tag },
+    h("span", { className: "note-tag-label" }, tag),
+    h("span", { className: "note-tag-actions", "aria-hidden": "false" },
+      h("button", {
+        type: "button",
+        className: "note-tag-action note-tag-rename",
+        title: `重命名标签 ${tag}`,
+        "aria-label": `重命名标签 ${tag}`,
+        onClick: () => handleAction("rename-note-tag", tag),
+        onPointerDown: (event) => event.stopPropagation()
+      }, icon("edit", { size: 12, strokeWidth: 2 })),
+      h("button", {
+        type: "button",
+        className: "note-tag-action note-tag-delete",
+        title: `删除标签 ${tag}`,
+        "aria-label": `删除标签 ${tag}`,
+        onClick: () => handleAction("delete-note-tag", tag),
+        onPointerDown: (event) => event.stopPropagation()
+      }, icon("trash", { size: 12, strokeWidth: 2 }))
+    )
+  );
+}
+
+function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
   const readerRef = useRef(null);
@@ -1513,7 +1574,7 @@ function DocumentPaper({ note, state, editable, updateNote }) {
         : h("h1", { className: "doc-title" }, note.title),
       h("div", { className: "doc-meta" },
         h("span", { className: "pill" }, folderPath(state, note.folderId) || "未归档"),
-        ensureDefaultTags(note.tags).map((tag) => h("span", { className: "pill", key: tag }, tag)),
+        ensureDefaultTags(note.tags).map((tag) => renderNoteTagPill(tag, note, handleAction)),
         h("span", { className: `pill ${note.dirty ? "dirty" : ""}` }, note.dirty ? "本地草稿" : "已发表"),
         h("span", { className: "pill" }, formatDate(note.date))
       ),
@@ -3888,9 +3949,10 @@ function renderModal(state, handleAction) {
       "保存", "confirm-rename-note", handleAction);
   }
   if (state.modal === "manage-tag") {
-    const isRename = state.modalContext?.mode === "rename";
+    const isRename = state.modalContext?.mode === "rename" || state.modalContext?.mode === "rename-note";
+    const isNoteScopedRename = state.modalContext?.mode === "rename-note";
     const selectedTag = state.modalContext?.selectedTag || "";
-    return modalShell(isRename ? "重命名标签" : "新建标签", isRename ? "名称会在所有使用此标签的本地笔记中更新，不会触发发表。" : "标签会附加到当前笔记并保存为本地草稿，不会触发发表。",
+    return modalShell(isRename ? "重命名标签" : "新建标签", isRename ? (isNoteScopedRename ? "只修改当前文档里的这个标签，不影响其他笔记。" : "名称会在所有使用此标签的本地笔记中更新，不会触发发表。") : "标签会附加到当前笔记并保存为本地草稿，不会触发发表。",
       h("div", { className: "field" }, h("label", null, "标签名称"), h("input", { "data-local-tag-name": "", "data-modal-initial-focus": "", defaultValue: selectedTag, placeholder: "例如 阅读" })),
       isRename ? "保存" : "创建", "confirm-local-tag", handleAction);
   }

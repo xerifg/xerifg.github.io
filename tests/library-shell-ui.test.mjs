@@ -179,7 +179,7 @@ assert.match(
 );
 assert.match(
   index,
-  /\.\/static\/app\.css\?v=20260801-home-layout-v2/,
+  /\.\/static\/app\.css\?v=20260801-note-tag-actions-v1/,
   "the browser should request the corrected home and tag layout stylesheet"
 );
 

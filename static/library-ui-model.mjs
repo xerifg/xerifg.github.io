@@ -263,6 +263,40 @@ export function applyLocalTagMutation(notes = [], options = {}) {
     : { notes, changed: false, selectedTag: "", error: "missing-tag" };
 }
 
+export function applyNoteTagMutation(notes = [], options = {}) {
+  const noteIndex = notes.findIndex((note) => note.id === options.noteId);
+  if (noteIndex < 0) return { notes, changed: false, selectedTag: "", error: "no-note" };
+  const selectedKey = normalizedTag(options.selectedTag);
+  if (!selectedKey) return { notes, changed: false, selectedTag: "", error: "missing-tag" };
+
+  const currentTags = noteTags(notes[noteIndex]);
+  if (!currentTags.some((tag) => normalizedTag(tag) === selectedKey)) {
+    return { notes, changed: false, selectedTag: "", error: "missing-tag" };
+  }
+
+  const timestamp = typeof options.timestamp === "string" ? options.timestamp : "";
+  if (options.mode === "delete") {
+    const nextTags = currentTags.filter((tag) => normalizedTag(tag) !== selectedKey);
+    const nextNotes = notes.map((note, index) => index === noteIndex
+      ? { ...note, tags: nextTags, date: timestamp || note.date, dirty: true }
+      : note);
+    return { notes: nextNotes, changed: true, selectedTag: "", error: "" };
+  }
+
+  const name = typeof options.name === "string" ? options.name.trim() : "";
+  const nextKey = normalizedTag(name);
+  if (!nextKey) return { notes, changed: false, selectedTag: "", error: "empty-name" };
+  const nextTags = currentTags.filter((tag) => {
+    const key = normalizedTag(tag);
+    return key !== selectedKey && key !== nextKey;
+  });
+  nextTags.push(name);
+  const nextNotes = notes.map((note, index) => index === noteIndex
+    ? { ...note, tags: nextTags, date: timestamp || note.date, dirty: true }
+    : note);
+  return { notes: nextNotes, changed: true, selectedTag: name, error: "" };
+}
+
 const tagCategoryMatchers = Object.freeze({
   status: /^(状态|待办|进行中|完成|草稿|已发表|todo|doing|done|draft|published)$/i,
   tool: /^(工具|tool|github|git|docker|chrome|figma|vscode|npm|pnpm|yarn)$/i,

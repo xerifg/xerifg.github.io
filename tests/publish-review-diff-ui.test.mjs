@@ -97,13 +97,13 @@ assert.match(
 );
 assert.match(
   indexSource,
-  /app\.js\?v=20260731-library-v1/,
+  /app\.js\?v=20260801-note-tag-actions-v1/,
   "the page should request the publish diff script instead of a cached script"
 );
 
 assert.match(
   indexSource,
-  /app\.css\?v=20260801-home-layout-v2/,
+  /app\.css\?v=20260801-note-tag-actions-v1/,
   "the page should request the current stylesheet instead of cached styles"
 );
 assert.match(
