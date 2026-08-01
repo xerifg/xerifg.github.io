@@ -375,12 +375,39 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   justify-content: flex-end;
 }
 
-.document-mode-toggle,
-.document-overflow-trigger,
-.document-publish-button {
+.document-action-group {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(80, 88, 102, .1);
+  border-radius: 10px;
+  background: rgba(98, 107, 122, .07);
+  box-shadow: none;
+}
+
+.document-action-group .document-mode-toggle,
+.document-action-group .document-overflow-trigger {
   min-height: 32px;
   border-radius: 8px;
-  box-shadow: none;
+  background: transparent;
+}
+
+.document-action-group .document-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+}
+
+.document-action-group .document-mode-toggle.active {
+  background: rgba(0, 122, 255, .1);
+  color: var(--blue-dark);
+}
+
+.document-action-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(80, 88, 102, .14);
 }
 
 .document-overflow {
@@ -392,6 +419,15 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   padding: 0;
   display: grid;
   place-items: center;
+}
+
+.document-publish-button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  box-shadow: none;
 }
 
 .document-overflow-menu {
