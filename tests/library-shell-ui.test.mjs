@@ -80,7 +80,7 @@ assert.match(documentTopbarSource, /localPersistenceStatusText\(localPersistence
 assert.match(documentTopbarSource, /handleAction\("toggle-mode"\)/);
 assert.match(documentTopbarSource, /handleAction\("publish"\)/);
 assert.match(documentTopbarSource, /className:\s*"document-action-group"/);
-assert.match(documentTopbarSource, /icon\("edit",\s*\{\s*size:\s*16\s*\}\)/);
+assert.match(documentTopbarSource, /icon\(state\.mode === "read" \? "read" : "edit",\s*\{\s*size:\s*16\s*\}\)/);
 assert.match(documentTopbarSource, /icon\("upload",\s*\{\s*size:\s*16\s*\}\)/);
 assert.match(css, /\.document-action-group\s*\{[^}]*min-height:\s*34px/s);
 assert.match(css, /\.document-publish-button\s*\{[^}]*min-height:\s*34px/s);

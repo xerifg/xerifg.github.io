@@ -2726,7 +2726,7 @@ function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, 
           className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`,
           onClick: () => handleAction("toggle-mode"),
           "aria-pressed": state.mode === "edit"
-        }, icon("edit", { size: 16 }), state.mode === "edit" ? "阅读" : "编辑"),
+        }, icon(state.mode === "read" ? "read" : "edit", { size: 16 }), state.mode === "read" ? "阅读" : "编辑"),
         h("span", { className: "document-action-divider", "aria-hidden": "true" }),
         h(DocumentOverflowMenu, { state, note, handleAction })
       ) : null,

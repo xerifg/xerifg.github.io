@@ -16,6 +16,7 @@ const icons = {
   add: Plus,
   trash: Trash2,
   library: BookOpenText,
+  read: BookOpenText,
   next: ChevronRight,
   back: ChevronLeft,
   expand: ChevronRight,
