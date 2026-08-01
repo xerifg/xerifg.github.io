@@ -1315,16 +1315,20 @@ function App() {
                 setIsContextSidebarOpen(false);
               }
             }))
-        : renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen),
+        : state.view === "library"
+          ? renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen)
+          : null,
       h("main", { className: "content" },
-        h("button", {
-          type: "button",
-          className: "context-sidebar-toggle",
-          "aria-controls": "context-sidebar",
-          "aria-expanded": isContextSidebarOpen,
-          "aria-label": isContextSidebarOpen ? "关闭目录" : "打开目录",
-          onClick: () => setIsContextSidebarOpen(toggleContextDrawer)
-        }, icon("library", { size: 17 }), h("span", null, "目录")),
+        state.view === "library"
+          ? h("button", {
+              type: "button",
+              className: "context-sidebar-toggle",
+              "aria-controls": "context-sidebar",
+              "aria-expanded": isContextSidebarOpen,
+              "aria-label": isContextSidebarOpen ? "关闭目录" : "打开目录",
+              onClick: () => setIsContextSidebarOpen(toggleContextDrawer)
+            }, icon("library", { size: 17 }), h("span", null, "目录"))
+          : null,
         state.view === "home"
           ? h(LibraryHome, {
               summary,

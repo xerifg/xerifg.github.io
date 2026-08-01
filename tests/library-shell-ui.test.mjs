@@ -136,6 +136,18 @@ assert.match(app, /h\("span",\s*null,\s*"\u76ee\u5f55"\)/);
 assert.match(contextSidebarSource, /id:\s*"context-sidebar"/);
 assert.match(contextSidebarSource, /isContextSidebarOpen\s*\?\s*"is-open"\s*:\s*""/);
 
+const appShellSource = app.slice(app.indexOf('return h(React.Fragment'), app.indexOf('function PaperScroll'));
+assert.match(
+  appShellSource,
+  /state\.view\s*===\s*"library"\s*\?\s*renderContextSidebar\(/s,
+  "the notebook directory should render only in the Notes view"
+);
+assert.match(
+  appShellSource,
+  /state\.view\s*===\s*"library"\s*\?\s*h\("button",\s*\{[^}]*className:\s*"context-sidebar-toggle"/s,
+  "the directory drawer toggle should render only in the Notes view"
+);
+
 assert.match(css, /@media\s*\(max-width:\s*1100px\)[\s\S]*?\.document-outline[\s\S]*?display:\s*none/);
 assert.match(css, /@media\s*\(max-width:\s*1100px\)[\s\S]*?\.tag-detail[\s\S]*?display:\s*none/);
 assert.match(css, /@media\s*\(max-width:\s*900px\)[\s\S]*?\.app-shell[\s\S]*?grid-template-columns:\s*56px minmax\(0,\s*1fr\)/);
