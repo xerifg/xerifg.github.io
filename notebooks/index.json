@@ -45,7 +45,6 @@
       "folderId": "folder-1783672397764",
       "path": "Notebooks/自动驾驶",
       "tags": [
-        "Notes",
         "模型",
         "VoxelNet"
       ],
@@ -58,7 +57,6 @@
       "folderId": "folder-1783672397764",
       "path": "Notebooks/自动驾驶",
       "tags": [
-        "Notes",
         "模型",
         "ViT"
       ],
@@ -71,7 +69,6 @@
       "folderId": "folder-1783671607062",
       "path": "Notebooks/机器人",
       "tags": [
-        "Notes",
         "机器人",
         "运动模型",
         "matlab"
@@ -85,7 +82,6 @@
       "folderId": "folder-1783672397764",
       "path": "Notebooks/自动驾驶",
       "tags": [
-        "Notes",
         "模型",
         "BERT"
       ],
@@ -98,7 +94,6 @@
       "folderId": "folder-1783672397764",
       "path": "Notebooks/自动驾驶",
       "tags": [
-        "Notes",
         "自动驾驶",
         "bev模型"
       ],
@@ -111,7 +106,6 @@
       "folderId": "folder-1783672397764",
       "path": "Notebooks/自动驾驶",
       "tags": [
-        "Notes",
         "自动驾驶",
         "融合后处理"
       ],
@@ -124,7 +118,6 @@
       "folderId": "folder-1783482449804",
       "path": "Notebooks/工具",
       "tags": [
-        "Notes",
         "工具",
         "gsutil"
       ],
@@ -137,7 +130,6 @@
       "folderId": "folder-1783668421369",
       "path": "Notebooks/自动标注",
       "tags": [
-        "Notes",
         "自动标注",
         "DetZero"
       ],
@@ -150,7 +142,6 @@
       "folderId": "folder-1783482449804",
       "path": "Notebooks/工具",
       "tags": [
-        "Notes",
         "工具",
         "docker"
       ],
@@ -163,7 +154,6 @@
       "folderId": "folder-1783482449804",
       "path": "Notebooks/工具",
       "tags": [
-        "Notes",
         "AI",
         "工具",
         "gemini",
@@ -178,7 +168,6 @@
       "folderId": "folder-1783672397764",
       "path": "Notebooks/自动驾驶",
       "tags": [
-        "Notes",
         "模型",
         "PointPillars"
       ],
@@ -191,7 +180,6 @@
       "folderId": "folder-1783672397764",
       "path": "Notebooks/自动驾驶",
       "tags": [
-        "Notes",
         "模型",
         "自动驾驶",
         "SECOND"
@@ -205,7 +193,6 @@
       "folderId": "folder-1785325659605",
       "path": "Notebooks/AI",
       "tags": [
-        "Notes",
         "AI",
         "工具"
       ],
@@ -218,7 +205,6 @@
       "folderId": "folder-1785325659605",
       "path": "Notebooks/AI",
       "tags": [
-        "Notes",
         "AI",
         "skills"
       ],
@@ -231,7 +217,6 @@
       "folderId": "folder-1785325659605",
       "path": "Notebooks/AI",
       "tags": [
-        "Notes",
         "AI",
         "提示词"
       ],

@@ -126,6 +126,21 @@ assert.match(
 
 assert.match(primaryRailSource, /h\("nav",\s*\{[^}]*"aria-label":\s*"\u4e3b\u5bfc\u822a"/s);
 assert.match(settingsSidebarSource, /h\("nav",\s*\{[^}]*"aria-label":\s*"\u8bbe\u7f6e\u5206\u7c7b"/s);
+assert.match(ui, /\["tags",\s*"标签"\]/, "settings should expose a tag ordering section");
+assert.match(ui, /function tagOrderSettings\(/, "settings should render tag ordering controls");
+assert.match(ui, /draggable:\s*true/, "tag ordering rows should support drag and drop");
+assert.match(ui, /onReorderTags\(nextTags\)/, "dropping a tag row should save the reordered tag list");
+assert.match(ui, /GripVertical/, "tag rows should use an icon drag handle instead of helper text");
+assert.doesNotMatch(ui, /h\("span",\s*\{ className: "settings-tag-drag"[^}]*\},\s*"拖拽"\)/, "tag rows should not render drag helper text");
+assert.doesNotMatch(ui, /h\("button",\s*\{[^}]*\},\s*"上移"\)/, "tag ordering rows should not render move-up buttons");
+assert.doesNotMatch(ui, /h\("button",\s*\{[^}]*\},\s*"下移"\)/, "tag ordering rows should not render move-down buttons");
+assert.doesNotMatch(ui, /className:\s*"settings-tag-row-actions"/, "tag rows should not render inline action buttons");
+assert.match(ui, /settings-tag-trash-dropzone/, "dragging a tag should reveal a bottom trash drop zone");
+assert.match(ui, /pendingDeleteTag/, "dropping on the trash zone should ask for delete confirmation first");
+assert.match(ui, /onDeleteTag\(pendingDeleteTag\)/, "confirmed tag deletion should call the global tag deletion handler");
+assert.match(app, /tags:\s*tagCatalog\(state\)/, "settings should receive the ordered tag catalog");
+assert.match(app, /onReorderTags:\s*\(tagOrder\)\s*=>\s*updateUiPreferences\(\{\s*tagOrder\s*\}\)/, "settings drag changes should persist to ui preferences");
+assert.match(app, /onDeleteTag:\s*deleteTag/, "settings should call the global tag deletion handler");
 assert.match(contextSidebarSource, /h\("nav",\s*\{[^}]*className:\s*`sidebar context-sidebar[^`]*`[^}]*"aria-label":\s*"\u77e5\u8bc6\u5e93\u76ee\u5f55"/s);
 assert.match(primaryRailSource, /"aria-current":\s*view\s*===\s*target\s*\?\s*"page"\s*:\s*undefined/);
 assert.match(contextSidebarSource, /role:\s*"tree"[^}]*"aria-label":\s*"\u6587\u6863\u76ee\u5f55"/s);

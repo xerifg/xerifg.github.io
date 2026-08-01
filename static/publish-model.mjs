@@ -150,7 +150,7 @@ export function buildMissingRemoteNote(summary, fallbackDate) {
     id: summary.id,
     title: summary.title || "Untitled document",
     folderId: summary.folderId || null,
-    tags: tags.length ? tags : ["Notes"],
+    tags,
     date: summary.updatedAt || fallbackDate,
     file: summary.file,
     dirty: false,

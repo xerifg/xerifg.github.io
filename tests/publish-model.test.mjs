@@ -14,7 +14,7 @@ assert.deepEqual(missingRemoteNote, {
   id: "unavailable",
   title: "Remote unavailable",
   folderId: "work",
-  tags: ["Notes"],
+  tags: [],
   date: "2026-07-27T10:00:00.000Z",
   file: "notebooks/docs/unavailable.json",
   dirty: false,
@@ -26,7 +26,7 @@ assert.deepEqual(missingRemoteNote, {
 const missingRemoteDetails = buildPublishChangeDetails(
   {
     folders: [],
-    notes: [{ id: "unavailable", title: "Remote unavailable", folderId: null, tags: ["Notes"], html: "<p>local body</p>", assets: [{ id: "local-asset", name: "local.png", remotePath: "notebooks/assets/unavailable/local.png" }] }],
+    notes: [{ id: "unavailable", title: "Remote unavailable", folderId: null, tags: ["Published"], html: "<p>local body</p>", assets: [{ id: "local-asset", name: "local.png", remotePath: "notebooks/assets/unavailable/local.png" }] }],
     deletedTags: []
   },
   { folders: [], notes: [missingRemoteNote], deletedTags: [] },
@@ -46,9 +46,9 @@ assert.notEqual(
 const remote = {
   folders: [{ id: "work", name: "Work", parentId: null }],
   notes: [
-    { id: "keep", title: "Remote keep", folderId: "work", tags: ["Notes"], html: "<p>keep</p>", assets: [], file: "notebooks/docs/keep.json" },
-    { id: "update", title: "Remote update", folderId: "work", tags: ["Notes"], html: "<p>old</p>", assets: [], file: "notebooks/docs/update.json" },
-    { id: "delete", title: "Remote delete", folderId: "work", tags: ["Notes"], html: "<p>delete</p>", assets: [], file: "notebooks/docs/delete.json" }
+    { id: "keep", title: "Remote keep", folderId: "work", tags: ["Published"], html: "<p>keep</p>", assets: [], file: "notebooks/docs/keep.json" },
+    { id: "update", title: "Remote update", folderId: "work", tags: ["Published"], html: "<p>old</p>", assets: [], file: "notebooks/docs/update.json" },
+    { id: "delete", title: "Remote delete", folderId: "work", tags: ["Published"], html: "<p>delete</p>", assets: [], file: "notebooks/docs/delete.json" }
   ],
   deletedTags: []
 };
@@ -92,7 +92,7 @@ const samePublishedAssetRemote = {
     id: "asset-note",
     title: "Asset note",
     folderId: "work",
-    tags: ["Notes"],
+    tags: ["Published"],
     html: '<p><img src="notebooks/assets/asset-note/image.png"></p>',
     assets: [{
       id: "image-1",
@@ -194,7 +194,7 @@ assert.equal(reconciledNotes.find((note) => note.id === "update").dirty, false, 
 assert.equal(reconciledNotes.find((note) => note.id === "create").dirty, true, "an unselected draft must remain dirty after another note publishes");
 
 const tagRemote = { ...remote, notes: [{ ...remote.notes[0], tags: ["Legacy"] }] };
-const tagLocal = { ...tagRemote, notes: [{ ...tagRemote.notes[0], tags: ["Notes"], dirty: true }], deletedTags: ["Legacy"] };
+const tagLocal = { ...tagRemote, notes: [{ ...tagRemote.notes[0], tags: ["Published"], dirty: true }], deletedTags: ["Legacy"] };
 const tagChangeSet = buildPublishChangeSet(tagLocal, tagRemote);
 const tagOnlySelection = new Set(["tags"]);
 assert.equal(validatePublishSelection(tagChangeSet.changes, tagOnlySelection).valid, false, "a tag deletion must require its affected documents to stay selected");
@@ -202,7 +202,7 @@ const selectedTagDelete = mergeSelectedPublishState(tagLocal, tagRemote, tagOnly
 assert.equal(selectedTagDelete.selectedNotes.length, 0, "a tag-only selection must not write a document the user deselected");
 assert.deepEqual(selectedTagDelete.state.notes[0].tags, ["Legacy"], "a rejected tag-only selection must preserve remote tags");
 
-const freshRemote = { ...remote, notes: [...remote.notes, { id: "fresh", title: "Remote fresh", folderId: "work", tags: ["Notes"], html: "<p>fresh</p>", assets: [], file: "notebooks/docs/fresh.json" }] };
+const freshRemote = { ...remote, notes: [...remote.notes, { id: "fresh", title: "Remote fresh", folderId: "work", tags: ["Published"], html: "<p>fresh</p>", assets: [], file: "notebooks/docs/fresh.json" }] };
 const mergedWithFreshRemote = mergeSelectedPublishState(local, freshRemote, new Set(["note:update"]));
 assert.equal(mergedWithFreshRemote.state.notes.some((note) => note.id === "fresh"), true, "a selected update must preserve a document added remotely after review opened");
 

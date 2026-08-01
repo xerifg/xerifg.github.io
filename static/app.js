@@ -21,7 +21,7 @@ import { Ellipsis, X } from "https://esm.sh/lucide-react@0.468.0?external=react"
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyTagOrder, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -523,6 +523,26 @@ function App() {
       };
     });
   }, [patchState]);
+  const deleteTag = (tag) => {
+    const result = applyLocalTagMutation(state.notes, {
+      mode: "delete",
+      selectedTag: tag,
+      timestamp: now()
+    });
+    if (!result.changed) {
+      setToast("没有找到这个标签");
+      return;
+    }
+    const deletedKey = normalizeTagName(tag).toLowerCase();
+    patchState((draft) => {
+      draft.notes = result.notes;
+      draft.selectedTag = normalizeTagName(draft.selectedTag).toLowerCase() === deletedKey ? "" : draft.selectedTag;
+      draft.uiPreferences = normalizeUiPreferences({ ...draft.uiPreferences, tagOrder: draft.uiPreferences.tagOrder.filter((item) => normalizeTagName(item).toLowerCase() !== deletedKey) });
+      draft.deletedTags = uniqueTags([...(draft.deletedTags || []), tag]);
+      draft.message = "标签已从所有文档中删除";
+    });
+    setToast("标签已删除并保存为本地草稿");
+  };
   useEffect(() => {
     if (!state.openCreateMenu) return undefined;
     const closeCreateMenu = (event) => {
@@ -705,7 +725,7 @@ function App() {
         id,
         title,
         folderId,
-        tags: ["Notes"],
+        tags: [],
         date: now(),
         file: `notebooks/docs/${slugify(title)}.json`,
         dirty: true,
@@ -945,33 +965,27 @@ function App() {
 
   const confirmPublishTags = () => {
     if (!note) return;
-    const deletedTags = new Set();
     const selected = [];
     document.querySelectorAll("[data-tag-row]").forEach((row) => {
       const original = row.getAttribute("data-tag-row") || "";
-      const isDeleted = original !== "Notes" && Boolean(row.querySelector("[data-tag-delete]")?.checked);
-      if (isDeleted) {
-        deletedTags.add(original);
-        return;
-      }
       if (row.querySelector("[data-tag-selected]")?.checked && original) selected.push(original);
     });
-    const nextTags = ensureDefaultTags(uniqueTags(selected).filter((tag) => !deletedTags.has(tag)));
+    const newTagInput = document.querySelector("[data-publish-tag-new]")?.value || "";
+    const newTag = normalizeTagName(newTagInput);
+    if (newTag) selected.push(newTag);
+    const nextTags = ensureDefaultTags(uniqueTags(selected));
     const noteId = state.modalContext?.noteId || note.id;
     const updatedNotes = state.notes.map((item) => {
-      const remainingTags = ensureDefaultTags(item.tags).filter((tag) => !deletedTags.has(tag));
-      const tags = item.id === noteId ? nextTags : ensureDefaultTags(remainingTags);
+      const tags = item.id === noteId ? nextTags : ensureDefaultTags(item.tags);
       const changed = JSON.stringify(tags) !== JSON.stringify(ensureDefaultTags(item.tags));
       return changed ? { ...item, tags, date: now(), dirty: true } : item;
     });
     const localState = {
       ...state,
-      notes: updatedNotes,
-      deletedTags: uniqueTags([...(state.deletedTags || []), ...deletedTags])
+      notes: updatedNotes
     };
     patchState((draft) => {
       draft.notes = localState.notes;
-      draft.deletedTags = localState.deletedTags;
       draft.modal = null;
       draft.modalContext = null;
       draft.openCreateMenu = null;
@@ -1286,7 +1300,10 @@ function App() {
         category: state.settingsCategory,
         preferences: state.uiPreferences,
         github: state.settings,
+        tags: tagCatalog(state),
         onChangePreferences: updateUiPreferences,
+        onReorderTags: (tagOrder) => updateUiPreferences({ tagOrder }),
+        onDeleteTag: deleteTag,
         onChangeGitHubSettings: updateGitHubSettings
       });
     }
@@ -3882,21 +3899,21 @@ function renderModal(state, handleAction) {
     const note = state.notes.find((item) => item.id === state.modalContext?.noteId) || currentNote(state);
     const selectedTags = new Set(ensureDefaultTags(note?.tags));
     const tags = tagCatalog(state);
-    return modalShell("选择发表标签", "选择当前笔记要公开的标签。删除标签会继续进入发表审阅并检查依赖。",
+    return modalShell("选择发表标签", "选择当前笔记要公开的标签，也可以在发表前新增一个标签。",
       h("div", { className: "tag-publish-panel" },
+        h("div", { className: "field publish-tag-create" },
+          h("label", null, "新增标签"),
+          h("input", { "data-publish-tag-new": "", placeholder: "例如 阅读" })
+        ),
         h("details", { className: "tag-dropdown" },
-          h("summary", null, `管理标签（已选 ${selectedTags.size} 个）`),
+          h("summary", null, `选择标签（已选 ${selectedTags.size} 个）`),
           h("div", { className: "tag-choice-list" },
             tags.map((tag) => h("div", { className: "tag-choice", key: tag, "data-tag-row": tag },
               h("label", { className: "tag-check" },
                 h("input", { type: "checkbox", "data-tag-selected": "", defaultChecked: selectedTags.has(tag) }),
                 h("span", null, "选择")
               ),
-              h("span", { className: "tag-choice-name" }, tag),
-              h("label", { className: "tag-delete" },
-                h("input", { type: "checkbox", "data-tag-delete": "", disabled: tag === "Notes" }),
-                h("span", null, tag === "Notes" ? "默认" : "删除")
-              )
+              h("span", { className: "tag-choice-name" }, tag)
             ))
           )
         )
@@ -4404,28 +4421,32 @@ function migrateLegacy(legacy) {
 function isNotebookRoute() {
   return new URLSearchParams(window.location.search).get("v") === "notebook";
 }
-const defaultTagOptions = ["Notes", "AI", "工具", "模型", "自动驾驶", "机器人"];
+const defaultTagOptions = ["AI", "工具", "模型", "自动驾驶", "机器人"];
 
 function tagCatalog(state) {
   const deleted = new Set(uniqueTags(state.deletedTags || []));
-  return uniqueTags([
+  const catalog = uniqueTags([
     ...defaultTagOptions,
     ...state.notes.flatMap((note) => ensureDefaultTags(note.tags))
   ]).filter((tag) => !deleted.has(tag));
+  return applyTagOrder(catalog, state.uiPreferences?.tagOrder);
 }
 
 function normalizeTagName(tag) {
   const text = String(tag || "").trim();
-  if (/^notes?$/i.test(text)) return "Notes";
+  if (isRetiredTagName(text)) return "";
   return text;
+}
+
+function isRetiredTagName(tag) {
+  return /^notes?$/.test(String(tag || "").trim().toLowerCase());
 }
 
 function uniqueTags(tags) {
   return Array.from(new Set((tags || []).map(normalizeTagName).filter(Boolean)));
 }
 function ensureDefaultTags(tags) {
-  const next = uniqueTags(Array.isArray(tags) ? tags : []);
-  return next.length ? next : ["Notes"];
+  return uniqueTags(Array.isArray(tags) ? tags : []);
 }
 function currentNote(state) {
   if (!state.activeId) return null;

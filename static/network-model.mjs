@@ -53,6 +53,6 @@ export function layoutNetworkNodes(tags, width, height) {
 }
 
 export function noteSummariesForTag(notes, tag, limit = 3) {
-  if (!tag || tag === "Notes") return notes.slice(0, limit);
+  if (!tag) return notes.slice(0, limit);
   return notes.filter((note) => (note.tags || []).includes(tag)).slice(0, limit);
 }

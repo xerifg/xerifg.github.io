@@ -1,7 +1,7 @@
 import React from "https://esm.sh/react@18.3.1";
 import {
   BookOpenText, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, FileText, Folder, Home, NotebookTabs, PenLine, Plus,
-  Search, Settings, Tag, Trash2, Upload
+  GripVertical, Search, Settings, Tag, Trash2, Upload
 } from "https://esm.sh/lucide-react@0.468.0?external=react";
 
 const h = React.createElement;
@@ -173,6 +173,7 @@ const settingCategories = [
   ["general", "通用"],
   ["appearance", "外观"],
   ["reading", "阅读与编辑"],
+  ["tags", "标签"],
   ["sync", "数据与同步"],
   ["github", "GitHub 发布"],
   ["shortcuts", "快捷键"],
@@ -267,6 +268,96 @@ function readingSettings(preferences, onChangePreferences) {
   ])];
 }
 
+function moveTag(tags, fromIndex, toIndex) {
+  if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= tags.length || toIndex >= tags.length) return tags;
+  const nextTags = [...tags];
+  const [tag] = nextTags.splice(fromIndex, 1);
+  nextTags.splice(toIndex, 0, tag);
+  return nextTags;
+}
+
+function tagOrderSettings(tags = [], onReorderTags = () => {}, onDeleteTag = () => {}) {
+  return [settingsGroup("标签顺序", [
+    h(TagOrderList, { tags, onReorderTags, onDeleteTag })
+  ])];
+}
+
+function TagOrderList({ tags = [], onReorderTags = () => {}, onDeleteTag = () => {} }) {
+  const [draggingTag, setDraggingTag] = React.useState("");
+  const [pendingDeleteTag, setPendingDeleteTag] = React.useState("");
+  const reorder = (fromIndex, toIndex) => {
+    const nextTags = moveTag(tags, fromIndex, toIndex);
+    if (nextTags !== tags) onReorderTags(nextTags);
+  };
+  const confirmDelete = () => {
+    if (!pendingDeleteTag) return;
+    onDeleteTag(pendingDeleteTag);
+    setPendingDeleteTag("");
+  };
+  const cancelDelete = () => setPendingDeleteTag("");
+
+  return h(React.Fragment, null,
+    h("div", { className: "settings-tag-order", role: "list", "aria-label": "标签顺序" },
+      tags.length
+        ? tags.map((tag, index) => h("div", {
+            key: tag,
+            className: `settings-tag-row ${draggingTag === tag ? "is-dragging" : ""}`,
+            role: "listitem",
+            draggable: true,
+            onDragStart: (event) => {
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", String(index));
+              setDraggingTag(tag);
+            },
+            onDragEnd: () => setDraggingTag(""),
+            onDragOver: (event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+            },
+            onDrop: (event) => {
+              event.preventDefault();
+              const fromIndex = Number(event.dataTransfer.getData("text/plain"));
+              if (Number.isInteger(fromIndex)) reorder(fromIndex, index);
+              setDraggingTag("");
+            }
+          },
+          h("span", { className: "settings-tag-drag", title: "拖拽排序", "aria-label": "拖拽排序" },
+            h(GripVertical, { size: 18, strokeWidth: 1.9, "aria-hidden": "true" })
+          ),
+          h("strong", null, tag)
+        ))
+        : h("p", { className: "settings-empty" }, "暂无可排序标签。")
+    ),
+    draggingTag ? h("div", {
+      className: "settings-tag-trash-dropzone",
+      role: "button",
+      tabIndex: -1,
+      "aria-label": "拖到这里删除标签",
+      onDragOver: (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      },
+      onDrop: (event) => {
+        event.preventDefault();
+        const fromIndex = Number(event.dataTransfer.getData("text/plain"));
+        const tag = draggingTag || (Number.isInteger(fromIndex) ? tags[fromIndex] : "");
+        setDraggingTag("");
+        if (tag) setPendingDeleteTag(tag);
+      }
+    }, h(Trash2, { size: 22, strokeWidth: 1.9, "aria-hidden": "true" }), h("span", null, "拖到这里删除标签")) : null,
+    pendingDeleteTag ? h("div", { className: "tag-delete-confirm-backdrop", role: "presentation" },
+      h("div", { className: "tag-delete-confirm", role: "dialog", "aria-modal": "true", "aria-labelledby": "tag-delete-confirm-title" },
+        h("h3", { id: "tag-delete-confirm-title" }, "删除标签？"),
+        h("p", null, `确定删除「${pendingDeleteTag}」吗？会从已使用该标签的文档中移除。`),
+        h("div", { className: "tag-delete-confirm-actions" },
+          h("button", { type: "button", onClick: cancelDelete }, "取消"),
+          h("button", { type: "button", className: "danger", onClick: confirmDelete }, "删除")
+        )
+      )
+    ) : null
+  );
+}
+
 function githubSettings(settings, onChangeGitHubSettings) {
   const input = (name, label, type = "text") => h("input", {
     type,
@@ -283,12 +374,13 @@ function githubSettings(settings, onChangeGitHubSettings) {
   ])];
 }
 
-export function SettingsPage({ category, preferences, github, onChangePreferences, onChangeGitHubSettings }) {
+export function SettingsPage({ category, preferences, github, tags, onChangePreferences, onReorderTags, onDeleteTag, onChangeGitHubSettings }) {
   const meta = Object.fromEntries(settingCategories);
   let groups;
   if (category === "general") groups = generalSettings(preferences, onChangePreferences);
   else if (category === "appearance") groups = appearanceSettings(preferences, onChangePreferences);
   else if (category === "reading") groups = readingSettings(preferences, onChangePreferences);
+  else if (category === "tags") groups = tagOrderSettings(tags, onReorderTags, onDeleteTag);
   else if (category === "github") groups = githubSettings(github, onChangeGitHubSettings);
   else if (category === "sync") groups = [settingsGroup("本地数据", [settingRow("草稿与同步", "笔记草稿保存在此浏览器；发表继续使用现有 GitHub 同步流程。", h("span", { className: "settings-value" }, "浏览器本地"))])];
   else if (category === "shortcuts") groups = [settingsGroup("键盘", [settingRow("编辑器快捷键", "编辑器保留系统和 Tiptap 的原生快捷键。", h("span", { className: "settings-value" }, "系统默认"))])];

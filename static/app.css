@@ -1554,6 +1554,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   gap: 14px;
 }
 
+.publish-tag-create {
+  gap: 7px;
+}
+
 .tag-dropdown {
   position: relative;
 }
@@ -1593,7 +1597,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
 .tag-choice {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
@@ -1602,7 +1606,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   background: rgba(255, 255, 255, .62);
 }
 
-.tag-check, .tag-delete {
+.tag-check {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1611,18 +1615,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   white-space: nowrap;
 }
 
-.tag-delete {
-  color: #c03535;
-}
-
 .tag-choice input[type="checkbox"] {
   width: 16px;
   height: 16px;
   accent-color: var(--blue);
-}
-
-.tag-delete input[type="checkbox"] {
-  accent-color: #c03535;
 }
 
 .tag-choice input[data-tag-name] {
@@ -2947,6 +2943,153 @@ body { background: #fff; }
 .settings-switch input:checked + span::after { transform: translateX(16px); }
 .settings-switch input:focus-visible + span { outline: 3px solid rgba(0, 122, 255, .25); outline-offset: 2px; }
 .settings-value { color: #7f8691; font-size: 12px; }
+.settings-tag-order {
+  border-top: 1px solid #e8eaed;
+}
+
+.settings-tag-row {
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 8px 2px;
+  border-bottom: 1px solid #eceef1;
+  transition: background .14s ease, box-shadow .14s ease, opacity .14s ease;
+}
+
+.settings-tag-row[draggable="true"] {
+  cursor: grab;
+}
+
+.settings-tag-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.settings-tag-row.is-dragging {
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(31, 41, 55, .12);
+  opacity: .72;
+}
+
+.settings-tag-drag {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: #8d95a1;
+  cursor: grab;
+}
+
+.settings-tag-row:active .settings-tag-drag {
+  cursor: grabbing;
+}
+
+.settings-tag-row:hover .settings-tag-drag,
+.settings-tag-row:focus-within .settings-tag-drag {
+  background: #f3f5f7;
+  color: #59616d;
+}
+
+.settings-tag-row strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.settings-tag-trash-dropzone {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 80;
+  width: min(calc(100vw - 48px), 760px);
+  min-height: 78px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px dashed #ef2f2f;
+  border-radius: 10px;
+  background: rgba(255, 241, 241, .94);
+  color: #d92d2d;
+  font-size: 15px;
+  font-weight: 650;
+  box-shadow: 0 18px 38px rgba(217, 45, 45, .12);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.tag-delete-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, .48);
+  backdrop-filter: blur(2px);
+}
+
+.tag-delete-confirm {
+  width: min(360px, 100%);
+  padding: 20px 22px 18px;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  background: var(--sheet-solid);
+  box-shadow: 0 18px 50px rgba(31, 41, 55, .18);
+}
+
+.tag-delete-confirm h3 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 18px;
+}
+
+.tag-delete-confirm p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.tag-delete-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.tag-delete-confirm-actions button {
+  min-height: 36px;
+  padding: 0 15px;
+  border-radius: 7px;
+  background: #f3f5f7;
+  color: #59616d;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.tag-delete-confirm-actions button.danger {
+  background: #df1f1f;
+  color: #fff;
+}
+
+.tag-delete-confirm-actions button.danger:hover {
+  background: #c91c1c;
+}
+
+.settings-empty {
+  margin: 0;
+  padding: 16px 2px;
+  border-bottom: 1px solid #eceef1;
+  color: #8d95a1;
+  font-size: 12px;
+}
 
 [data-density="compact"] .settings-navigation-item { min-height: 34px; }
 [data-density="compact"] .settings-row { min-height: 54px; padding-block: 8px; }

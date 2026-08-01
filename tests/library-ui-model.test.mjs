@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   DEFAULT_UI_PREFERENCES,
+  applyTagOrder,
   buildKnowledgeAreas,
   buildLibrarySummary,
   buildTagBrowser,
@@ -44,6 +45,16 @@ assert.deepEqual(
   { ...DEFAULT_UI_PREFERENCES, contentWidthRatio: 76, translucentMaterials: false, showOutline: false, defaultMode: "edit" }
 );
 assert.equal(normalizeUiPreferences({ contentWidth: 760 }).contentWidthRatio, 76, "legacy pixel preferences should migrate to the equivalent canvas ratio");
+assert.deepEqual(
+  normalizeUiPreferences({ tagOrder: ["模型", "AI", "模型", ""] }).tagOrder,
+  ["模型", "AI"],
+  "tag order preferences should keep unique real tags"
+);
+assert.deepEqual(
+  applyTagOrder(["AI", "工具", "模型", "自动驾驶"], ["模型", "AI"]),
+  ["模型", "AI", "工具", "自动驾驶"],
+  "custom tag order should lead with the saved order and keep new tags at the end"
+);
 
 const folders = [
   { id: "models", name: "妯″瀷鐮旂┒", parentId: null },

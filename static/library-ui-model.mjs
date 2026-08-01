@@ -5,7 +5,8 @@ export const DEFAULT_UI_PREFERENCES = Object.freeze({
   translucentMaterials: true,
   contentWidthRatio: 76,
   showOutline: true,
-  defaultMode: "read"
+  defaultMode: "read",
+  tagOrder: []
 });
 
 export function toggleContextDrawer(isOpen) {
@@ -66,7 +67,8 @@ export function normalizeUiPreferences(value = {}) {
     translucentMaterials: value.translucentMaterials !== false,
     contentWidthRatio: Math.min(100, Math.max(50, resolvedContentWidthRatio)),
     showOutline: value.showOutline !== false,
-    defaultMode: value.defaultMode === "edit" ? "edit" : "read"
+    defaultMode: value.defaultMode === "edit" ? "edit" : "read",
+    tagOrder: normalizeTagOrder(value.tagOrder)
   };
 }
 
@@ -82,11 +84,49 @@ export function resolveStartupState(state = {}, preferences = DEFAULT_UI_PREFERE
 }
 
 function normalizedTag(tag) {
-  return typeof tag === "string" ? tag.trim().toLowerCase() : "";
+  const value = typeof tag === "string" ? tag.trim().toLowerCase() : "";
+  return isRetiredTagName(value) ? "" : value;
 }
 
 function noteTags(note) {
-  return Array.isArray(note.tags) ? note.tags : [];
+  return Array.isArray(note.tags) ? note.tags.filter((tag) => normalizedTag(tag)) : [];
+}
+
+function isRetiredTagName(tag) {
+  return /^notes?$/.test(String(tag || "").trim().toLowerCase());
+}
+
+function normalizeTagOrder(tags = []) {
+  const seen = new Set();
+  const result = [];
+  for (const rawTag of Array.isArray(tags) ? tags : []) {
+    const name = typeof rawTag === "string" ? rawTag.trim() : "";
+    const key = normalizedTag(name);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(name);
+  }
+  return result;
+}
+
+export function applyTagOrder(tags = [], tagOrder = []) {
+  const records = [];
+  const seen = new Set();
+  for (const rawTag of Array.isArray(tags) ? tags : []) {
+    const name = typeof rawTag === "string" ? rawTag.trim() : "";
+    const key = normalizedTag(name);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    records.push({ name, key });
+  }
+  const order = new Map(normalizeTagOrder(tagOrder).map((tag, index) => [normalizedTag(tag), index]));
+  return records
+    .sort((left, right) => {
+      const leftOrder = order.has(left.key) ? order.get(left.key) : Number.POSITIVE_INFINITY;
+      const rightOrder = order.has(right.key) ? order.get(right.key) : Number.POSITIVE_INFINITY;
+      return leftOrder - rightOrder || left.name.localeCompare(right.name, "zh-CN");
+    })
+    .map((record) => record.name);
 }
 
 export function buildLibrarySummary(folders = [], notes = []) {
@@ -177,8 +217,8 @@ export function buildTagBrowser(notes = [], options = {}) {
 export function applyLocalTagMutation(notes = [], options = {}) {
   const name = typeof options.name === "string" ? options.name.trim() : "";
   const timestamp = typeof options.timestamp === "string" ? options.timestamp : "";
-  if (!name) return { notes, changed: false, selectedTag: "", error: "empty-name" };
   if (options.mode === "create") {
+    if (!name) return { notes, changed: false, selectedTag: "", error: "empty-name" };
     const noteIndex = notes.findIndex((note) => note.id === options.noteId);
     if (noteIndex < 0) return { notes, changed: false, selectedTag: "", error: "no-note" };
     const existing = noteTags(notes[noteIndex]).find((tag) => normalizedTag(tag) === normalizedTag(name));
@@ -190,6 +230,23 @@ export function applyLocalTagMutation(notes = [], options = {}) {
   }
   const selectedKey = normalizedTag(options.selectedTag);
   if (!selectedKey) return { notes, changed: false, selectedTag: "", error: "missing-tag" };
+  if (options.mode === "delete") {
+    let changed = false;
+    const nextNotes = notes.map((note) => {
+      if (!noteTags(note).some((tag) => normalizedTag(tag) === selectedKey)) return note;
+      changed = true;
+      return {
+        ...note,
+        tags: noteTags(note).filter((tag) => normalizedTag(tag) !== selectedKey),
+        date: timestamp || note.date,
+        dirty: true
+      };
+    });
+    return changed
+      ? { notes: nextNotes, changed: true, selectedTag: "", error: "" }
+      : { notes, changed: false, selectedTag: "", error: "missing-tag" };
+  }
+  if (!name) return { notes, changed: false, selectedTag: "", error: "empty-name" };
   let changed = false;
   const nextNotes = notes.map((note) => {
     if (!noteTags(note).some((tag) => normalizedTag(tag) === selectedKey)) return note;
