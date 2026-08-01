@@ -154,70 +154,11 @@ const NotebookCodeBlock = CodeBlock.extend({
     };
   },
   addNodeView() {
-    return ({ node, getPos, view }) => {
+    return ({ node }) => {
       let currentNode = node;
-      const dom = document.createElement("pre");
-      dom.className = "notebook-code-block";
-      dom.classList.toggle("is-wrapped", Boolean(node.attrs.wrapped));
-      const header = document.createElement("div");
-      header.className = "notebook-code-header";
-      const title = document.createElement("div");
-      title.className = "notebook-code-title";
-      title.textContent = "\u25be  \u4ee3\u7801\u5757";
-      const actions = document.createElement("div");
-      actions.className = "notebook-code-actions";
-      const language = document.createElement("button");
-      language.type = "button";
-      language.className = "notebook-code-language";
-      language.textContent = codeLanguageLabel(node.attrs.language);
-      language.title = "\u4ee3\u7801\u8bed\u8a00";
-      const wrapButton = document.createElement("button");
-      wrapButton.type = "button";
-      wrapButton.textContent = "\u81ea\u52a8\u6362\u884c";
-      wrapButton.title = "\u5207\u6362\u81ea\u52a8\u6362\u884c";
-      const copyButton = document.createElement("button");
-      copyButton.type = "button";
-      copyButton.textContent = "\u590d\u5236";
-      copyButton.title = "\u590d\u5236\u4ee3\u7801";
-      actions.append(language, separatorNode(), wrapButton, separatorNode(), copyButton);
-      header.append(title, actions);
-      const body = document.createElement("div");
-      body.className = "notebook-code-body";
-      const gutter = document.createElement("div");
-      gutter.className = "notebook-code-gutter";
-      const contentDOM = document.createElement("code");
-      contentDOM.className = "notebook-code-content";
-      body.append(gutter, contentDOM);
-      dom.append(header, body);
-      const syncLineNumbers = () => {
-        const count = Math.max(1, (contentDOM.textContent.match(/\n/g) || []).length + 1);
-        gutter.replaceChildren(...Array.from({ length: count }, (_, index) => {
-          const line = document.createElement("span");
-          line.textContent = String(index + 1);
-          return line;
-        }));
-      };
-      wrapButton.addEventListener("mousedown", (event) => event.preventDefault());
-      wrapButton.addEventListener("click", (event) => {
-        event.preventDefault();
-        const pos = typeof getPos === "function" ? getPos() : null;
-        if (typeof pos !== "number") return;
-        view.dispatch(view.state.tr.setNodeMarkup(pos, undefined, {
-          ...currentNode.attrs,
-          wrapped: !currentNode.attrs.wrapped
-        }));
-      });
-      copyButton.addEventListener("mousedown", (event) => event.preventDefault());
-      copyButton.addEventListener("click", async (event) => {
-        event.preventDefault();
-        try {
-          await copyTextToClipboard(contentDOM.textContent || "");
-          copyButton.textContent = "\u5df2\u590d\u5236";
-          window.setTimeout(() => { copyButton.textContent = "\u590d\u5236"; }, 1200);
-        } catch {
-          copyButton.textContent = "\u590d\u5236\u5931\u8d25";
-          window.setTimeout(() => { copyButton.textContent = "\u590d\u5236"; }, 1200);
-        }
+      const { dom, contentDOM, syncLineNumbers } = createEnhancedCodeBlockElement({
+        wrapped: Boolean(node.attrs.wrapped),
+        getCodeText: () => currentNode.textContent
       });
       syncLineNumbers();
       return {
@@ -226,31 +167,100 @@ const NotebookCodeBlock = CodeBlock.extend({
         update(updatedNode) {
           if (updatedNode.type.name !== node.type.name) return false;
           currentNode = updatedNode;
-          language.textContent = codeLanguageLabel(updatedNode.attrs.language);
           dom.classList.toggle("is-wrapped", Boolean(updatedNode.attrs.wrapped));
           window.requestAnimationFrame(syncLineNumbers);
           return true;
         },
         ignoreMutation(mutation) {
-          return mutation.target === gutter || gutter.contains(mutation.target) || header.contains(mutation.target);
+          const target = mutation.target.nodeType === Node.ELEMENT_NODE ? mutation.target : mutation.target.parentElement;
+          return target?.closest(".notebook-code-toolbar, .notebook-code-gutter") !== null;
         }
       };
     };
   }
 });
 
-function separatorNode() {
-  const separator = document.createElement("span");
-  separator.className = "notebook-code-separator";
-  separator.textContent = "|";
-  return separator;
+function createEnhancedCodeBlockElement(options = {}) {
+  const dom = document.createElement("pre");
+  dom.className = "notebook-code-block";
+  dom.classList.toggle("is-wrapped", Boolean(options.wrapped));
+  const header = document.createElement("div");
+  header.className = "notebook-code-header";
+  const collapseButton = document.createElement("button");
+  collapseButton.type = "button";
+  collapseButton.className = "notebook-code-title notebook-code-toolbar";
+  collapseButton.setAttribute("aria-expanded", "true");
+  collapseButton.title = "\u6298\u53e0\u4ee3\u7801\u5757";
+  const disclosure = document.createElement("span");
+  disclosure.className = "notebook-code-disclosure";
+  disclosure.textContent = "\u25be";
+  const titleText = document.createElement("span");
+  titleText.textContent = "\u4ee3\u7801\u5757";
+  collapseButton.append(disclosure, titleText);
+  const actions = document.createElement("div");
+  actions.className = "notebook-code-actions notebook-code-toolbar";
+  const copyButton = document.createElement("button");
+  copyButton.type = "button";
+  copyButton.textContent = "\u590d\u5236";
+  copyButton.title = "\u590d\u5236\u4ee3\u7801";
+  actions.append(copyButton);
+  header.append(collapseButton, actions);
+  const body = document.createElement("div");
+  body.className = "notebook-code-body";
+  const gutter = document.createElement("div");
+  gutter.className = "notebook-code-gutter";
+  const contentDOM = document.createElement("code");
+  contentDOM.className = "notebook-code-content";
+  body.append(gutter, contentDOM);
+  dom.append(header, body);
+  const syncCollapsedState = () => {
+    const isCollapsed = dom.classList.contains("is-collapsed");
+    collapseButton.setAttribute("aria-expanded", String(!isCollapsed));
+    disclosure.textContent = isCollapsed ? "\u25b8" : "\u25be";
+  };
+  const codeText = () => options.getCodeText?.() ?? contentDOM.textContent ?? "";
+  const syncLineNumbers = () => {
+    const text = codeText();
+    const count = Math.max(1, (text.match(/\n/g) || []).length + 1);
+    gutter.replaceChildren(...Array.from({ length: count }, (_, index) => {
+      const line = document.createElement("span");
+      line.textContent = String(index + 1);
+      return line;
+    }));
+  };
+  collapseButton.addEventListener("mousedown", (event) => event.preventDefault());
+  collapseButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    dom.classList.toggle("is-collapsed");
+    syncCollapsedState();
+  });
+  copyButton.addEventListener("mousedown", (event) => event.preventDefault());
+  copyButton.addEventListener("click", async (event) => {
+    event.preventDefault();
+    try {
+      await copyTextToClipboard(codeText());
+      copyButton.textContent = "\u5df2\u590d\u5236";
+      window.setTimeout(() => { copyButton.textContent = "\u590d\u5236"; }, 1200);
+    } catch {
+      copyButton.textContent = "\u590d\u5236\u5931\u8d25";
+      window.setTimeout(() => { copyButton.textContent = "\u590d\u5236"; }, 1200);
+    }
+  });
+  syncCollapsedState();
+  return { dom, contentDOM, syncLineNumbers };
 }
 
-function codeLanguageLabel(language) {
-  const value = String(language || "").trim();
-  if (!value) return "Plain Text";
-  const names = { bash: "Bash", sh: "Shell", shell: "Shell", js: "JavaScript", javascript: "JavaScript", ts: "TypeScript", typescript: "TypeScript", py: "Python", python: "Python", json: "JSON", html: "HTML", css: "CSS" };
-  return names[value.toLowerCase()] || value;
+function enhanceReaderCodeBlocks(root) {
+  root.querySelectorAll("pre").forEach((pre) => {
+    if (pre.classList.contains("notebook-code-block") && pre.querySelector(".notebook-code-content")) return;
+    const originalCode = pre.querySelector("code");
+    const text = originalCode ? originalCode.textContent : pre.textContent;
+    const wrapped = pre.getAttribute("data-wrapped") === "true" || pre.classList.contains("is-wrapped");
+    const enhanced = createEnhancedCodeBlockElement({ wrapped });
+    enhanced.contentDOM.textContent = text || "";
+    enhanced.syncLineNumbers();
+    pre.replaceWith(enhanced.dom);
+  });
 }
 
 async function copyTextToClipboard(text) {
@@ -1465,7 +1475,10 @@ function DocumentPaper({ note, state, editable, updateNote }) {
   const readerRef = useRef(null);
 
   useEffect(() => {
-    if (!editable && readerRef.current) renderMathElements(readerRef.current);
+    if (!editable && readerRef.current) {
+      enhanceReaderCodeBlocks(readerRef.current);
+      renderMathElements(readerRef.current);
+    }
   }, [editable, html]);
 
   const showOutline = state.uiPreferences.showOutline;

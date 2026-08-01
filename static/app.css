@@ -711,7 +711,8 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
 .feishu-editor pre::after,
 .tiptap-reader pre::after {
-  content: "Bash  |  \81EA\52A8\6362\884C  \590D\5236";
+  content: none;
+  display: none;
   position: absolute;
   top: 9px;
   right: 16px;
@@ -1915,13 +1916,36 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   display: flex;
   align-items: center;
   width: auto;
-  min-width: 132px;
+  min-width: 0;
   max-width: min(320px, 26vw);
+}
+
+.notebook-code-title {
+  appearance: none;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }
 
 .notebook-code-actions {
   flex: none;
   gap: 8px;
+}
+
+.notebook-code-toolbar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .14s ease, color .14s ease;
+}
+
+pre.notebook-code-block:hover .notebook-code-toolbar,
+pre.notebook-code-block:focus-within .notebook-code-toolbar {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .notebook-code-actions button {
@@ -1936,6 +1960,16 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 
 .notebook-code-actions button:hover {
   color: #245bdb;
+}
+
+.notebook-code-title:hover {
+  color: #245bdb;
+}
+
+.notebook-code-disclosure {
+  display: inline-block;
+  width: 12px;
+  text-align: center;
 }
 
 .notebook-code-separator {
@@ -1957,6 +1991,15 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   color: #6b7280;
   line-height: 1.72;
   user-select: none;
+}
+
+.notebook-code-gutter span {
+  display: block;
+  min-height: 1.72em;
+}
+
+pre.notebook-code-block.is-collapsed .notebook-code-body {
+  display: none;
 }
 
 .feishu-editor pre.notebook-code-block code.notebook-code-content,

@@ -152,6 +152,67 @@ assert.match(
   "an ordinary editable pre should receive the blue border only while focused"
 );
 
+assert.match(
+  app,
+  /enhanceReaderCodeBlocks\(readerRef\.current\)/,
+  "reading mode should enhance code blocks after sanitized HTML is mounted"
+);
+assert.match(
+  app,
+  /function createEnhancedCodeBlockElement\(/,
+  "reader and editor code blocks should share the same enhanced block structure"
+);
+assert.match(
+  app,
+  /getCodeText:\s*\(\)\s*=>\s*currentNode\.textContent/,
+  "editable code block line numbers should use the ProseMirror node text instead of editable DOM text"
+);
+assert.match(
+  app,
+  /const codeText = \(\) => options\.getCodeText\?\.\(\) \?\? contentDOM\.textContent \?\? ""/,
+  "shared code block controls should fall back to DOM text for reading mode"
+);
+assert.match(
+  app,
+  /collapseButton\.addEventListener\("click"/,
+  "the code block disclosure control should toggle collapse state"
+);
+assert.doesNotMatch(
+  app,
+  /actions\.append\(language,\s*separatorNode\(\),\s*wrapButton,\s*separatorNode\(\),\s*copyButton\)/,
+  "inactive language and wrap controls should not remain in the code block header"
+);
+assert.doesNotMatch(
+  app,
+  /function separatorNode\(\)/,
+  "unused code block separators should be removed with the inactive controls"
+);
+assert.match(
+  ruleBodies(".notebook-code-toolbar"),
+  /opacity:\s*0/,
+  "code block controls should be hidden until hover or keyboard focus"
+);
+assert.match(
+  ruleBodies("pre.notebook-code-block:hover .notebook-code-toolbar"),
+  /opacity:\s*1/,
+  "code block controls should appear on hover"
+);
+assert.match(
+  ruleBodies("pre.notebook-code-block:focus-within .notebook-code-toolbar"),
+  /opacity:\s*1/,
+  "code block controls should remain accessible during keyboard focus"
+);
+assert.match(
+  ruleBodies(".notebook-code-gutter span"),
+  /display:\s*block/,
+  "enhanced code blocks should render persistent line number rows"
+);
+assert.match(
+  ruleBodies("pre.notebook-code-block.is-collapsed .notebook-code-body"),
+  /display:\s*none/,
+  "collapsed code blocks should hide the full code body"
+);
+
 for (const selector of [".feishu-editor pre code", ".tiptap-reader pre code"]) {
   const ordinaryCode = ruleBodies(selector);
   assert.match(ordinaryCode, /min-width:\s*0/, `${selector} should be allowed to shrink within the paper`);
