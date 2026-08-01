@@ -2721,18 +2721,21 @@ function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, 
       title: localPersistenceStatusText(localPersistenceStatus)
     }, localPersistenceStatusText(localPersistenceStatus)) : null,
     h("div", { className: "toolbar" },
-      note ? h("button", {
-        className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`,
-        onClick: () => handleAction("toggle-mode"),
-        "aria-pressed": state.mode === "edit"
-      }, state.mode === "edit" ? "阅读" : "编辑") : null,
-      note ? h(DocumentOverflowMenu, { state, note, handleAction }) : null,
+      note ? h("div", { className: "document-action-group" },
+        h("button", {
+          className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`,
+          onClick: () => handleAction("toggle-mode"),
+          "aria-pressed": state.mode === "edit"
+        }, icon("edit", { size: 16 }), state.mode === "edit" ? "阅读" : "编辑"),
+        h("span", { className: "document-action-divider", "aria-hidden": "true" }),
+        h(DocumentOverflowMenu, { state, note, handleAction })
+      ) : null,
       note ? h("button", {
         className: "primary-btn document-publish-button",
         "data-publish-trigger": "",
         disabled: state.syncStatus === "publishing",
         onClick: () => handleAction("publish")
-      }, state.syncStatus === "publishing" ? "发表中" : "发表") : null
+      }, state.syncStatus === "publishing" ? "发表中" : [icon("upload", { size: 16 }), "发布"]) : null
     )
   );
 }

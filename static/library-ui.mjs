@@ -1,7 +1,7 @@
 import React from "https://esm.sh/react@18.3.1";
 import {
-  BookOpenText, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, FileText, Folder, Home, NotebookTabs, Plus,
-  Search, Settings, Tag, Trash2
+  BookOpenText, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, FileText, Folder, Home, NotebookTabs, PenLine, Plus,
+  Search, Settings, Tag, Trash2, Upload
 } from "https://esm.sh/lucide-react@0.468.0?external=react";
 
 const h = React.createElement;
@@ -20,7 +20,9 @@ const icons = {
   back: ChevronLeft,
   expand: ChevronRight,
   collapse: ChevronDown,
-  more: Ellipsis
+  more: Ellipsis,
+  edit: PenLine,
+  upload: Upload
 };
 
 export function icon(name, props = {}) {
