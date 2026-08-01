@@ -255,8 +255,8 @@ function appearanceSettings(preferences, onChangePreferences) {
 
 function readingSettings(preferences, onChangePreferences) {
   return [settingsGroup("文档", [
-    settingRow("正文宽度", `${preferences.contentWidth}px`,
-      h("input", { type: "range", min: 640, max: 920, step: 20, value: preferences.contentWidth, "aria-label": "正文宽度", onChange: (event) => onChangePreferences({ contentWidth: Number(event.target.value) }) })),
+    settingRow("正文宽度", `${preferences.contentWidthRatio}%`,
+      h("input", { type: "range", min: 50, max: 100, step: 1, value: preferences.contentWidthRatio, "aria-label": "正文宽度", onChange: (event) => onChangePreferences({ contentWidthRatio: Number(event.target.value) }) })),
     settingRow("显示文档大纲", "在文档旁显示标题导航。",
       settingSwitch(preferences.showOutline, "显示文档大纲", (showOutline) => onChangePreferences({ showOutline }))),
     settingRow("默认模式", "选择或新建笔记时使用的模式。",

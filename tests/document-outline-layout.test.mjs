@@ -13,11 +13,7 @@ assert.match(
   "document outline should use the concise reference title"
 );
 
-assert.match(
-  appSource,
-  /const documentOutlinePanelWidth = 210;/,
-  "document outline should use a stable panel width so mode switches do not change the content gap"
-);
+assert.doesNotMatch(appSource, /documentOutlinePanelWidth/, "document outline should obtain its proportional width from CSS");
 
 assert.doesNotMatch(
   appSource,
@@ -27,7 +23,7 @@ assert.doesNotMatch(
 
 assert.match(
   cssSource,
-  /\.document-workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) 210px;/,
+  /\.document-workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) 12vw;/,
   "document workspace should place the configurable document column before the right-side outline"
 );
 

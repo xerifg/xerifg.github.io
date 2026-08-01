@@ -16,17 +16,14 @@ function ruleBodies(selector) {
   return bodies.join("\n");
 }
 
-assert.match(
-  app,
-  /const documentOutlinePanelWidth = 210;/,
-  "the inline outline width should match the 210px desktop rail"
-);
+assert.doesNotMatch(app, /documentOutlinePanelWidth/, "the outline width should be owned by proportional CSS, not a fixed JavaScript value");
+assert.match(css, /\.app-shell\s*\{[^}]*grid-template-columns:\s*56px 14% minmax\(0, 1fr\);/s, "the desktop shell should keep its icon rail stable while the directory scales proportionally");
 const workspace = ruleBodies(".document-workspace");
 assert.match(workspace, /width:\s*100%/, "the desktop workspace should span the content viewport");
 assert.match(
   workspace,
-  /grid-template-columns:\s*minmax\(0,\s*1fr\) 210px/,
-  "medium desktop should reserve a flexible paper column beside the 210px outline"
+  /grid-template-columns:\s*minmax\(0,\s*1fr\) 12vw/,
+  "medium desktop should reserve a proportional outline rail"
 );
 assert.match(workspace, /gap:\s*24px/, "the desktop paper and outline should keep a 24px separation");
 assert.match(workspace, /justify-content:\s*stretch/, "the desktop grid should fill the available width");
@@ -37,7 +34,7 @@ assert.match(
 );
 assert.match(
   desktopPolish,
-  /\.document-outline\s*\{[^}]*width:\s*210px[^}]*justify-self:\s*end[^}]*height:\s*calc\(100vh - 64px\)[^}]*max-height:\s*none/s,
+  /\.document-outline\s*\{[^}]*width:\s*12vw[^}]*justify-self:\s*end[^}]*height:\s*calc\(100vh - 64px\)[^}]*max-height:\s*none/s,
   "the outline should align to the far right and span the viewport below the top bar"
 );
 assert.match(
@@ -70,10 +67,15 @@ assert.match(
   /\.document-workspace\.has-empty-outline \.document-outline\s*\{[^}]*display:\s*none/s,
   "an empty outline should not reserve a blank rail"
 );
+assert.doesNotMatch(
+  desktopPolish,
+  /@media \(min-width:\s*1600px\)[\s\S]*\.document-workspace\.has-outline/,
+  "wide desktop should not overlay the outline over the reading canvas"
+);
 assert.match(
   desktopPolish,
-  /@media \(min-width:\s*1600px\)[\s\S]*\.document-workspace\.has-outline\s*\{[^}]*grid-template-columns:\s*1fr[^}]*\}[\s\S]*grid-column:\s*1[^}]*grid-row:\s*1/,
-  "wide desktop should center the paper in the full area while overlaying the end-aligned outline"
+  /@media \(min-width:\s*1101px\)[\s\S]*\.document-workspace\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) 12vw/,
+  "the document-width percentage should resolve inside the canvas remaining after the outline rail"
 );
 
 assert.match(
@@ -107,8 +109,8 @@ assert.match(
 );
 assert.match(
   ruleBodies(".document-outline"),
-  /width:\s*210px/,
-  "the visual outline rail should explicitly occupy the stable 210px column"
+  /width:\s*12vw/,
+  "the visual outline rail should occupy a proportional desktop column"
 );
 
 const treeRows = ruleBodies(".tree-folder") + "\n" + ruleBodies(".tree-note");

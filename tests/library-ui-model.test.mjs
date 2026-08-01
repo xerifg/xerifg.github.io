@@ -27,22 +27,23 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-  normalizeUiPreferences({ contentWidth: 480, theme: "sepia", sidebarDensity: "compact" }),
+  normalizeUiPreferences({ contentWidthRatio: 40, theme: "sepia", sidebarDensity: "compact" }),
   {
     ...DEFAULT_UI_PREFERENCES,
-    contentWidth: 640,
+    contentWidthRatio: 50,
     theme: "auto",
     sidebarDensity: "compact"
   }
 );
 assert.deepEqual(
-  normalizeUiPreferences({ contentWidth: 1200 }),
-  { ...DEFAULT_UI_PREFERENCES, contentWidth: 920 }
+  normalizeUiPreferences({ contentWidthRatio: 120 }),
+  { ...DEFAULT_UI_PREFERENCES, contentWidthRatio: 100 }
 );
 assert.deepEqual(
-  normalizeUiPreferences({ contentWidth: 800, translucentMaterials: false, showOutline: false, defaultMode: "edit" }),
-  { ...DEFAULT_UI_PREFERENCES, contentWidth: 800, translucentMaterials: false, showOutline: false, defaultMode: "edit" }
+  normalizeUiPreferences({ contentWidthRatio: 76, translucentMaterials: false, showOutline: false, defaultMode: "edit" }),
+  { ...DEFAULT_UI_PREFERENCES, contentWidthRatio: 76, translucentMaterials: false, showOutline: false, defaultMode: "edit" }
 );
+assert.equal(normalizeUiPreferences({ contentWidth: 760 }).contentWidthRatio, 76, "legacy pixel preferences should migrate to the equivalent canvas ratio");
 
 const folders = [
   { id: "models", name: "妯″瀷鐮旂┒", parentId: null },

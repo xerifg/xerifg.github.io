@@ -3,7 +3,7 @@ export const DEFAULT_UI_PREFERENCES = Object.freeze({
   theme: "auto",
   sidebarDensity: "comfortable",
   translucentMaterials: true,
-  contentWidth: 760,
+  contentWidthRatio: 76,
   showOutline: true,
   defaultMode: "read"
 });
@@ -52,13 +52,19 @@ export function resolveMenuKeyboard(currentIndex, key, itemCount) {
 }
 
 export function normalizeUiPreferences(value = {}) {
-  const contentWidth = Number(value.contentWidth);
+  const contentWidthRatio = Number(value.contentWidthRatio);
+  const legacyContentWidth = Number(value.contentWidth);
+  const resolvedContentWidthRatio = Number.isFinite(contentWidthRatio)
+    ? contentWidthRatio
+    : Number.isFinite(legacyContentWidth)
+      ? Math.round(legacyContentWidth / 10)
+      : 76;
   return {
     rememberLastLocation: value.rememberLastLocation === true,
     theme: ["auto", "light", "dark"].includes(value.theme) ? value.theme : "auto",
     sidebarDensity: value.sidebarDensity === "compact" ? "compact" : "comfortable",
     translucentMaterials: value.translucentMaterials !== false,
-    contentWidth: Math.min(920, Math.max(640, Number.isFinite(contentWidth) ? contentWidth : 760)),
+    contentWidthRatio: Math.min(100, Math.max(50, resolvedContentWidthRatio)),
     showOutline: value.showOutline !== false,
     defaultMode: value.defaultMode === "edit" ? "edit" : "read"
   };
