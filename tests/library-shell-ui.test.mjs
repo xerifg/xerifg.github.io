@@ -4,9 +4,14 @@ import { readFileSync } from "node:fs";
 const app = readFileSync(new URL("../static/app.js", import.meta.url), "utf8");
 const ui = readFileSync(new URL("../static/library-ui.mjs", import.meta.url), "utf8");
 const css = readFileSync(new URL("../static/app.css", import.meta.url), "utf8");
+const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 assert.match(app, /view:\s*"home"/);
 assert.match(app, /activeId:\s*""/);
+assert.match(app, /folderExpansionInitialized:\s*false/);
+assert.match(app, /defaultCollapsedFolders/);
+assert.match(app, /revealNoteFolderPath/);
+assert.match(app, /draft\.collapsedFolders\s*=\s*revealNoteFolderPath\(draft\.collapsedFolders,\s*draft\.folders,\s*draft\.notes,\s*noteId\)/s);
 assert.match(app, /h\(PrimaryRail,/);
 assert.match(app, /h\(LibraryHome,/);
 assert.match(app, /h\(TagBrowser,/);
@@ -146,6 +151,21 @@ assert.match(
   appShellSource,
   /state\.view\s*===\s*"library"\s*\?\s*h\("button",\s*\{[^}]*className:\s*"context-sidebar-toggle"/s,
   "the directory drawer toggle should render only in the Notes view"
+);
+assert.match(
+  css,
+  /\.app-shell\[data-view="home"\],\s*\.app-shell\[data-view="tags"\]\s*\{[^}]*grid-template-columns:\s*56px minmax\(0,\s*1fr\)/s,
+  "home and tag views should remove the unused directory grid column"
+);
+assert.match(
+  css,
+  /\.app-shell\[data-view="home"\] \.content,\s*\.app-shell\[data-view="tags"\] \.content\s*\{[^}]*grid-column:\s*2\s*\/\s*-1/s,
+  "home and tag content should occupy the available column"
+);
+assert.match(
+  index,
+  /\.\/static\/app\.css\?v=20260801-home-layout-v2/,
+  "the browser should request the corrected home and tag layout stylesheet"
 );
 
 assert.match(css, /@media\s*\(max-width:\s*1100px\)[\s\S]*?\.document-outline[\s\S]*?display:\s*none/);

@@ -21,7 +21,7 @@ import { Ellipsis, X } from "https://esm.sh/lucide-react@0.468.0?external=react"
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260731-library-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -352,6 +352,7 @@ const seed = {
   modalContext: null,
   openCreateMenu: null,
   collapsedFolders: {},
+  folderExpansionInitialized: false,
   deletedTags: [],
   syncStatus: "ready",
   message: "",
@@ -413,6 +414,8 @@ function App() {
             tagSort: current.tagSort,
             tagReturnContext: current.tagReturnContext,
             query: current.query,
+            collapsedFolders: current.collapsedFolders,
+            folderExpansionInitialized: current.folderExpansionInitialized,
             uiPreferences: current.uiPreferences,
             settings: { ...current.settings, token: current.settings.token }
           }));
@@ -536,6 +539,7 @@ function App() {
   const selectNote = (noteId) => {
     patchState((draft) => {
       draft.activeId = noteId;
+      draft.collapsedFolders = revealNoteFolderPath(draft.collapsedFolders, draft.folders, draft.notes, noteId);
       draft.mode = draft.uiPreferences.defaultMode;
       draft.view = "library";
       draft.modal = null;
@@ -4354,6 +4358,11 @@ function migrate(data) {
   merged.collapsedFolders = merged.collapsedFolders && typeof merged.collapsedFolders === "object" && !Array.isArray(merged.collapsedFolders)
     ? merged.collapsedFolders
     : {};
+  merged.folderExpansionInitialized = data.folderExpansionInitialized === true;
+  if (!merged.folderExpansionInitialized) {
+    merged.collapsedFolders = defaultCollapsedFolders(merged.folders, merged.notes, merged.activeId);
+    merged.folderExpansionInitialized = true;
+  }
   merged.deletedTags = uniqueTags(merged.deletedTags || []);
   merged.syncStatus = merged.syncStatus === "publishing" ? "ready" : merged.syncStatus || "ready";
   return merged;

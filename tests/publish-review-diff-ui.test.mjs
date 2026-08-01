@@ -103,8 +103,8 @@ assert.match(
 
 assert.match(
   indexSource,
-  /app\.css\?v=20260731-library-v1/,
-  "the page should request the publish diff styles instead of cached styles"
+  /app\.css\?v=20260801-home-layout-v2/,
+  "the page should request the current stylesheet instead of cached styles"
 );
 assert.match(
   appSource,

@@ -279,6 +279,25 @@ export function restoreTagView(state) {
   };
 }
 
+export function revealNoteFolderPath(collapsedFolders = {}, folders = [], notes = [], activeId = "") {
+  const nextCollapsedFolders = { ...collapsedFolders };
+  const activeNote = notes.find((note) => note.id === activeId);
+  const foldersById = new Map(folders.map((folder) => [folder.id, folder]));
+  const visited = new Set();
+  let folderId = activeNote?.folderId || null;
+  while (folderId && !visited.has(folderId)) {
+    visited.add(folderId);
+    delete nextCollapsedFolders[folderId];
+    folderId = foldersById.get(folderId)?.parentId || null;
+  }
+  return nextCollapsedFolders;
+}
+
+export function defaultCollapsedFolders(folders = [], notes = [], activeId = "") {
+  const collapsedFolders = Object.fromEntries(folders.map((folder) => [folder.id, true]));
+  return revealNoteFolderPath(collapsedFolders, folders, notes, activeId);
+}
+
 export function buildVisibleTreeItems(folders = [], notes = [], collapsedFolders = {}, options = {}) {
   const childFolders = new Map();
   for (const folder of folders) {

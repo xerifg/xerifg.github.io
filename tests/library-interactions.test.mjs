@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   buildTagReturnContext,
   buildVisibleTreeItems,
+  defaultCollapsedFolders,
   enterTagView,
   groupTagRecords,
   localPersistenceStatusText,
@@ -10,6 +11,7 @@ import {
   resolveMenuKeyboard,
   resolvePublishReviewReturnTarget,
   resolveTreeKeyboard,
+  revealNoteFolderPath,
   restoreTagView
 } from "../static/library-ui-model.mjs";
 
@@ -113,6 +115,16 @@ const searchedTreeItems = buildVisibleTreeItems(
 );
 assert.deepEqual(searchedTreeItems.map((item) => item.id), ["root", "root-note"]);
 assert.equal(searchedTreeItems[0].expanded, true);
+
+const expansionFolders = [
+  { id: "root", parentId: null },
+  { id: "child", parentId: "root" },
+  { id: "other", parentId: null }
+];
+const expansionNotes = [{ id: "nested-note", folderId: "child" }];
+assert.deepEqual(defaultCollapsedFolders(expansionFolders, expansionNotes, ""), { root: true, child: true, other: true });
+assert.deepEqual(defaultCollapsedFolders(expansionFolders, expansionNotes, "nested-note"), { other: true });
+assert.deepEqual(revealNoteFolderPath({ root: true, child: true, other: false }, expansionFolders, expansionNotes, "nested-note"), { other: false });
 
 assert.equal(localPersistenceStatusText("saving"), "正在保存…");
 assert.equal(localPersistenceStatusText("saved"), "已自动保存");
