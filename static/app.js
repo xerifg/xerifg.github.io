@@ -208,6 +208,7 @@ function createEnhancedCodeBlockElement(options = {}) {
   copyButton.type = "button";
   copyButton.textContent = "\u590d\u5236";
   copyButton.title = "\u590d\u5236\u4ee3\u7801";
+  copyButton.setAttribute("aria-live", "polite");
   actions.append(copyButton);
   header.append(collapseButton, actions);
   const body = document.createElement("div");
