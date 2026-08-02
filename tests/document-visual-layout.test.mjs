@@ -160,6 +160,14 @@ for (const selector of [".feishu-editor code", ".tiptap-reader code"]) {
   assert.match(inlineCode, /font-size:\s*\.875em/, `${selector} should sit slightly smaller than body text`);
 }
 
+const bubbleButton = ruleBodies(".feishu-bubble-button");
+assert.match(bubbleButton, /width:\s*32px/, "selected-text toolbar buttons should have aligned Feishu-like icon cells");
+assert.match(bubbleButton, /height:\s*32px/, "selected-text toolbar buttons should keep one consistent height");
+assert.match(bubbleButton, /display:\s*inline-flex/, "selected-text toolbar buttons should align icons and text on one axis");
+assert.match(ruleBodies(".feishu-style-trigger"), /width:\s*48px/, "the block style trigger should reserve space for text and chevron");
+assert.match(ruleBodies(".feishu-style-panel"), /width:\s*232px/, "the block style menu should match the compact Feishu dropdown width");
+assert.match(ruleBodies(".feishu-style-panel button"), /grid-template-columns:\s*28px minmax\(0,\s*1fr\) 18px/, "style menu rows should align icon, label, and check columns");
+
 assert.match(
   app,
   /enhanceReaderCodeBlocks\(readerRef\.current\)/,

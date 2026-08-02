@@ -106,7 +106,7 @@ assert.match(documentActionsSource, /onAction\("delete-note"\)/);
 assert.match(app, /state\.uiPreferences\.showOutline\s*\?\s*h\(DocumentOutline/);
 assert.match(css, /\.document-topbar\s*\{[^}]*background:\s*var\(--sheet\);/s);
 assert.match(css, /\.document-overflow-menu\s*\{[^}]*background:\s*var\(--sheet\);/s);
-assert.match(css, /\.feishu-bubble\s*\{[^}]*background:\s*var\(--sheet\);/s);
+assert.match(css, /\.feishu-bubble\s*\{[^}]*background:\s*var\(--sheet-solid\);/s);
 assert.match(css, /\.feishu-bubble::after\s*\{[^}]*display:\s*none;/s);
 
 const primaryRailSource = ui.slice(ui.indexOf("export function PrimaryRail"), ui.indexOf("export function LibraryHome"));
@@ -179,7 +179,7 @@ assert.match(
 );
 assert.match(
   index,
-  /\.\/static\/app\.css\?v=20260801-note-tag-actions-v1/,
+  /\.\/static\/app\.css\?v=20260802-feishu-toolbar-v1/,
   "the browser should request the corrected home and tag layout stylesheet"
 );
 

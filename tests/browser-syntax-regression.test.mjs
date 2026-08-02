@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const app = readFileSync(new URL("../static/app.js", import.meta.url), "utf8");
+const lucideImportSource = app.match(/import \{[\s\S]*?\} from "https:\/\/esm\.sh\/lucide-react@0\.468\.0\?external=react";/)?.[0] || "";
 const deleteDraftsBranch = app.slice(
   app.indexOf('if (state.modal === "delete-drafts")'),
   app.indexOf('if (state.modal === "publish-review")')
 );
+
+assert.match(lucideImportSource, /Video as VideoIcon/, "the lucide video icon must be aliased away from the editor Video node");
+assert.doesNotMatch(lucideImportSource, /,\s*Video\s*[,}]/, "the lucide import must not redeclare the editor Video node binding");
 
 assert.match(
   deleteDraftsBranch,

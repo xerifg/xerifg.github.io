@@ -17,7 +17,11 @@ import TableHeader from "https://esm.sh/@tiptap/extension-table-header@2.11.7";
 import TableCell from "https://esm.sh/@tiptap/extension-table-cell@2.11.7";
 import TaskList from "https://esm.sh/@tiptap/extension-task-list@2.11.7";
 import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
-import { Ellipsis, X } from "https://esm.sh/lucide-react@0.468.0?external=react";
+import {
+  Bold, Braces, Check, ChevronDown, Code2, FileUp, Heading1, Heading2, Heading3, Image as ImageIcon,
+  Italic, Link as LinkIcon, List, ListOrdered, Minus, Quote, Sigma, Strikethrough,
+  Table as TableIcon, Type, Underline as UnderlineIcon, Video as VideoIcon, X, Ellipsis
+} from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
@@ -1996,12 +2000,14 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
   const [position, setPosition] = useState(null);
   const [selectionVersion, setSelectionVersion] = useState(0);
   const [colorPanelOpen, setColorPanelOpen] = useState(false);
+  const [styleMenuOpen, setStyleMenuOpen] = useState(false);
   const [, forceUpdate] = useState(0);
 
   const updatePosition = useCallback(() => {
     if (hidden || !editor || editor.state.selection.empty || !shellRef.current) {
       setPosition(null);
       setColorPanelOpen(false);
+      setStyleMenuOpen(false);
       return;
     }
     const rect = getSelectionToolbarRect(editor.view?.dom);
@@ -2017,6 +2023,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
     if (!editor) return undefined;
     const updateSelection = () => {
       setColorPanelOpen(false);
+      setStyleMenuOpen(false);
       setSelectionVersion((value) => value + 1);
     };
     const updateActiveState = () => forceUpdate((value) => value + 1);
@@ -2029,27 +2036,54 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
   }, [editor]);
 
   if (hidden || !editor || editor.state.selection.empty || tableSelectionInfo(editor) || !position) return null;
+  const iconNode = (Icon, size = 17) => h(Icon, { size, strokeWidth: 1.9, "aria-hidden": "true" });
+  const activeBlockStyle = (() => {
+    if (editor.isActive("heading", { level: 1 })) return "h1";
+    if (editor.isActive("heading", { level: 2 })) return "h2";
+    if (editor.isActive("heading", { level: 3 })) return "h3";
+    if (editor.isActive("orderedList")) return "orderedList";
+    if (editor.isActive("bulletList")) return "bulletList";
+    return "paragraph";
+  })();
+  const styleItems = [
+    { icon: Type, label: "\u6b63\u6587", command: "paragraph", active: activeBlockStyle === "paragraph" },
+    { icon: Heading1, label: "\u6807\u9898 1", command: "h1", active: activeBlockStyle === "h1" },
+    { icon: Heading2, label: "\u6807\u9898 2", command: "h2", active: activeBlockStyle === "h2" },
+    { icon: Heading3, label: "\u6807\u9898 3", command: "h3", active: activeBlockStyle === "h3" },
+    { icon: ListOrdered, label: "\u6709\u5e8f\u5217\u8868", command: "orderedList", active: activeBlockStyle === "orderedList" },
+    { icon: List, label: "\u65e0\u5e8f\u5217\u8868", command: "bulletList", active: activeBlockStyle === "bulletList" }
+  ];
   const buttons = [
-    { label: "T", command: "paragraph", title: "\u6b63\u6587" },
-    { label: "H1", command: "h1", title: "\u6807\u9898 1", active: editor.isActive("heading", { level: 1 }) },
-    { label: "H2", command: "h2", title: "\u6807\u9898 2", active: editor.isActive("heading", { level: 2 }) },
-    { label: "H3", command: "h3", title: "\u6807\u9898 3", active: editor.isActive("heading", { level: 3 }) },
+    { icon: Bold, command: "bold", title: "\u52a0\u7c97", active: editor.isActive("bold") },
+    { icon: Strikethrough, command: "strike", title: "\u5220\u9664\u7ebf", active: editor.isActive("strike") },
+    { icon: Italic, command: "italic", title: "\u659c\u4f53", active: editor.isActive("italic") },
+    { icon: UnderlineIcon, command: "underline", title: "\u4e0b\u5212\u7ebf", active: editor.isActive("underline") },
+    { icon: LinkIcon, command: "link", title: "\u94fe\u63a5", active: editor.isActive("link") },
+    { icon: Code2, command: "code", title: "\u4ee3\u7801", active: editor.isActive("code") },
+    { label: "A", command: "textColor", title: "\u6587\u5b57\u989c\u8272", active: colorPanelOpen || Boolean(editor.getAttributes("textStyle").color), panel: true, className: "feishu-color-trigger" },
     { divider: true },
-    { label: "\u2261", command: "bulletList", title: "\u5217\u8868", active: editor.isActive("bulletList") },
-    { divider: true },
-    { label: "B", command: "bold", active: editor.isActive("bold") },
-    { label: "S", command: "strike", active: editor.isActive("strike") },
-    { label: "I", command: "italic", active: editor.isActive("italic") },
-    { label: "U", command: "underline", active: editor.isActive("underline") },
-    { label: "\u2197", command: "link", title: "\u94fe\u63a5", active: editor.isActive("link") },
-    { label: "</>", command: "code", title: "\u4ee3\u7801", active: editor.isActive("code") },
-    { label: "A", command: "textColor", title: "\u6587\u5b57\u989c\u8272", active: colorPanelOpen || Boolean(editor.getAttributes("textStyle").color), panel: true },
-    { divider: true },
-    { label: "\u25a6", command: "table", title: "\u8868\u683c" },
-    { label: "\u2630", command: "blockquote", title: "\u5f15\u7528", active: editor.isActive("blockquote") }
+    { icon: TableIcon, command: "table", title: "\u8868\u683c" },
+    { icon: Quote, command: "blockquote", title: "\u5f15\u7528", active: editor.isActive("blockquote") }
   ];
   const textColors = ["#245bdb", "#1f2329", "#f54a45", "#f59f00", "#de7b00", "#2f9e44", "#2563eb", "#7c3aed"];
   const backgroundColors = ["transparent", "#f2f3f5", "#ffe8e8", "#ffe8c2", "#fff4b8", "#d9f7d8", "#dbe7ff", "#e8dcff", "#e4e7eb", "#c9cdd4", "#ff6b5f", "#ff9f43", "#ffd43b", "#51cf66", "#91a7ff", "#b197fc"];
+  const runBubbleCommand = (command) => {
+    applyEditorCommand(editor, command);
+    setColorPanelOpen(false);
+    setStyleMenuOpen(false);
+  };
+  const renderStylePanel = () => h("div", {
+    className: "feishu-style-panel",
+    onMouseDown: (event) => event.preventDefault()
+  }, styleItems.map((item) => h("button", {
+    key: item.command,
+    className: item.active ? "active" : "",
+    onClick: () => runBubbleCommand(item.command)
+  },
+    h("span", { className: "feishu-style-icon" }, iconNode(item.icon, 18)),
+    h("span", null, item.label),
+    item.active ? iconNode(Check, 16) : h("span", { "aria-hidden": "true" })
+  )));
   const renderColorPanel = () => h("div", {
     className: "feishu-color-panel",
     onMouseDown: (event) => event.preventDefault()
@@ -2098,54 +2132,62 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
     onMouseDown: (event) => event.preventDefault()
   }, buttons.map((button, index) => button.divider
     ? h("span", { className: "feishu-bubble-divider", key: "divider-" + index })
-    : h("button", {
-    key: button.command + "-" + index,
-    className: [button.active ? "active" : "", button.className || ""].filter(Boolean).join(" "),
-    title: button.title || button.command,
-    onClick: () => button.panel ? setColorPanelOpen((open) => !open) : applyEditorCommand(editor, button.command)
-  }, button.label)), colorPanelOpen ? renderColorPanel() : null);
+    : index === 0
+      ? [
+          h("button", {
+            key: "style-trigger",
+            className: "feishu-bubble-button feishu-style-trigger",
+            title: "\u6587\u672c\u6837\u5f0f",
+            onClick: () => {
+              setColorPanelOpen(false);
+              setStyleMenuOpen((open) => !open);
+            }
+          }, iconNode(Type, 18), iconNode(ChevronDown, 14)),
+          h("span", { className: "feishu-bubble-divider", key: "style-divider" }),
+          h("button", {
+            key: button.command + "-" + index,
+            className: ["feishu-bubble-button", button.active ? "active" : "", button.className || ""].filter(Boolean).join(" "),
+            title: button.title || button.command,
+            onClick: () => runBubbleCommand(button.command)
+          }, button.icon ? iconNode(button.icon) : button.label)
+        ]
+      : h("button", {
+          key: button.command + "-" + index,
+          className: ["feishu-bubble-button", button.active ? "active" : "", button.className || ""].filter(Boolean).join(" "),
+          title: button.title || button.command,
+          onClick: () => button.panel
+            ? (setStyleMenuOpen(false), setColorPanelOpen((open) => !open))
+            : runBubbleCommand(button.command)
+        }, button.icon ? iconNode(button.icon) : button.label)),
+    styleMenuOpen ? renderStylePanel() : null,
+    colorPanelOpen ? renderColorPanel() : null);
 }
 
 function FeishuInsertMenu({ position, run }) {
+  const iconNode = (Icon, size = 17) => h(Icon, { size, strokeWidth: 1.9, "aria-hidden": "true" });
   const sections = [
     {
-      title: "基础",
+      title: "文本",
       items: [
-        { icon: "H1", label: "标题 1", command: "h1" },
-        { icon: "H2", label: "标题 2", command: "h2" },
-        { icon: "H3", label: "标题 3", command: "h3" },
-        { icon: "1.", label: "有序列表", command: "orderedList" },
-        { icon: "•", label: "无序列表", command: "bulletList" },
-        { icon: "☑", label: "任务", command: "taskList" },
-        { icon: "{}", label: "代码块", command: "codeBlock" },
-        { icon: "“”", label: "引用", command: "blockquote" },
-        { icon: "—", label: "分割线", command: "divider" },
-        { icon: "↗", label: "链接", command: "link" }
+        { icon: Heading1, label: "标题 1", command: "h1" },
+        { icon: Heading2, label: "标题 2", command: "h2" },
+        { icon: Heading3, label: "标题 3", command: "h3" },
+        { icon: ListOrdered, label: "有序列表", command: "orderedList" },
+        { icon: List, label: "无序列表", command: "bulletList" },
+        { icon: Braces, label: "代码块", command: "codeBlock" },
+        { icon: Quote, label: "引用", command: "blockquote" },
+        { icon: Minus, label: "分割线", command: "divider" },
+        { icon: LinkIcon, label: "链接", command: "link" }
       ]
     },
     {
-      title: "常用",
+      title: "插入",
       items: [
-        { icon: "☑", label: "任务", command: "taskList", color: "#4c6fff" },
-        { icon: "▧", label: "图片", command: "image", color: "#ffb800" },
-        { icon: "▶", label: "视频", command: "video", color: "#15b8a6" },
-        { icon: "↥", label: "文件附件", command: "file", color: "#64748b" },
-        { icon: "▦", label: "表格", command: "table", color: "#00b578", arrow: true },
-        { icon: "▥", label: "分栏", command: "columns", color: "#6366f1", arrow: true },
-        { icon: "▤", label: "高亮块", command: "highlightBlock", color: "#ff7a45" },
-        { icon: "▣", label: "同步块", command: "paragraph", color: "#3b82f6" },
-        { icon: "▢", label: "按钮", command: "button", color: "#5b7cfa", arrow: true },
-        { icon: "fx", label: "\u516c\u5f0f", command: "mathBlock", color: "#6b7280" },
-        { icon: "✦", label: "模板", command: "template", color: "#f97316", arrow: true }
-      ]
-    },
-    {
-      title: "多维表格",
-      items: [
-        { icon: "▦", label: "表格", command: "table", color: "#2563eb" },
-        { icon: "▧", label: "看板", command: "columns", color: "#22c55e" },
-        { icon: "▱", label: "甘特图", command: "paragraph", color: "#ec4899" },
-        { icon: "▦", label: "画册", command: "paragraph", color: "#8b5cf6" }
+        { icon: ImageIcon, label: "图片", command: "image", color: "#ffb800" },
+        { icon: VideoIcon, label: "视频", command: "video", color: "#15b8a6" },
+        { icon: FileUp, label: "文件附件", command: "file", color: "#64748b" },
+        { icon: TableIcon, label: "表格", command: "table", color: "#00b578", arrow: true },
+        { icon: Sigma, label: "\u516c\u5f0f", command: "mathBlock", color: "#6b7280" }
       ]
     }
   ];
@@ -2156,7 +2198,7 @@ function FeishuInsertMenu({ position, run }) {
   }, sections.map((section) => h("div", { className: "feishu-menu-section", key: section.title },
     h("div", { className: "feishu-menu-title" }, section.title),
     section.items.map((item) => h("button", { key: `${section.title}-${item.label}`, onClick: (event) => run(item.command, { event, item }) },
-      h("span", { className: "feishu-menu-icon", style: { color: item.color || "#1f2329" } }, item.icon),
+      h("span", { className: "feishu-menu-icon", style: { color: item.color || "#1f2329" } }, typeof item.icon === "string" ? item.icon : iconNode(item.icon)),
       h("span", null, item.label),
       item.arrow ? h("i", null, "›") : null
     ))

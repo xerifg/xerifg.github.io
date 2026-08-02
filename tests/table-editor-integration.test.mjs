@@ -5,6 +5,7 @@ const appSource = readFileSync(new URL("../static/app.js", import.meta.url), "ut
 const cssSource = readFileSync(new URL("../static/app.css", import.meta.url), "utf8");
 const indexSource = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const bubbleToolbarSource = appSource.slice(appSource.indexOf("function FeishuBubbleToolbar"), appSource.indexOf("function FeishuInsertMenu"));
+const insertMenuSource = appSource.slice(appSource.indexOf("function FeishuInsertMenu"), appSource.indexOf("async function applyEditorCommand"));
 const tableControlsSource = appSource.slice(appSource.indexOf("function FeishuTableControls"), appSource.indexOf("function TableInsertGrid"));
 
 assert.match(appSource, /import \{ sortTableRows \} from "\.\/table-model\.mjs";/, "the editor should use the tested table sorting model");
@@ -43,15 +44,29 @@ assert.match(appSource, /closest\?\.\("\.feishu-insert-menu, \.table-insert-grid
 assert.doesNotMatch(appSource, /onMouseLeave: onClose/, "table grid picker should not close while moving between the insert menu and the grid");
 assert.match(appSource, /merge-or-split/, "the table toolbar should merge and split selected cells");
 assert.match(appSource, /sort-ascending/, "the table toolbar should sort the active column");
-assert.match(indexSource, /app\.js\?v=20260801-note-tag-actions-v1/, "the page should request the current app module instead of a cached script");
+assert.match(indexSource, /app\.js\?v=20260802-feishu-toolbar-v1/, "the page should request the current app module instead of a cached script");
 assert.match(bubbleToolbarSource, /tableSelectionInfo\(editor\)/, "the normal text toolbar should stay hidden for table selections");
-assert.match(bubbleToolbarSource, /\{ label: "H3", command: "h3"/, "the selected-text toolbar should expose a level-three heading button");
+assert.match(bubbleToolbarSource, /const \[styleMenuOpen,\s*setStyleMenuOpen\] = useState\(false\)/, "the selected-text toolbar should group block styles in a dropdown");
+assert.match(bubbleToolbarSource, /className:\s*"feishu-bubble-button feishu-style-trigger"/, "the selected-text toolbar should use one aligned style trigger");
+assert.match(bubbleToolbarSource, /className:\s*"feishu-style-panel"/, "the selected-text toolbar should render a Feishu-like style menu");
+assert.match(bubbleToolbarSource, /label: "\\u6807\\u9898 3",\s*command: "h3"/, "the style menu should keep level-three heading available in Chinese");
+for (const englishStyleLabel of ["Body Text", "Heading 1", "Heading 2", "Heading 3", "Numbered List", "Bulleted List"]) {
+  assert.doesNotMatch(bubbleToolbarSource, new RegExp(englishStyleLabel), "the selected-text style menu should use Chinese labels");
+}
 assert.match(bubbleToolbarSource, /command: "textColor"/, "the selected-text toolbar should expose a text color palette trigger");
 assert.doesNotMatch(bubbleToolbarSource, /command: "highlight"/, "the selected-text toolbar should not expose a separate highlight button");
 assert.doesNotMatch(bubbleToolbarSource, /highlight-icon/, "the selected-text toolbar should not keep separate highlight icon styling");
 assert.match(bubbleToolbarSource, /\{ label: "A", command: "textColor"/, "the selected-text toolbar should keep A for text color");
 assert.match(bubbleToolbarSource, /backgroundColors/, "the color panel should keep background highlight choices");
 assert.match(bubbleToolbarSource, /feishu-color-panel/, "the selected-text toolbar should render a compact color panel");
+assert.doesNotMatch(insertMenuSource, /command: "taskList"/, "the insert menu should not expose task buttons while tasks are not needed");
+assert.doesNotMatch(insertMenuSource, /command: "columns"/, "the insert menu should not expose placeholder columns");
+assert.doesNotMatch(insertMenuSource, /command: "highlightBlock"/, "the insert menu should not expose placeholder highlight blocks");
+assert.doesNotMatch(insertMenuSource, /command: "button"/, "the insert menu should not expose placeholder buttons");
+assert.doesNotMatch(insertMenuSource, /command: "template"/, "the insert menu should not expose placeholder templates");
+assert.doesNotMatch(insertMenuSource, /多维表格/, "the insert menu should not expose inactive bitable views");
+assert.match(insertMenuSource, /title: "文本"/, "the insert menu should keep implemented text blocks grouped together");
+assert.match(insertMenuSource, /title: "插入"/, "the insert menu should keep implemented media and table blocks grouped together");
 assert.match(appSource, /import Color from "https:\/\/esm\.sh\/@tiptap\/extension-color@2\.11\.7";/, "text color should use Tiptap color extension");
 assert.match(appSource, /import katex from "https:\/\/esm\.sh\/katex@0\.16\.22";/, "math rendering should use KaTeX in the browser");
 assert.match(appSource, /const MathInline = Node\.create/, "the editor should support inline math nodes");
