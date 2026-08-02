@@ -1473,7 +1473,12 @@ function App() {
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
         if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       } },
-        h("input", { autoFocus: true, value: commandQuery, placeholder: "搜索命令…", onChange: (event) => setCommandQuery(event.target.value) }),
+        h("input", { autoFocus: true, value: commandQuery, placeholder: "搜索命令…", onChange: (event) => setCommandQuery(event.target.value), onKeyDown: (event) => {
+          const buttons = Array.from(event.currentTarget.closest(".command-palette")?.querySelectorAll(".command-palette-list button") || []);
+          if (event.key === "ArrowDown") { event.preventDefault(); buttons[0]?.focus(); }
+          if (event.key === "ArrowUp") { event.preventDefault(); buttons.at(-1)?.focus(); }
+          if (event.key === "Enter") { event.preventDefault(); buttons[0]?.click(); }
+        } }),
         h("div", { className: "command-palette-list" }, commandItems.map((item) => h("button", { key: item.id, type: "button", onClick: () => { item.run(); closeCommandPalette(); } }, item.label)))
       )
     ) : null

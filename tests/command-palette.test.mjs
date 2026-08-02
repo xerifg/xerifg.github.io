@@ -9,3 +9,6 @@ assert.match(app, /className: "command-palette"/);
 assert.match(app, /role: "dialog"/);
 assert.match(app, /event\.key !== "Tab"/);
 assert.match(app, /querySelectorAll\("input:not\(:disabled\), button:not\(:disabled\)"\)/);
+assert.match(app, /event\.key === "ArrowDown"/);
+assert.match(app, /event\.key === "ArrowUp"/);
+assert.match(app, /event\.key === "Enter"/);
