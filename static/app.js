@@ -24,6 +24,7 @@ import {
 } from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
+import { filterCommandItems } from "./command-palette.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
 import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
@@ -407,8 +408,17 @@ function App() {
   const [localPersistenceStatus, setLocalPersistenceStatus] = useState("saved");
   const [dragTarget, setDragTarget] = useState(null);
   const [draggedTreeItem, setDraggedTreeItem] = useState(null);
+  const [isDocumentSwitching, setIsDocumentSwitching] = useState(false);
   const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(false);
   const [treeFocusId, setTreeFocusId] = useState("");
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const commandPaletteTriggerRef = useRef(null);
+  const closeCommandPalette = () => {
+    setCommandPaletteOpen(false);
+    setCommandQuery("");
+    window.setTimeout(() => commandPaletteTriggerRef.current?.isConnected && commandPaletteTriggerRef.current.focus(), 0);
+  };
   const notebookPersistencePayload = JSON.stringify(notebookStateForPersistence(state));
 
   useEffect(() => {
@@ -482,6 +492,18 @@ function App() {
     const timer = window.setTimeout(() => setToast(""), 2600);
     return () => window.clearTimeout(timer);
   }, [toast]);
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        commandPaletteTriggerRef.current = document.activeElement;
+        setCommandPaletteOpen((open) => !open);
+      }
+      if (event.key === "Escape") closeCommandPalette();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
 
   const note = currentNote(state);
@@ -571,6 +593,7 @@ function App() {
     return false;
   };
   const selectNote = (noteId) => {
+    setIsDocumentSwitching(true);
     patchState((draft) => {
       draft.activeId = noteId;
       draft.collapsedFolders = revealNoteFolderPath(draft.collapsedFolders, draft.folders, draft.notes, noteId);
@@ -580,6 +603,7 @@ function App() {
       draft.openCreateMenu = null;
     });
     setIsContextSidebarOpen(false);
+    window.setTimeout(() => setIsDocumentSwitching(false), 180);
   };
 
   const treeDragDisabled = Boolean(state.query.trim());
@@ -593,6 +617,7 @@ function App() {
   };
   const treeDrag = {
     disabled: treeDragDisabled,
+    draggedItem: draggedTreeItem,
     start: (event, item) => {
       if (treeDragDisabled) return;
       setDraggedTreeItem(item);
@@ -666,6 +691,11 @@ function App() {
     });
     setIsContextSidebarOpen(false);
   };
+  const commandItems = filterCommandItems([
+    { id: "new-note", label: "新建笔记", run: () => createNote() },
+    { id: "settings", label: "打开设置", run: () => navigate("settings") },
+    { id: "library", label: "打开笔记", run: () => navigate("library") }
+  ], commandQuery);
   const openArea = (folderId) => {
     patchState((draft) => {
       const folderIds = new Set([folderId]);
@@ -1251,8 +1281,15 @@ function App() {
       publishSelectedChanges(state.modalContext?.settings, state.modalContext?.review, selectedIds);
     }
     if (action === "confirm-delete-drafts") confirmDeleteDrafts();
-    if (action === "delete-note") deleteNote(targetFolderId || state.activeId);
-    if (action === "delete-folder") deleteFolder(targetFolderId);
+    if (action === "delete-note" || action === "delete-folder") {
+      patchState((draft) => {
+        draft.modal = action === "delete-note" ? "confirm-delete-note" : "confirm-delete-folder";
+        draft.modalContext = { targetId: targetFolderId || state.activeId };
+        draft.openCreateMenu = null;
+      });
+    }
+    if (action === "confirm-delete-note") deleteNote(state.modalContext?.targetId);
+    if (action === "confirm-delete-folder") deleteFolder(state.modalContext?.targetId);
     if (action === "rename-note-tag") {
       if (!targetFolderId || !note || !requireEditPermission("edit")) return;
       patchState((draft) => {
@@ -1390,7 +1427,7 @@ function App() {
         : state.view === "library"
           ? renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen)
           : null,
-      h("main", { className: "content" },
+      h("main", { className: `content ${isDocumentSwitching ? "is-document-switching" : ""}` },
         state.view === "library"
           ? h("button", {
               type: "button",
@@ -1414,7 +1451,13 @@ function App() {
       )
     ),
     renderModal(state, handleAction),
-    toast ? h("div", { className: "toast" }, toast) : null
+    toast ? h("div", { className: "toast" }, toast) : null,
+    commandPaletteOpen ? h("div", { className: "command-palette-backdrop", onMouseDown: closeCommandPalette },
+      h("div", { className: "command-palette", role: "dialog", "aria-modal": "true", "aria-label": "命令面板", onMouseDown: (event) => event.stopPropagation() },
+        h("input", { autoFocus: true, value: commandQuery, placeholder: "搜索命令…", onChange: (event) => setCommandQuery(event.target.value) }),
+        h("div", { className: "command-palette-list" }, commandItems.map((item) => h("button", { key: item.id, type: "button", onClick: () => { item.run(); closeCommandPalette(); } }, item.label)))
+      )
+    ) : null
   );
 }
 
@@ -2945,6 +2988,8 @@ function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, 
     note ? h("span", {
       className: "document-save-status",
       role: "status",
+      "aria-live": "polite",
+      "data-state": localPersistenceStatus,
       title: localPersistenceStatusText(localPersistenceStatus)
     }, localPersistenceStatusText(localPersistenceStatus)) : null,
     h("div", { className: "toolbar" },
@@ -3155,7 +3200,7 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
           h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-folder", folder.id) }, "删除文件夹")
         )
       : null,
-    isCollapsed ? null : h("div", { role: "group" },
+    isCollapsed ? null : h("div", { className: "tree-folder-children", role: "group" },
       notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)),
       children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard))
     )
@@ -3786,7 +3831,7 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
   const isActive = note.id === state.activeId;
   return h("div", { className: "tree-section", key: note.id },
     h("button", {
-      className: `tree-note indent-${Math.min(depth, 3)} ${isActive ? "active" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
+      className: `tree-note indent-${Math.min(depth, 3)} ${isActive ? "active" : ""} ${treeDrag.draggedItem?.type === "note" && treeDrag.draggedItem.id === note.id ? "is-dragging" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
       role: "treeitem",
       "aria-level": depth + 1,
       "aria-current": isActive ? "page" : undefined,
@@ -4075,6 +4120,14 @@ function renderModal(state, handleAction) {
     return modalShell("重命名文档", "修改后，发表时会同步到文档索引。",
       h("div", { className: "field" }, h("label", null, "文档名"), h("input", { "data-modal-input": "renameNote", defaultValue: note?.title || "", placeholder: "文档名" })),
       "保存", "confirm-rename-note", handleAction);
+  }
+  if (state.modal === "confirm-delete-note") {
+    const note = state.notes.find((item) => item.id === state.modalContext?.targetId);
+    return modalShell("删除文档？", `「${note?.title || "未命名文档"}」会从本地草稿中移除。`, null, "删除", "confirm-delete-note", handleAction, { confirmClassName: "danger-btn" });
+  }
+  if (state.modal === "confirm-delete-folder") {
+    const folder = state.folders.find((item) => item.id === state.modalContext?.targetId);
+    return modalShell("删除文件夹？", `「${folder?.name || "未命名文件夹"}」及其内容会从本地草稿中移除。`, null, "删除", "confirm-delete-folder", handleAction, { confirmClassName: "danger-btn" });
   }
   if (state.modal === "manage-tag") {
     const isRename = state.modalContext?.mode === "rename" || state.modalContext?.mode === "rename-note";
