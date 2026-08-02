@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1785677251153",
+  "title": "Transformers",
+  "folderId": "folder-1785677240481",
+  "path": "Notebooks/NLP模型",
+  "tags": [],
+  "createdAt": "2026-08-02T13:28:50.043Z",
+  "updatedAt": "2026-08-02T13:31:21.194Z",
+  "assets": [],
+  "html": "<p><a target=\"_blank\" rel=\"noreferrer\" href=\"https://huggingface.co/docs/transformers/index\">Transformers</a><span style=\"color: rgb(51, 51, 51);\"> 是由 </span><a target=\"_blank\" rel=\"noreferrer\" href=\"https://huggingface.co/\">Hugging Face</a><span style=\"color: rgb(51, 51, 51);\"> 开发的一个自然语言处理 （Natural Language Processing，NLP） 包，支持加载目前流行的各种预训练模型。随着 BERT、GPT 等语言模型的兴起，越来越多的公司和研究者采用 Transformers 库来构建 NLP 应用。</span></p><p>参考：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://transformers.run/\">https://transformers.run/</a></p>"
+}
