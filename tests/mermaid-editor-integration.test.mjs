@@ -10,14 +10,18 @@ assert.match(app, /mermaid\.initialize\(\{ startOnLoad: false, securityLevel: "s
 assert.match(app, /const MermaidDiagram = Node\.create\(/);
 assert.match(app, /name: mermaidDiagramType/);
 assert.match(app, /data-mermaid-code/);
-assert.match(app, /data-mermaid-graph/);
-assert.match(app, /data-mermaid-positions/);
+assert.doesNotMatch(app, /mermaid-flow-model\.mjs|parseMermaidFlow|MermaidFlowCanvas/);
+assert.doesNotMatch(app, /data-mermaid-graph|data-mermaid-positions/);
 assert.match(app, /function insertMermaidDiagram\(editor\)/);
 assert.match(app, /insertBlockWithEditableParagraph\(editor, \{[\s\S]*type: mermaidDiagramType/s);
 const insertMenu = app.slice(app.indexOf("function FeishuInsertMenu"), app.indexOf("async function applyEditorCommand"));
 assert.match(insertMenu, /label: "Mermaid 流程图", command: "mermaidDiagram"/);
 assert.ok(insertMenu.indexOf('command: "mermaidDiagram"') < insertMenu.indexOf('command: "mathBlock"'), "Mermaid should remain visible before the formula entry in the compact insert menu");
 assert.match(app, /if \(command === "mermaidDiagram"\) \{[\s\S]*insertMermaidDiagram\(editor\)/);
-assert.match(index, /app\.js\?v=20260802-mermaid-diagrams-v2/);
+assert.match(index, /app\.js\?v=20260802-mermaid-diagrams-v3/);
+assert.match(app, /lastSuccessfulSvg/);
+assert.match(app, /classDef inputStyle/);
+assert.match(app, /subgraph Input_Stage/);
+assert.match(app, /UT1\[上采样特征 1\] & UT2\[上采样特征 2\] & UT3\[上采样特征 3\] -->/);
 
 console.log("mermaid editor integration contracts passed");
