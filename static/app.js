@@ -1624,6 +1624,7 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
   const readerRef = useRef(null);
   const closePreviewTimerRef = useRef(0);
+  const imagePreviewTriggerRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
@@ -1643,6 +1644,7 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
     closePreviewTimerRef.current = window.setTimeout(() => {
       closePreviewTimerRef.current = 0;
       setImagePreview(null);
+      imagePreviewTriggerRef.current?.isConnected && imagePreviewTriggerRef.current.focus();
     }, 180);
   }, []);
 
@@ -1658,6 +1660,8 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
   const openImagePreview = useCallback((event) => {
     const image = event.target?.closest?.("img");
     if (!image) return false;
+    image.tabIndex = 0;
+    imagePreviewTriggerRef.current = image;
     event.preventDefault();
     event.stopPropagation();
     if (closePreviewTimerRef.current) {
