@@ -179,7 +179,7 @@ assert.match(
 );
 assert.match(
   index,
-  /\.\/static\/app\.css\?v=20260802-mermaid-diagrams-v2/,
+  /\.\/static\/app\.css\?v=20260802-mermaid-diagrams-v3/,
   "the browser should request the corrected home and tag layout stylesheet"
 );
 
