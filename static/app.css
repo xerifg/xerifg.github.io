@@ -380,6 +380,7 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
 }
 .document-save-status[data-state="saving"] { color: var(--blue-dark); }
 .document-save-status[data-state="error"] { color: var(--red); }
+button.document-save-status[data-state="error"] { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
 .toolbar {
   display: flex;

@@ -470,6 +470,16 @@ function App() {
       if (savedTimer) window.clearTimeout(savedTimer);
     };
   }, [notebookPersistencePayload]);
+  const retryLocalPersistence = () => {
+    setLocalPersistenceStatus(resolveLocalPersistenceStatus("start"));
+    try {
+      persist(notebookPersistencePayload);
+      window.setTimeout(() => setLocalPersistenceStatus(resolveLocalPersistenceStatus("success")), 120);
+    } catch (error) {
+      console.error("Draft persistence retry failed", error);
+      setLocalPersistenceStatus(resolveLocalPersistenceStatus("failure"));
+    }
+  };
 
   useEffect(() => {
     try {
@@ -1290,6 +1300,7 @@ function App() {
     }
     if (action === "confirm-delete-note") deleteNote(state.modalContext?.targetId);
     if (action === "confirm-delete-folder") deleteFolder(state.modalContext?.targetId);
+    if (action === "retry-local-persistence") retryLocalPersistence();
     if (action === "rename-note-tag") {
       if (!targetFolderId || !note || !requireEditPermission("edit")) return;
       patchState((draft) => {
@@ -2993,13 +3004,15 @@ function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, 
       note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null,
       h("strong", null, note ? note.title : "创建第一篇笔记")
     ),
-    note ? h("span", {
+    note ? h(localPersistenceStatus === "error" ? "button" : "span", {
       className: "document-save-status",
       role: "status",
       "aria-live": "polite",
       "data-state": localPersistenceStatus,
+      type: localPersistenceStatus === "error" ? "button" : undefined,
+      onClick: localPersistenceStatus === "error" ? () => handleAction("retry-local-persistence") : undefined,
       title: localPersistenceStatusText(localPersistenceStatus)
-    }, localPersistenceStatusText(localPersistenceStatus)) : null,
+    }, localPersistenceStatus === "error" ? "保存失败，点击重试" : localPersistenceStatusText(localPersistenceStatus)) : null,
     h("div", { className: "toolbar" },
       note ? h("div", { className: "document-action-group" },
         h("button", {
