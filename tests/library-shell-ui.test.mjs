@@ -117,8 +117,13 @@ const publishSheetSource = app.slice(app.indexOf("function PublishReviewSheet"),
 
 assert.match(
   treeDragSource,
-  /\["note", "folder"\]\.includes\(draggedTreeItem\?\.type\) && item\.type === "folder"/,
+  /\["note", "folder"\]\.includes\(draggedTreeItemRef\.current\?\.type\) && item\.type === "folder"/,
   "folder and note drags should use the folder middle zone as an inside target"
+);
+assert.match(
+  treeDragSource,
+  /draggedTreeItemRef\.current\?\.type/,
+  "folder drop targeting should read the synchronously captured drag item instead of waiting for React state"
 );
 
 assert.match(

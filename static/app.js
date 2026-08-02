@@ -532,6 +532,7 @@ function App() {
   const [localPersistenceStatus, setLocalPersistenceStatus] = useState("saved");
   const [dragTarget, setDragTarget] = useState(null);
   const [draggedTreeItem, setDraggedTreeItem] = useState(null);
+  const draggedTreeItemRef = useRef(null);
   const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(false);
   const [treeFocusId, setTreeFocusId] = useState("");
   const notebookPersistencePayload = JSON.stringify(notebookStateForPersistence(state));
@@ -711,7 +712,7 @@ function App() {
   const targetForTreeEvent = (event, item) => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const offset = (event.clientY - bounds.top) / Math.max(bounds.height, 1);
-    if (["note", "folder"].includes(draggedTreeItem?.type) && item.type === "folder" && offset > .25 && offset < .75) {
+    if (["note", "folder"].includes(draggedTreeItemRef.current?.type) && item.type === "folder" && offset > .25 && offset < .75) {
       return { ...item, position: "inside" };
     }
     return { ...item, position: offset < .5 ? "before" : "after" };
@@ -720,6 +721,7 @@ function App() {
     disabled: treeDragDisabled,
     start: (event, item) => {
       if (treeDragDisabled) return;
+      draggedTreeItemRef.current = item;
       setDraggedTreeItem(item);
       event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("application/x-notebook-tree-item", JSON.stringify(item));
@@ -736,16 +738,18 @@ function App() {
     },
     end: () => {
       setDragTarget(null);
+      draggedTreeItemRef.current = null;
       setDraggedTreeItem(null);
     },
     drop: (event, item) => {
       event.preventDefault();
       setDragTarget(null);
+      const target = targetForTreeEvent(event, item);
+      draggedTreeItemRef.current = null;
       setDraggedTreeItem(null);
       if (treeDragDisabled || !requireEditPermission("edit")) return;
       try {
         const dragged = JSON.parse(event.dataTransfer.getData("application/x-notebook-tree-item"));
-        const target = targetForTreeEvent(event, item);
         const result = applyTreeDrop(state, dragged, target);
         if (!result.changed) {
           if (result.reason === "descendant-folder") setToast("文件夹不能拖入自身的子目录");
