@@ -26,14 +26,19 @@ export function applyTreeDrop(state, dragged, target) {
     const targetIndex = state.folders.findIndex((folder) => folder.id === target.id);
     if (draggedIndex < 0 || targetIndex < 0 || target.type !== "folder") return unchanged(state, "invalid-target");
     if (isDescendantFolder(state.folders, dragged.id, target.id)) return unchanged(state, "descendant-folder");
-    if (target.position !== "before" && target.position !== "after") return unchanged(state, "invalid-target");
+    if (target.position !== "before" && target.position !== "after" && target.position !== "inside") return unchanged(state, "invalid-target");
 
     const folders = state.folders.map((folder) => ({ ...folder }));
     const [draggedFolder] = folders.splice(draggedIndex, 1);
-    const adjustedTargetIndex = folders.findIndex((folder) => folder.id === target.id);
-    const insertionIndex = target.position === "after" ? adjustedTargetIndex + 1 : adjustedTargetIndex;
-    draggedFolder.parentId = state.folders[targetIndex].parentId || null;
-    folders.splice(insertionIndex, 0, draggedFolder);
+    if (target.position === "inside") {
+      draggedFolder.parentId = target.id;
+      folders.push(draggedFolder);
+    } else {
+      const adjustedTargetIndex = folders.findIndex((folder) => folder.id === target.id);
+      const insertionIndex = target.position === "after" ? adjustedTargetIndex + 1 : adjustedTargetIndex;
+      draggedFolder.parentId = state.folders[targetIndex].parentId || null;
+      folders.splice(insertionIndex, 0, draggedFolder);
+    }
 
     return { folders, notes: state.notes, changed: true, reason: "moved" };
   }

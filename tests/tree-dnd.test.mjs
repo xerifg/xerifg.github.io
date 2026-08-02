@@ -21,6 +21,13 @@ const source = {
 }
 
 {
+  const result = applyTreeDrop(source, { type: "folder", id: "tools" }, { type: "folder", id: "projects", position: "inside" });
+  assert.equal(result.changed, true);
+  assert.equal(result.folders.find((folder) => folder.id === "tools").parentId, "projects");
+  assert.equal(result.folders.find((folder) => folder.id === "robot").parentId, "projects");
+}
+
+{
   const result = applyTreeDrop(source, { type: "note", id: "sdk" }, { type: "folder", id: "robot", position: "inside" });
   assert.equal(result.changed, true);
   assert.equal(result.notes.at(-1).id, "sdk");
