@@ -152,6 +152,14 @@ assert.match(
   "an ordinary editable pre should receive the blue border only while focused"
 );
 
+for (const selector of [".feishu-editor code", ".tiptap-reader code"]) {
+  const inlineCode = ruleBodies(selector);
+  assert.match(inlineCode, /border:\s*1px solid #dee0e3/, `${selector} should use a Feishu-like subtle outline`);
+  assert.match(inlineCode, /background:\s*#f2f3f5/, `${selector} should use the Feishu inline code chip surface`);
+  assert.match(inlineCode, /border-radius:\s*4px/, `${selector} should keep the compact inline code radius`);
+  assert.match(inlineCode, /font-size:\s*\.875em/, `${selector} should sit slightly smaller than body text`);
+}
+
 assert.match(
   app,
   /enhanceReaderCodeBlocks\(readerRef\.current\)/,
