@@ -2493,8 +2493,8 @@ function FeishuInsertMenu({ position, run }) {
         { icon: VideoIcon, label: "视频", command: "video", color: "#15b8a6" },
         { icon: FileUp, label: "文件附件", command: "file", color: "#64748b" },
         { icon: TableIcon, label: "表格", command: "table", color: "#00b578", arrow: true },
-        { icon: Sigma, label: "\u516c\u5f0f", command: "mathBlock", color: "#6b7280" },
-        { icon: GitBranch, label: "Mermaid 流程图", command: "mermaidDiagram", color: "#3370ff" }
+        { icon: GitBranch, label: "Mermaid 流程图", command: "mermaidDiagram", color: "#3370ff" },
+        { icon: Sigma, label: "\u516c\u5f0f", command: "mathBlock", color: "#6b7280" }
       ]
     }
   ];
