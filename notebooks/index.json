@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-02T07:21:43.781Z",
+  "updatedAt": "2026-08-02T13:31:21.194Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -36,31 +36,51 @@
       "id": "folder-1785325659605",
       "name": "AI",
       "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1785676511361",
+      "name": "大模型",
+      "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1785676866176",
+      "name": "滤波算法",
+      "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1785676968352",
+      "name": "检测模型",
+      "parentId": "folder-1783672397764"
+    },
+    {
+      "id": "folder-1785677240481",
+      "name": "NLP模型",
+      "parentId": "folder-writing"
     }
   ],
   "docs": [
     {
       "id": "note-1784688756600",
       "title": "VoxelNet模型",
-      "folderId": "folder-1783672397764",
-      "path": "Notebooks/自动驾驶",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
         "模型",
         "VoxelNet"
       ],
-      "updatedAt": "2026-07-27T12:00:57.127Z",
+      "updatedAt": "2026-08-02T13:31:21.194Z",
       "file": "notebooks/docs/voxelnet模型.json"
     },
     {
       "id": "note-1784083273659",
       "title": "VIT模型",
-      "folderId": "folder-1783672397764",
-      "path": "Notebooks/自动驾驶",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
         "模型",
         "ViT"
       ],
-      "updatedAt": "2026-07-27T04:03:50.401Z",
+      "updatedAt": "2026-08-02T13:31:21.194Z",
       "file": "notebooks/docs/vit模型.json"
     },
     {
@@ -79,25 +99,25 @@
     {
       "id": "note-1783998656108",
       "title": "BERT模型",
-      "folderId": "folder-1783672397764",
-      "path": "Notebooks/自动驾驶",
+      "folderId": "folder-1785677240481",
+      "path": "Notebooks/NLP模型",
       "tags": [
         "模型",
         "BERT"
       ],
-      "updatedAt": "2026-07-27T04:03:50.401Z",
+      "updatedAt": "2026-08-02T13:31:21.194Z",
       "file": "notebooks/docs/bert模型.json"
     },
     {
       "id": "note-1783909429169",
       "title": "BEV模型技术路线",
-      "folderId": "folder-1783672397764",
-      "path": "Notebooks/自动驾驶",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
         "自动驾驶",
         "bev模型"
       ],
-      "updatedAt": "2026-07-27T04:03:50.401Z",
+      "updatedAt": "2026-08-02T13:31:21.194Z",
       "file": "notebooks/docs/bev模型技术路线.json"
     },
     {
@@ -165,26 +185,26 @@
     {
       "id": "note-1785207464379",
       "title": "PointPillars模型",
-      "folderId": "folder-1783672397764",
-      "path": "Notebooks/自动驾驶",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
         "模型",
         "PointPillars"
       ],
-      "updatedAt": "2026-07-30T03:16:50.052Z",
+      "updatedAt": "2026-08-02T13:31:21.194Z",
       "file": "notebooks/docs/pointpillars模型.json"
     },
     {
       "id": "note-1785294364683",
       "title": "SECOND检测模型",
-      "folderId": "folder-1783672397764",
-      "path": "Notebooks/自动驾驶",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
         "模型",
         "自动驾驶",
         "SECOND"
       ],
-      "updatedAt": "2026-07-29T06:10:44.012Z",
+      "updatedAt": "2026-08-02T13:31:21.194Z",
       "file": "notebooks/docs/second检测模型.json"
     },
     {
@@ -222,6 +242,42 @@
       ],
       "updatedAt": "2026-08-02T07:21:43.781Z",
       "file": "notebooks/docs/提示词.json"
+    },
+    {
+      "id": "note-1785677374296",
+      "title": "自适应卡尔曼滤波算法",
+      "folderId": "folder-1785676866176",
+      "path": "Notebooks/滤波算法",
+      "tags": [],
+      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "file": "notebooks/docs/自适应卡尔曼滤波算法.json"
+    },
+    {
+      "id": "note-1785677251153",
+      "title": "Transformers",
+      "folderId": "folder-1785677240481",
+      "path": "Notebooks/NLP模型",
+      "tags": [],
+      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "file": "notebooks/docs/transformers.json"
+    },
+    {
+      "id": "note-1785676869473",
+      "title": "卡尔曼滤波",
+      "folderId": "folder-1785676866176",
+      "path": "Notebooks/滤波算法",
+      "tags": [],
+      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "file": "notebooks/docs/卡尔曼滤波.json"
+    },
+    {
+      "id": "note-1785676521968",
+      "title": "LLM训练指南",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/大模型",
+      "tags": [],
+      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "file": "notebooks/docs/llm训练指南.json"
     }
   ]
 }
