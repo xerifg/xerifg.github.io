@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1785677374296",
+  "title": "自适应卡尔曼滤波算法",
+  "folderId": "folder-1785676866176",
+  "path": "Notebooks/滤波算法",
+  "tags": [],
+  "createdAt": "2026-08-02T13:30:05.467Z",
+  "updatedAt": "2026-08-02T13:31:21.194Z",
+  "assets": [],
+  "html": "<p>《Adaptive Adjustment of Noise Covariance in Kalman Filter for Dynamic State Estimation》</p>"
+}
