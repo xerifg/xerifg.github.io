@@ -1521,6 +1521,10 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   animation: bubbleIn .14s cubic-bezier(.2, .8, .2, 1);
 }
 
+.feishu-bubble button {
+  color: var(--text);
+}
+
 @keyframes bubbleIn {
   from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(.98); }
   to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
