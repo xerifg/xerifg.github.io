@@ -2,14 +2,14 @@
   "version": 1,
   "id": "note-1784688756600",
   "title": "VoxelNet模型",
-  "folderId": "folder-1783672397764",
-  "path": "Notebooks/自动驾驶",
+  "folderId": "folder-1785676968352",
+  "path": "Notebooks/自动驾驶/检测模型",
   "tags": [
     "模型",
     "VoxelNet"
   ],
-  "createdAt": "2026-07-27T11:58:32.688Z",
-  "updatedAt": "2026-07-27T12:00:57.127Z",
+  "createdAt": "2026-07-27T12:00:57.127Z",
+  "updatedAt": "2026-08-02T13:31:21.194Z",
   "assets": [
     {
       "id": "asset-1784689233342-kinqk8",
