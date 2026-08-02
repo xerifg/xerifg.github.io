@@ -675,7 +675,7 @@ function App() {
   useEffect(() => {
     if (!state.openCreateMenu) return undefined;
     const closeCreateMenu = (event) => {
-      if (event.target.closest?.(".create-menu, .mini-action, .document-overflow-menu, .document-overflow-trigger")) return;
+      if (event.target.closest?.(".create-menu, .mini-action, .sidebar-create-control, .document-overflow-menu, .document-overflow-trigger")) return;
       patchState((draft) => {
         draft.openCreateMenu = null;
       });
@@ -711,7 +711,7 @@ function App() {
   const targetForTreeEvent = (event, item) => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const offset = (event.clientY - bounds.top) / Math.max(bounds.height, 1);
-    if (draggedTreeItem?.type === "note" && item.type === "folder" && offset > .25 && offset < .75) {
+    if (["note", "folder"].includes(draggedTreeItem?.type) && item.type === "folder" && offset > .25 && offset < .75) {
       return { ...item, position: "inside" };
     }
     return { ...item, position: offset < .5 ? "before" : "after" };
@@ -3224,12 +3224,20 @@ function renderContextSidebar(state, visibleNotes, selectNote, handleAction, tre
         h("strong", null, "我的知识库"),
         h("span", null, "个人笔记")
       ),
-      h("button", {
-        className: "sidebar-add-note",
-        "aria-label": "\u65b0\u5efa\u9876\u7ea7\u6587\u4ef6\u5939",
-        title: "\u65b0\u5efa\u9876\u7ea7\u6587\u4ef6\u5939",
-        onClick: () => handleAction("new-folder-in-folder", null)
-      }, icon("add"))
+      h("div", { className: "sidebar-create-control" },
+        h("button", {
+          className: "sidebar-add-note",
+          "aria-label": "新建",
+          title: "新建",
+          onClick: () => handleAction("toggle-create-menu", "root")
+        }, icon("add")),
+        state.openCreateMenu === "root"
+          ? h("div", { className: "create-menu" },
+              h("button", { onClick: () => handleAction("new-note-in-folder", null) }, "新建文档"),
+              h("button", { onClick: () => handleAction("new-folder-in-folder", null) }, "新建文件夹")
+            )
+          : null
+      )
     ),
     h("label", { className: "search-wrap" },
       icon("search", { size: 16 }),

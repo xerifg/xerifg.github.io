@@ -112,16 +112,24 @@ assert.match(css, /\.feishu-bubble::after\s*\{[^}]*display:\s*none;/s);
 const primaryRailSource = ui.slice(ui.indexOf("export function PrimaryRail"), ui.indexOf("export function LibraryHome"));
 const settingsSidebarSource = ui.slice(ui.indexOf("export function SettingsSidebar"), ui.indexOf("function settingRow"));
 const contextSidebarSource = app.slice(app.indexOf("function renderContextSidebar"), app.indexOf("function renderTree"));
+const treeDragSource = app.slice(app.indexOf("const targetForTreeEvent"), app.indexOf("const treeDrag ="));
 const publishSheetSource = app.slice(app.indexOf("function PublishReviewSheet"), app.indexOf("function renderModal"));
 
-assert.ok(
-  contextSidebarSource.includes('"aria-label": "\\u65b0\\u5efa\\u9876\\u7ea7\\u6587\\u4ef6\\u5939"'),
-  "the library header plus button should announce top-level folder creation"
+assert.match(
+  treeDragSource,
+  /\["note", "folder"\]\.includes\(draggedTreeItem\?\.type\) && item\.type === "folder"/,
+  "folder and note drags should use the folder middle zone as an inside target"
+);
+
+assert.match(
+  contextSidebarSource,
+  /className:\s*"sidebar-add-note"[^}]*"aria-label":\s*"新建"[^}]*onClick:\s*\(\)\s*=>\s*handleAction\("toggle-create-menu",\s*"root"\)/s,
+  "the library header plus button should open the root create menu"
 );
 assert.match(
   contextSidebarSource,
-  /className:\s*"sidebar-add-note"[^}]*onClick:\s*\(\)\s*=>\s*handleAction\("new-folder-in-folder",\s*null\)/s,
-  "the library header plus button should create a top-level folder"
+  /state\.openCreateMenu === "root"[\s\S]*handleAction\("new-note-in-folder",\s*null\)[\s\S]*handleAction\("new-folder-in-folder",\s*null\)/,
+  "the root create menu should offer both root document and folder creation"
 );
 
 assert.match(primaryRailSource, /h\("nav",\s*\{[^}]*"aria-label":\s*"\u4e3b\u5bfc\u822a"/s);

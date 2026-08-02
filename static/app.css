@@ -3039,6 +3039,8 @@ body { background: #fff; }
 .sidebar-heading strong, .sidebar-heading span { display: block; }
 .sidebar-heading strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; }
 .sidebar-heading span { margin-top: 2px; color: #8a9099; font-size: 11px; }
+.sidebar-create-control { position: relative; }
+.sidebar-create-control > .create-menu { right: 0; top: 36px; }
 .sidebar-add-note { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: #596273; }
 .sidebar-add-note:hover { background: #e9edf3; color: #126bd4; }
 .search-wrap { position: relative; display: flex; align-items: center; margin: 0 14px 12px; padding: 0; color: #969ca6; }
