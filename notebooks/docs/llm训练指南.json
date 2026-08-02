@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1785676521968",
+  "title": "LLM训练指南",
+  "folderId": "folder-1785676511361",
+  "path": "Notebooks/大模型",
+  "tags": [],
+  "createdAt": "2026-08-02T13:16:42.794Z",
+  "updatedAt": "2026-08-02T13:31:21.194Z",
+  "assets": [],
+  "html": "<p>主要介绍了大模型预训练的<strong>Token及模型参数准备</strong></p><p>参考：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://zhuanlan.zhihu.com/p/636812912\">https://zhuanlan.zhihu.com/p/636812912</a></p><hr><p></p>"
+}
