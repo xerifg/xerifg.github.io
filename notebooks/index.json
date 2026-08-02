@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-01T10:04:12.748Z",
+  "updatedAt": "2026-08-02T07:21:43.781Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -217,10 +217,10 @@
       "folderId": "folder-1785325659605",
       "path": "Notebooks/AI",
       "tags": [
-        "AI",
-        "提示词"
+        "提示词",
+        "AI"
       ],
-      "updatedAt": "2026-07-30T03:07:16.173Z",
+      "updatedAt": "2026-08-02T07:21:43.781Z",
       "file": "notebooks/docs/提示词.json"
     }
   ]
