@@ -44,7 +44,7 @@ assert.match(appSource, /closest\?\.\("\.feishu-insert-menu, \.table-insert-grid
 assert.doesNotMatch(appSource, /onMouseLeave: onClose/, "table grid picker should not close while moving between the insert menu and the grid");
 assert.match(appSource, /merge-or-split/, "the table toolbar should merge and split selected cells");
 assert.match(appSource, /sort-ascending/, "the table toolbar should sort the active column");
-assert.match(indexSource, /app\.js\?v=20260802-feishu-toolbar-v1/, "the page should request the current app module instead of a cached script");
+assert.match(indexSource, /app\.js\?v=20260802-mermaid-diagrams-v1/, "the page should request the current app module instead of a cached script");
 assert.match(bubbleToolbarSource, /tableSelectionInfo\(editor\)/, "the normal text toolbar should stay hidden for table selections");
 assert.match(bubbleToolbarSource, /const \[styleMenuOpen,\s*setStyleMenuOpen\] = useState\(false\)/, "the selected-text toolbar should group block styles in a dropdown");
 assert.match(bubbleToolbarSource, /className:\s*"feishu-bubble-button feishu-style-trigger"/, "the selected-text toolbar should use one aligned style trigger");

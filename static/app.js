@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "https:
 import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
 import { Editor, Node, mergeAttributes } from "https://esm.sh/@tiptap/core@2.11.7";
 import katex from "https://esm.sh/katex@0.16.22";
+import mermaid from "https://esm.sh/mermaid@11.12.0";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit@2.11.7";
 import CodeBlock from "https://esm.sh/@tiptap/extension-code-block@2.11.7";
 import Underline from "https://esm.sh/@tiptap/extension-underline@2.11.7";
@@ -19,11 +20,12 @@ import TaskList from "https://esm.sh/@tiptap/extension-task-list@2.11.7";
 import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import {
   Bold, Braces, Check, ChevronDown, Code2, FileUp, Heading1, Heading2, Heading3, Image as ImageIcon,
-  Italic, Link as LinkIcon, List, ListOrdered, Minus, Quote, Sigma, Strikethrough,
+  GitBranch, Italic, Link as LinkIcon, List, ListOrdered, Minus, Quote, Sigma, Strikethrough,
   Table as TableIcon, Type, Underline as UnderlineIcon, Video as VideoIcon, X, Ellipsis
 } from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
+import { applyFlowChange, createDefaultFlow, layoutFlow, parseMermaidFlow, serializeMermaidFlow } from "./mermaid-flow-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
 import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
@@ -40,6 +42,9 @@ const publishTriggerSelector = "[data-publish-trigger]";
 const now = () => new Date().toISOString();
 const mathInlineType = "mathInline";
 const mathBlockType = "mathBlock";
+const mermaidDiagramType = "mermaidDiagram";
+
+mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
 
 const tableCellStyleAttributes = {
   backgroundColor: {
@@ -128,6 +133,220 @@ const MathBlock = Node.create({
     return ({ node }) => createMathNodeView(node, true);
   }
 });
+
+const MermaidDiagram = Node.create({
+  name: mermaidDiagramType,
+  group: "block",
+  atom: true,
+  selectable: true,
+  isolating: true,
+  addAttributes() {
+    return {
+      code: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-mermaid-code") || "",
+        renderHTML: (attributes) => ({ "data-mermaid-code": attributes.code || "" })
+      },
+      graph: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-mermaid-graph") || "",
+        renderHTML: (attributes) => ({ "data-mermaid-graph": attributes.graph || "" })
+      },
+      positions: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-mermaid-positions") || "",
+        renderHTML: (attributes) => ({ "data-mermaid-positions": attributes.positions || "" })
+      },
+      error: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-mermaid-error") || "",
+        renderHTML: (attributes) => attributes.error ? { "data-mermaid-error": attributes.error } : {}
+      }
+    };
+  },
+  parseHTML() {
+    return [{ tag: "div[data-type='mermaid-diagram']" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["div", mergeAttributes(HTMLAttributes, {
+      "data-type": "mermaid-diagram",
+      class: "mermaid-diagram"
+    })];
+  },
+  addNodeView() {
+    return ({ node, getPos, editor }) => createMermaidDiagramNodeView(node, getPos, editor);
+  }
+});
+
+function createMermaidDiagramNodeView(node, getPos, editor) {
+  const dom = document.createElement("div");
+  dom.className = "mermaid-diagram";
+  dom.dataset.type = "mermaid-diagram";
+  const mount = document.createElement("div");
+  dom.append(mount);
+  const root = createRoot(mount);
+  const render = (current) => root.render(h(MermaidDiagramView, { node: current, updateAttributes: (attrs) => {
+    const position = typeof getPos === "function" ? getPos() : null;
+    if (typeof position === "number") editor.view.dispatch(editor.state.tr.setNodeMarkup(position, undefined, { ...current.attrs, ...attrs }));
+  } }));
+  render(node);
+  return {
+    dom,
+    update(updatedNode) {
+      if (updatedNode.type.name !== mermaidDiagramType) return false;
+      render(updatedNode);
+      return true;
+    },
+    destroy() { root.unmount(); },
+    stopEvent: (event) => Boolean(event.target?.closest?.(".mermaid-diagram"))
+  };
+}
+
+function MermaidDiagramView({ node, updateAttributes }) {
+  const [editing, setEditing] = useState(false);
+  const graph = useMemo(() => readMermaidGraph(node.attrs.graph), [node.attrs.graph]);
+  const updateGraph = useCallback((nextGraph) => {
+    updateAttributes(mermaidDiagramAttributes(nextGraph));
+  }, [updateAttributes]);
+  const applySource = useCallback((code) => {
+    const result = parseMermaidFlow(code, graph);
+    if (result.ok) updateAttributes(mermaidDiagramAttributes(result.graph, code));
+    else updateAttributes({ code, error: result.error });
+  }, [graph, updateAttributes]);
+
+  return h("section", { className: `mermaid-diagram-card${editing ? " is-editing" : ""}` },
+    h("div", { className: "mermaid-diagram-toolbar", contentEditable: false },
+      h("span", { className: "mermaid-diagram-title" }, "Mermaid 流程图"),
+      h("button", { type: "button", onClick: () => setEditing((value) => !value) }, editing ? "完成编辑" : "编辑图表"),
+      h("button", { type: "button", onClick: () => updateGraph(layoutFlow(graph, graph.direction)) }, "自动布局")
+    ),
+    editing
+      ? h(MermaidFlowCanvas, { graph, onChange: updateGraph })
+      : h(MermaidPreview, { code: node.attrs.code, error: node.attrs.error }),
+    editing ? h("details", { className: "mermaid-source-panel" },
+      h("summary", null, "Mermaid 源码"),
+      h("textarea", {
+        value: node.attrs.code,
+        spellCheck: false,
+        "aria-label": "Mermaid 源码",
+        onChange: (event) => applySource(event.target.value)
+      }),
+      node.attrs.error ? h("p", { className: "mermaid-diagram-error", role: "alert" }, node.attrs.error) : null
+    ) : null
+  );
+}
+
+function MermaidPreview({ code, error }) {
+  const previewRef = useRef(null);
+  const [renderError, setRenderError] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    const render = async () => {
+      if (!previewRef.current || !code) return;
+      try {
+        const { svg } = await mermaid.render(`mermaid-${crypto.randomUUID()}`, code);
+        if (!cancelled && previewRef.current) {
+          previewRef.current.replaceChildren();
+          previewRef.current.insertAdjacentHTML("afterbegin", svg);
+          setRenderError("");
+        }
+      } catch {
+        if (!cancelled) setRenderError("Mermaid 流程图语法有误，无法渲染预览。");
+      }
+    };
+    render();
+    return () => { cancelled = true; };
+  }, [code]);
+  return h("div", { className: "mermaid-diagram-preview" },
+    h("div", { ref: previewRef }),
+    error || renderError ? h("p", { className: "mermaid-diagram-error", role: "alert" }, error || renderError) : null
+  );
+}
+
+function MermaidFlowCanvas({ graph, onChange }) {
+  const [selected, setSelected] = useState(null);
+  const [connectingFrom, setConnectingFrom] = useState(null);
+  const canvasRef = useRef(null);
+  const dragRef = useRef(null);
+  const nextNodeId = () => `node_${Date.now().toString(36)}`;
+  const onNodesChange = (change) => onChange(applyFlowChange(graph, change));
+  const onEdgesDelete = (edgeId) => {
+    setSelected(null);
+    onChange(applyFlowChange(graph, { type: "delete-edge", id: edgeId }));
+  };
+  const onNodeDoubleClick = (node) => {
+    const label = window.prompt("节点文字", node.label);
+    if (label !== null && label.trim()) onNodesChange({ type: "rename-node", id: node.id, label: label.trim() });
+  };
+  const beginNodeDrag = (event, node) => {
+    if (event.button !== 0 || event.target.closest(".mermaid-flow-handle")) return;
+    event.preventDefault();
+    dragRef.current = { id: node.id, startX: event.clientX, startY: event.clientY, position: node.position };
+    const move = (moveEvent) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      onNodesChange({ type: "move-node", id: drag.id, position: { x: Math.max(0, drag.position.x + moveEvent.clientX - drag.startX), y: Math.max(0, drag.position.y + moveEvent.clientY - drag.startY) } });
+    };
+    const end = () => { dragRef.current = null; window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+  };
+  const beginConnection = (event, source) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setConnectingFrom(source);
+    const end = (upEvent) => {
+      const target = document.elementFromPoint(upEvent.clientX, upEvent.clientY)?.closest?.("[data-flow-node-id]")?.dataset.flowNodeId;
+      if (target && target !== source && !graph.edges.some((edge) => edge.source === source && edge.target === target)) onConnect({ source, target });
+      setConnectingFrom(null);
+      window.removeEventListener("pointerup", end);
+    };
+    window.addEventListener("pointerup", end);
+  };
+  const onConnect = ({ source, target }) => onNodesChange({ type: "add-edge", source, target, label: "" });
+  const deleteSelected = () => {
+    if (!selected) return;
+    if (selected.kind === "node") onNodesChange({ type: "delete-node", id: selected.id });
+    else onEdgesDelete(selected.id);
+  };
+  return h("div", { className: "mermaid-flow-editor", contentEditable: false },
+    h("div", { className: "mermaid-flow-actions" },
+      h("button", { type: "button", onClick: () => onNodesChange({ type: "add-node", id: nextNodeId(), label: "新节点", shape: "rect", position: { x: 180, y: 160 } }) }, "添加节点"),
+      h("button", { type: "button", disabled: !selected, onClick: deleteSelected }, "删除所选"),
+      connectingFrom ? h("span", { className: "mermaid-flow-hint" }, "拖到目标节点以创建连线") : null
+    ),
+    h("div", { className: "mermaid-flow-canvas", ref: canvasRef },
+      h("svg", { className: "mermaid-flow-edges", "aria-hidden": "true" }, graph.edges.map((edge) => {
+        const source = graph.nodes.find((node) => node.id === edge.source);
+        const target = graph.nodes.find((node) => node.id === edge.target);
+        if (!source || !target) return null;
+        const x1 = source.position.x + 78, y1 = source.position.y + 34, x2 = target.position.x + 78, y2 = target.position.y + 34;
+        return h("g", { key: edge.id, className: selected?.kind === "edge" && selected.id === edge.id ? "is-selected" : "" },
+          h("line", { x1, y1, x2, y2, markerEnd: "url(#mermaid-arrow)" }),
+          h("text", { x: (x1 + x2) / 2, y: (y1 + y2) / 2 - 8 }, edge.label),
+          h("line", { className: "mermaid-flow-edge-hit", x1, y1, x2, y2, onPointerDown: (event) => { event.stopPropagation(); setSelected({ kind: "edge", id: edge.id }); } })
+        );
+      }), h("defs", null, h("marker", { id: "mermaid-arrow", markerWidth: "8", markerHeight: "8", refX: "7", refY: "3", orient: "auto" }, h("path", { d: "M0,0 L0,6 L7,3 z" })))),
+      graph.nodes.map((node) => h("div", {
+        key: node.id,
+        className: `mermaid-flow-node is-${node.shape}${selected?.kind === "node" && selected.id === node.id ? " is-selected" : ""}`,
+        "data-flow-node-id": node.id,
+        style: { left: `${node.position.x}px`, top: `${node.position.y}px` },
+        onPointerDown: (event) => beginNodeDrag(event, node),
+        onDoubleClick: () => onNodeDoubleClick(node),
+        onClick: () => setSelected({ kind: "node", id: node.id })
+      }, h("span", null, node.label), h("button", { className: "mermaid-flow-handle", type: "button", title: "从此节点创建连线", "aria-label": `从 ${node.label} 创建连线`, onPointerDown: (event) => beginConnection(event, node.id) }, "+")))
+    )
+  );
+}
+
+function readMermaidGraph(value) {
+  try {
+    const graph = JSON.parse(value || "");
+    if (Array.isArray(graph?.nodes) && Array.isArray(graph?.edges)) return graph;
+  } catch {}
+  return createDefaultFlow();
+}
 
 function createMathNodeView(node, displayMode) {
   const dom = document.createElement(displayMode ? "div" : "span");
@@ -1866,6 +2085,7 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
         NotebookCodeBlock,
         MathInline,
         MathBlock,
+        MermaidDiagram,
         Placeholder.configure({
           placeholder: "输入 / 插入内容",
           showOnlyCurrent: false
@@ -2273,7 +2493,8 @@ function FeishuInsertMenu({ position, run }) {
         { icon: VideoIcon, label: "视频", command: "video", color: "#15b8a6" },
         { icon: FileUp, label: "文件附件", command: "file", color: "#64748b" },
         { icon: TableIcon, label: "表格", command: "table", color: "#00b578", arrow: true },
-        { icon: Sigma, label: "\u516c\u5f0f", command: "mathBlock", color: "#6b7280" }
+        { icon: Sigma, label: "\u516c\u5f0f", command: "mathBlock", color: "#6b7280" },
+        { icon: GitBranch, label: "Mermaid 流程图", command: "mermaidDiagram", color: "#3370ff" }
       ]
     }
   ];
@@ -2314,6 +2535,10 @@ async function applyEditorCommand(editor, command, context = {}) {
   if (command === "codeBlock") chain.toggleCodeBlock().run();
   if (command === "mathBlock") {
     insertFormula(editor);
+    return;
+  }
+  if (command === "mermaidDiagram") {
+    insertMermaidDiagram(editor);
     return;
   }
   if (command === "divider") chain.setHorizontalRule().run();
@@ -2357,6 +2582,23 @@ function insertFormula(editor) {
     return;
   }
   editor.chain().focus().deleteSelection().insertContent(node).run();
+}
+
+function insertMermaidDiagram(editor) {
+  const graph = createDefaultFlow();
+  insertBlockWithEditableParagraph(editor, {
+    type: mermaidDiagramType,
+    attrs: mermaidDiagramAttributes(graph)
+  });
+}
+
+function mermaidDiagramAttributes(graph, code = serializeMermaidFlow(graph), error = "") {
+  return {
+    code,
+    graph: JSON.stringify(graph),
+    positions: JSON.stringify(Object.fromEntries(graph.nodes.map((node) => [node.id, node.position]))),
+    error
+  };
 }
 
 function commandName(command) {

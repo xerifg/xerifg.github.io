@@ -179,7 +179,7 @@ assert.match(
 );
 assert.match(
   index,
-  /\.\/static\/app\.css\?v=20260802-feishu-toolbar-v1/,
+  /\.\/static\/app\.css\?v=20260802-mermaid-diagrams-v1/,
   "the browser should request the corrected home and tag layout stylesheet"
 );
 
