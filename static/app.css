@@ -230,6 +230,17 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   animation: menuIn .16s cubic-bezier(.2, .8, .2, 1);
 }
 
+.create-menu,
+.document-overflow-menu,
+.table-toolbar-popover {
+  animation: overlayEnter 160ms cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes overlayEnter {
+  from { opacity: 0; transform: translateY(-4px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @keyframes menuIn {
   from { opacity: 0; transform: translateY(-4px) scale(.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
