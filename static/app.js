@@ -1453,7 +1453,15 @@ function App() {
     renderModal(state, handleAction),
     toast ? h("div", { className: "toast" }, toast) : null,
     commandPaletteOpen ? h("div", { className: "command-palette-backdrop", onMouseDown: closeCommandPalette },
-      h("div", { className: "command-palette", role: "dialog", "aria-modal": "true", "aria-label": "命令面板", onMouseDown: (event) => event.stopPropagation() },
+      h("div", { className: "command-palette", role: "dialog", "aria-modal": "true", "aria-label": "命令面板", onMouseDown: (event) => event.stopPropagation(), onKeyDown: (event) => {
+        if (event.key !== "Tab") return;
+        const focusable = Array.from(event.currentTarget.querySelectorAll("input:not(:disabled), button:not(:disabled)"));
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (!first || !last) return;
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      } },
         h("input", { autoFocus: true, value: commandQuery, placeholder: "搜索命令…", onChange: (event) => setCommandQuery(event.target.value) }),
         h("div", { className: "command-palette-list" }, commandItems.map((item) => h("button", { key: item.id, type: "button", onClick: () => { item.run(); closeCommandPalette(); } }, item.label)))
       )

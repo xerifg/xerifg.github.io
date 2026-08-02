@@ -7,3 +7,5 @@ const app = readFileSync(new URL("../static/app.js", import.meta.url), "utf8");
 assert.match(app, /event\.key\.toLowerCase\(\) === "k"/);
 assert.match(app, /className: "command-palette"/);
 assert.match(app, /role: "dialog"/);
+assert.match(app, /event\.key !== "Tab"/);
+assert.match(app, /querySelectorAll\("input:not\(:disabled\), button:not\(:disabled\)"\)/);
