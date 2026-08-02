@@ -829,6 +829,135 @@ button:focus-visible, input:focus-visible, [contenteditable]:focus-visible {
   display: block;
   max-width: 100%;
   border-radius: 8px;
+  cursor: zoom-in;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+
+.feishu-editor img:hover,
+.tiptap-reader img:hover {
+  box-shadow: 0 12px 34px rgba(15, 23, 42, .16);
+  transform: translateY(-1px);
+}
+
+.image-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 44px;
+  background: rgba(17, 24, 39, .58);
+  backdrop-filter: blur(18px) saturate(130%);
+  animation: imagePreviewBackdropIn .22s ease both;
+  cursor: zoom-out;
+}
+
+.image-preview-backdrop.is-closing {
+  animation: imagePreviewBackdropOut .18s ease both;
+}
+
+.image-preview-frame {
+  max-width: min(90vw, 1280px);
+  max-height: 86vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  transform-origin: center;
+  animation: imagePreviewFrameIn .34s cubic-bezier(.2, .86, .18, 1) both;
+  cursor: default;
+}
+
+.image-preview-backdrop.is-closing .image-preview-frame {
+  animation: imagePreviewFrameOut .18s ease both;
+}
+
+.image-preview-frame img {
+  display: block;
+  max-width: min(90vw, 1280px);
+  max-height: 86vh;
+  width: auto;
+  height: auto;
+  border-radius: 12px;
+  background: var(--surface-page);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .38);
+  user-select: none;
+}
+
+.image-preview-close {
+  position: fixed;
+  top: 22px;
+  right: 22px;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(15, 23, 42, .52);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .20);
+  backdrop-filter: blur(14px);
+  transition: background .18s ease, transform .18s ease;
+}
+
+.image-preview-close:hover,
+.image-preview-close:focus-visible {
+  background: rgba(15, 23, 42, .76);
+  transform: scale(1.04);
+}
+
+@keyframes imagePreviewBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes imagePreviewBackdropOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes imagePreviewFrameIn {
+  from {
+    opacity: .2;
+    transform:
+      translate(
+        calc(var(--preview-origin-x, 50vw) - 50vw),
+        calc(var(--preview-origin-y, 50vh) - 50vh)
+      )
+      scale(var(--preview-origin-scale, .72));
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes imagePreviewFrameOut {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform:
+      translate(
+        calc(var(--preview-origin-x, 50vw) - 50vw),
+        calc(var(--preview-origin-y, 50vh) - 50vh)
+      )
+      scale(var(--preview-origin-scale, .72));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feishu-editor img,
+  .tiptap-reader img,
+  .image-preview-backdrop,
+  .image-preview-backdrop.is-closing,
+  .image-preview-frame,
+  .image-preview-backdrop.is-closing .image-preview-frame {
+    animation-duration: .01ms;
+    transition-duration: .01ms;
+  }
 }
 
 .math-node {

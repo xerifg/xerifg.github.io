@@ -1555,6 +1555,8 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
   const readerRef = useRef(null);
+  const closePreviewTimerRef = useRef(0);
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     if (!editable && readerRef.current) {
@@ -1562,6 +1564,54 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
       renderMathElements(readerRef.current);
     }
   }, [editable, html]);
+
+  useEffect(() => () => {
+    if (closePreviewTimerRef.current) window.clearTimeout(closePreviewTimerRef.current);
+  }, []);
+
+  const closeImagePreview = useCallback(() => {
+    setImagePreview((preview) => preview ? { ...preview, closing: true } : preview);
+    if (closePreviewTimerRef.current) window.clearTimeout(closePreviewTimerRef.current);
+    closePreviewTimerRef.current = window.setTimeout(() => {
+      closePreviewTimerRef.current = 0;
+      setImagePreview(null);
+    }, 180);
+  }, []);
+
+  useEffect(() => {
+    if (!imagePreview) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") closeImagePreview();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [imagePreview, closeImagePreview]);
+
+  const openImagePreview = useCallback((event) => {
+    const image = event.target?.closest?.("img");
+    if (!image) return false;
+    event.preventDefault();
+    event.stopPropagation();
+    if (closePreviewTimerRef.current) {
+      window.clearTimeout(closePreviewTimerRef.current);
+      closePreviewTimerRef.current = 0;
+    }
+    const rect = image.getBoundingClientRect();
+    const maxWidth = Math.max(320, window.innerWidth * .9);
+    const maxHeight = Math.max(240, window.innerHeight * .86);
+    const widthScale = rect.width > 0 ? rect.width / Math.min(maxWidth, Math.max(rect.width, 1)) : .86;
+    const heightScale = rect.height > 0 ? rect.height / Math.min(maxHeight, Math.max(rect.height, 1)) : .86;
+    const originScale = Math.max(.12, Math.min(.92, widthScale, heightScale));
+    setImagePreview({
+      src: image.currentSrc || image.src,
+      alt: image.alt || "文档图片预览",
+      originX: Number.isFinite(rect.left) ? rect.left + rect.width / 2 : window.innerWidth / 2,
+      originY: Number.isFinite(rect.top) ? rect.top + rect.height / 2 : window.innerHeight / 2,
+      originScale,
+      closing: false
+    });
+    return true;
+  }, []);
 
   const showOutline = state.uiPreferences.showOutline;
   return h("div", { className: `document-workspace ${showOutline ? (outline.length ? "has-outline" : "has-empty-outline") : "without-outline"}` },
@@ -1594,16 +1644,48 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
                 const assets = Array.isArray(item.assets) ? item.assets : [];
                 item.assets = [...assets.filter((candidate) => candidate.id !== asset.id), asset];
                 item.html = normalizeHtml(nextHtml);
-              })
+              }),
+              onImagePreview: openImagePreview
             })
           : h("div", {
               ref: readerRef,
               className: "reader tiptap-reader",
+              onClick: openImagePreview,
               dangerouslySetInnerHTML: { __html: sanitizeHtml(html) }
             })
       )
     ),
+    imagePreview ? h(DocumentImagePreview, { preview: imagePreview, onClose: closeImagePreview }) : null,
     state.uiPreferences.showOutline ? h(DocumentOutline, { noteId: note.id, outline }) : null
+  );
+}
+
+function DocumentImagePreview({ preview, onClose }) {
+  return h("div", {
+    className: `image-preview-backdrop ${preview.closing ? "is-closing" : ""}`,
+    role: "dialog",
+    "aria-modal": "true",
+    "aria-label": "图片预览",
+    onClick: onClose
+  },
+    h("button", {
+      type: "button",
+      className: "image-preview-close",
+      "aria-label": "关闭图片预览",
+      title: "关闭",
+      onClick: onClose
+    }, h(X, { size: 20, strokeWidth: 2 })),
+    h("figure", {
+      className: "image-preview-frame",
+      style: {
+        "--preview-origin-x": `${preview.originX}px`,
+        "--preview-origin-y": `${preview.originY}px`,
+        "--preview-origin-scale": preview.originScale
+      },
+      onClick: (event) => event.stopPropagation()
+    },
+      h("img", { src: preview.src, alt: preview.alt, draggable: "false" })
+    )
   );
 }
 
@@ -1727,7 +1809,7 @@ function cssEscape(value) {
   return String(value).replace(/["\\]/g, "\\$&");
 }
 
-function TiptapEditor({ note, onChange, onAssetInserted }) {
+function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
   const shellRef = useRef(null);
   const hostRef = useRef(null);
   const editorRef = useRef(null);
@@ -1809,6 +1891,10 @@ function TiptapEditor({ note, onChange, onAssetInserted }) {
           return sanitizeHtml(restoreMarkdownMathInHtml(html));
         },
         attributes: { class: "feishu-editor ProseMirror" },
+        handleClick(view, position, event) {
+          if (event.target?.closest?.("img")) return Boolean(onImagePreview?.(event));
+          return false;
+        },
         handleDOMEvents: {
           mousedown(view, event) {
             if (event.button !== 0) return false;
