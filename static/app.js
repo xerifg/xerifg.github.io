@@ -1447,6 +1447,13 @@ function App() {
     if (action === "confirm-auth") confirmAuth();
     if (action === "confirm-publish-tags") confirmPublishTags();
     if (action === "confirm-local-tag") confirmLocalTag();
+    if (action === "create-note-tag") {
+      if (state.mode !== "edit") {
+        setToast("请先进入编辑模式再新建标签");
+        return;
+      }
+      openLocalTagModal("create");
+    }
     if (action === "toggle-publish-selection") {
       patchState((draft) => {
         const review = draft.modalContext?.review;
@@ -1473,6 +1480,10 @@ function App() {
     if (action === "delete-note") deleteNote(targetFolderId || state.activeId);
     if (action === "delete-folder") deleteFolder(targetFolderId);
     if (action === "rename-note-tag") {
+      if (state.mode !== "edit") {
+        setToast("请先进入编辑模式再修改标签");
+        return;
+      }
       if (!targetFolderId || !note || !requireEditPermission("edit")) return;
       patchState((draft) => {
         draft.modalContext = { mode: "rename-note", noteId: note.id, selectedTag: targetFolderId };
@@ -1481,6 +1492,10 @@ function App() {
       });
     }
     if (action === "delete-note-tag") {
+      if (state.mode !== "edit") {
+        setToast("请先进入编辑模式再删除标签");
+        return;
+      }
       if (!targetFolderId || !note || !requireEditPermission("edit")) return;
       const result = applyNoteTagMutation(state.notes, {
         mode: "delete",
@@ -1746,10 +1761,10 @@ function customScrollbarGeometry(scrollOffset, clientSize, scrollSize) {
   const offset = Math.max(0, Math.min(maxOffset, (scrollOffset / Math.max(1, scrollSize - clientSize)) * maxOffset));
   return { visible, size, offset };
 }
-function renderNoteTagPill(tag, note, handleAction) {
+function renderNoteTagPill(tag, note, handleAction, editable) {
   return h("span", { className: "pill note-tag-pill", key: tag },
     h("span", { className: "note-tag-label" }, tag),
-    h("span", { className: "note-tag-actions", "aria-hidden": "false" },
+    editable ? h("span", { className: "note-tag-actions", "aria-hidden": "false" },
       h("button", {
         type: "button",
         className: "note-tag-action note-tag-rename",
@@ -1766,7 +1781,7 @@ function renderNoteTagPill(tag, note, handleAction) {
         onClick: () => handleAction("delete-note-tag", tag),
         onPointerDown: (event) => event.stopPropagation()
       }, icon("trash", { size: 12, strokeWidth: 2 }))
-    )
+    ) : null
   );
 }
 
@@ -1847,7 +1862,13 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
         : h("h1", { className: "doc-title" }, note.title),
       h("div", { className: "doc-meta" },
         h("span", { className: "pill" }, folderPath(state, note.folderId) || "未归档"),
-        ensureDefaultTags(note.tags).map((tag) => renderNoteTagPill(tag, note, handleAction)),
+        ensureDefaultTags(note.tags).map((tag) => renderNoteTagPill(tag, note, handleAction, editable)),
+        editable ? h("button", {
+          type: "button",
+          className: "pill note-tag-create",
+          onClick: () => handleAction("create-note-tag"),
+          "aria-label": "新建标签"
+        }, icon("add", { size: 14, strokeWidth: 2 }), "新建标签") : null,
         h("span", { className: `pill ${note.dirty ? "dirty" : ""}` }, note.dirty ? "本地草稿" : "已发表"),
         h("span", { className: "pill" }, formatDate(note.date))
       ),
