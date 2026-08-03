@@ -61,7 +61,7 @@ const staticMetaSource = documentPaper.slice(
   documentPaper.indexOf('h("div", { className: "tiptap-shell" }')
 );
 assert.match(staticMetaSource, /folderPath\(state, note\.folderId\).*className:\s*"pill"/s);
-assert.match(staticMetaSource, /note\.dirty \? "本地草稿" : "已发�?/);
+assert.match(staticMetaSource, /note\.dirty \? "本地草稿" : "已发表"/);
 assert.match(staticMetaSource, /formatDate\(note\.date\)/);
 assert.doesNotMatch(staticMetaSource, /rename-folder-tag|delete-folder-tag|rename-publish|delete-publish/);
 
