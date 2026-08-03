@@ -2362,6 +2362,19 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
 
   useEffect(() => {
     if (!editor) return undefined;
+    const closeBubbleToolbarOnOutsidePointerDown = (event) => {
+      if (event.target?.closest?.(".feishu-bubble")) return;
+      if (editor.view?.dom?.contains(event.target)) return;
+      setPosition(null);
+      setColorPanelOpen(false);
+      setStyleMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", closeBubbleToolbarOnOutsidePointerDown, true);
+    return () => window.removeEventListener("pointerdown", closeBubbleToolbarOnOutsidePointerDown, true);
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return undefined;
     const updateSelection = () => {
       setColorPanelOpen(false);
       setStyleMenuOpen(false);
