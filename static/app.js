@@ -2045,8 +2045,32 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
   const [editor, setEditor] = useState(null);
   const [insertMenu, setInsertMenu] = useState(null);
   const [tablePicker, setTablePicker] = useState(null);
+  const [tablePickerClosing, setTablePickerClosing] = useState(false);
+  const tablePickerCloseTimerRef = useRef(0);
   const [sideButton, setSideButton] = useState({ top: 72 });
   const [isSelectingText, setIsSelectingText] = useState(false);
+
+  const cancelTablePickerClose = () => {
+    if (!tablePickerCloseTimerRef.current) return;
+    window.clearTimeout(tablePickerCloseTimerRef.current);
+    tablePickerCloseTimerRef.current = 0;
+  };
+  const openTablePicker = (event) => {
+    cancelTablePickerClose();
+    setTablePickerClosing(false);
+    setTablePicker(tablePickerPositionForTrigger(event, shellRef.current, insertMenu || { left: 52, top: sideButton.top + 28 }));
+  };
+  const closeTablePicker = () => {
+    cancelTablePickerClose();
+    setTablePickerClosing(true);
+    tablePickerCloseTimerRef.current = window.setTimeout(() => {
+      setTablePicker(null);
+      setTablePickerClosing(false);
+      tablePickerCloseTimerRef.current = 0;
+    }, 100);
+  };
+
+  useEffect(() => () => cancelTablePickerClose(), []);
 
   const insertPastedAssets = useCallback(async (files) => {
     if (!files.length || !editorRef.current) return;
@@ -2249,7 +2273,7 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
       }
     }
     if (command === "table") {
-      setTablePicker(tablePickerPositionForTrigger(context.event, shellRef.current, insertMenu || { left: 52, top: sideButton.top + 28 }));
+      openTablePicker(context.event);
       return;
     }
     await applyEditorCommand(editorRef.current, command, {
@@ -2295,7 +2319,7 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
       className: "hidden-file-input",
       onChange: handleFileInput
     }),
-    insertMenu ? h(FeishuInsertMenu, { position: insertMenu, run }) : null,
+    insertMenu ? h(FeishuInsertMenu, { position: insertMenu, run, onTableHoverStart: openTablePicker, onTableHoverEnd: closeTablePicker }) : null,
     tablePicker ? h(TableInsertGrid, {
       position: tablePicker,
       onSelect: (rows, cols) => {
@@ -2478,7 +2502,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
     colorPanelOpen ? renderColorPanel() : null);
 }
 
-function FeishuInsertMenu({ position, run }) {
+function FeishuInsertMenu({ position, run, onTableHoverStart, onTableHoverEnd }) {
   const iconNode = (Icon, size = 17) => h(Icon, { size, strokeWidth: 1.9, "aria-hidden": "true" });
   const sections = [
     {
@@ -2513,7 +2537,12 @@ function FeishuInsertMenu({ position, run }) {
     onMouseDown: (event) => event.preventDefault()
   }, sections.map((section) => h("div", { className: "feishu-menu-section", key: section.title },
     h("div", { className: "feishu-menu-title" }, section.title),
-    section.items.map((item) => h("button", { key: `${section.title}-${item.label}`, onClick: (event) => run(item.command, { event, item }) },
+    section.items.map((item) => h("button", {
+      key: `${section.title}-${item.label}`,
+      onMouseEnter: item.command === "table" ? onTableHoverStart : undefined,
+      onMouseLeave: item.command === "table" ? onTableHoverEnd : undefined,
+      onClick: (event) => run(item.command, { event, item })
+    },
       h("span", { className: "feishu-menu-icon", style: { color: item.color || "#1f2329" } }, typeof item.icon === "string" ? item.icon : iconNode(item.icon)),
       h("span", null, item.label),
       item.arrow ? h("i", null, "›") : null
@@ -4016,7 +4045,7 @@ function FeishuTableControls({ editor, shellRef }) {
   );
 }
 
-function TableInsertGrid({ position, onSelect }) {
+function TableInsertGrid({ position, isClosing, onSelect }) {
   const [selected, setSelected] = useState({ rows: 3, cols: 3 });
   const cells = [];
   for (let rows = 1; rows <= 6; rows += 1) {
@@ -4032,7 +4061,7 @@ function TableInsertGrid({ position, onSelect }) {
     }
   }
   return h("div", {
-    className: "table-insert-grid",
+    className: `table-insert-grid ${isClosing ? "is-closing" : ""}`,
     style: { left: `${position.left}px`, top: `${position.top}px` },
     onMouseDown: (event) => event.preventDefault()
   },
