@@ -27,7 +27,7 @@ import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { filterCommandItems } from "./command-palette.mjs";
 import { clearModalState } from "./library-ui-model.mjs";
-import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
+import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
 import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
@@ -710,7 +710,7 @@ function App() {
   useEffect(() => {
     if (!state.openCreateMenu) return undefined;
     const closeCreateMenu = (event) => {
-      if (event.target.closest?.(".create-menu, .mini-action, .sidebar-create-control, .document-overflow-menu, .document-overflow-trigger")) return;
+      if (event.target.closest?.(".create-menu, .mini-action, .sidebar-create-control, .document-overflow-menu, .document-overflow-trigger, .publish-actions-menu, .publish-menu-trigger")) return;
       patchState((draft) => {
         draft.openCreateMenu = null;
       });
@@ -1023,6 +1023,15 @@ function App() {
     }
   };
 
+  const openLocalChanges = async () => {
+    patchState((draft) => { draft.openCreateMenu = null; });
+    try { const published = await loadPublishedLibrary(); const changes = buildPublishChangeSet(state, published || { notes: [], folders: [], deletedTags: [] }).changes; patchState((draft) => { draft.modal = "local-changes"; draft.modalContext = { published, changes }; }); }
+    catch (error) { console.error(error); setToast(error.message || "\u65e0\u6cd5\u8bfb\u53d6\u5df2\u53d1\u5e03\u7248\u672c"); }
+  };
+  const revertLocalChange = (changeId) => {
+    const published = state.modalContext?.published; const change = state.modalContext?.changes?.find((item) => item.id === changeId); if (!published || !change) return;
+    setState((latest) => { const next = { ...latest, ...revertDraftChange(latest, published, change) }; if (!next.notes.some((item) => item.id === next.activeId)) next.activeId = next.notes[0]?.id || ""; const changes = buildPublishChangeSet(next, published).changes; next.modal = changes.length ? "local-changes" : null; next.modalContext = changes.length ? { published, changes } : null; return next; }); setToast("\u5df2\u64a4\u9500\u672c\u5730\u4fee\u6539");
+  };
   const confirmDeleteDrafts = () => {
     const published = state.modalContext?.published;
     if (!published?.notes?.length) {
@@ -1357,6 +1366,9 @@ function App() {
         draft.openCreateMenu = draft.openCreateMenu === "document-actions" ? null : "document-actions";
       });
     }
+    if (action === "close-publish-actions") patchState((draft) => { draft.openCreateMenu = null; });
+    if (action === "toggle-publish-actions") patchState((draft) => { draft.openCreateMenu = draft.openCreateMenu === "publish-actions" ? null : "publish-actions"; });
+    if (action === "view-local-changes") openLocalChanges();
     if (action === "publish") preparePublish();
     if (action === "delete-drafts") openDeleteDraftsModal();
     if (action === "toggle-create-menu") {
@@ -1431,6 +1443,7 @@ function App() {
       publishSelectedChanges(state.modalContext?.settings, state.modalContext?.review, selectedIds);
     }
     if (action === "confirm-delete-drafts") confirmDeleteDrafts();
+    if (action === "revert-local-change") revertLocalChange(targetFolderId);
     if (action === "delete-note" || action === "delete-folder") {
       patchState((draft) => {
         draft.modal = action === "delete-note" ? "confirm-delete-note" : "confirm-delete-folder";
@@ -3218,119 +3231,13 @@ function tablePickerPositionForTrigger(event, shell, menuPosition) {
 }
 
 function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, handleAction) {
-  return h("header", {
-    className: "topbar document-topbar",
-    "data-outline-visible": preferences.showOutline ? "true" : "false"
-  },
-    h("div", { className: "document-breadcrumb" },
-      state.tagReturnContext ? h("button", {
-        className: "tag-return-button",
-        onClick: () => handleAction("back-to-tag"),
-        "aria-label": `返回标签：${state.tagReturnContext.selectedTag}`
-      }, icon("back", { size: 16 }), "返回标签") : null,
-      h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "未归档" : "没有笔记"),
-      note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null,
-      h("strong", null, note ? note.title : "创建第一篇笔记")
-    ),
-    note ? h(localPersistenceStatus === "error" ? "button" : "span", {
-      className: "document-save-status",
-      role: "status",
-      "aria-live": "polite",
-      "data-state": localPersistenceStatus,
-      type: localPersistenceStatus === "error" ? "button" : undefined,
-      onClick: localPersistenceStatus === "error" ? () => handleAction("retry-local-persistence") : undefined,
-      title: localPersistenceStatusText(localPersistenceStatus)
-    }, localPersistenceStatus === "error" ? "保存失败，点击重试" : localPersistenceStatusText(localPersistenceStatus)) : null,
-    h("div", { className: "toolbar" },
-      note ? h("div", { className: "document-action-group" },
-        h("button", {
-          className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`,
-          onClick: () => handleAction("toggle-mode"),
-          "aria-pressed": state.mode === "edit"
-        }, icon(state.mode === "read" ? "read" : "edit", { size: 16 }), state.mode === "read" ? "阅读" : "编辑"),
-        h("span", { className: "document-action-divider", "aria-hidden": "true" }),
-        h(DocumentOverflowMenu, { state, note, handleAction })
-      ) : null,
-      note ? h("button", {
-        className: "primary-btn document-publish-button",
-        "data-publish-trigger": "",
-        disabled: state.syncStatus === "publishing",
-        onClick: () => handleAction("publish")
-      }, state.syncStatus === "publishing" ? "发表中" : [icon("upload", { size: 16 }), "发布"]) : null
-    )
-  );
+  return h("header", { className: "topbar document-topbar", "data-outline-visible": preferences.showOutline ? "true" : "false" }, h("div", { className: "document-breadcrumb" }, h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "" : ""), note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null, h("strong", null, note ? note.title : "")), note ? h(localPersistenceStatus === "error" ? "button" : "span", { className: "document-save-status", role: "status", "aria-live": "polite", "data-state": localPersistenceStatus, type: localPersistenceStatus === "error" ? "button" : undefined, onClick: localPersistenceStatus === "error" ? () => handleAction("retry-local-persistence") : undefined, title: localPersistenceStatusText(localPersistenceStatus) }, localPersistenceStatus === "error" ? "\u4fdd\u5b58\u5931\u8d25\uff0c\u70b9\u51fb\u91cd\u8bd5" : localPersistenceStatusText(localPersistenceStatus)) : null, h("div", { className: "toolbar" }, note ? h("button", { className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`, onClick: () => handleAction("toggle-mode"), "aria-pressed": state.mode === "edit" }, icon(state.mode === "read" ? "read" : "edit", { size: 16 }), state.mode === "read" ? "\u9605\u8bfb" : "\u7f16\u8f91") : null, note ? h(PublishActionsMenu, { state, handleAction }) : null));
 }
-
-function DocumentOverflowMenu({ state, note, handleAction }) {
-  const triggerRef = useRef(null);
-  const menuRef = useRef(null);
-  const isOpen = state.openCreateMenu === "document-actions";
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const frame = window.requestAnimationFrame(() => {
-      menuRef.current?.querySelector("[role=menuitem]:not(:disabled)")?.focus();
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [isOpen]);
-
-  const restoreTriggerFocus = () => {
-    window.requestAnimationFrame(() => triggerRef.current?.focus());
-  };
-
-  const closeMenu = () => {
-    handleAction("close-document-actions");
-    restoreTriggerFocus();
-  };
-
-  const runMenuAction = (action) => {
-    handleAction("close-document-actions");
-    handleAction(action, note.id);
-    restoreTriggerFocus();
-  };
-
-  const handleMenuKeyDown = (event) => {
-    const items = Array.from(menuRef.current?.querySelectorAll("[role=menuitem]:not(:disabled)") || []);
-    const currentIndex = items.indexOf(document.activeElement);
-    const result = resolveMenuKeyboard(currentIndex, event.key, items.length);
-    if (result.close) {
-      event.preventDefault();
-      event.stopPropagation();
-      closeMenu();
-      return;
-    }
-    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    items[result.focusIndex]?.focus();
-  };
-
-  return h("div", { className: "document-overflow", onKeyDown: handleMenuKeyDown },
-    h("button", {
-      ref: triggerRef,
-      className: "ghost-btn document-overflow-trigger",
-      type: "button",
-      "aria-label": "更多文档操作",
-      "aria-haspopup": "menu",
-      "aria-expanded": isOpen,
-      onClick: () => handleAction("toggle-document-actions")
-    }, h(Ellipsis, { size: 18, strokeWidth: 1.8, "aria-hidden": "true" })),
-    isOpen ? renderDocumentActionsMenu(state, menuRef, handleMenuKeyDown, runMenuAction) : null
-  );
-}
-
-function renderDocumentActionsMenu(state, menuRef, handleMenuKeyDown, onAction) {
-  return h("div", { ref: menuRef, className: "document-overflow-menu", role: "menu", "aria-label": "文档操作" },
-    h("button", { type: "button", role: "menuitem", onClick: () => onAction("rename-note") }, "重命名"),
-    h("button", { type: "button", role: "menuitem", onClick: () => onAction("delete-drafts") }, "删除本地草稿"),
-    h("button", {
-      type: "button",
-      role: "menuitem",
-      className: "danger-menu-item",
-      disabled: state.syncStatus === "publishing",
-      onClick: () => onAction("delete-note")
-    }, "删除文档")
-  );
+function PublishActionsMenu({ state, handleAction }) {
+  const triggerRef = useRef(null); const menuRef = useRef(null); const isOpen = state.openCreateMenu === "publish-actions"; const draftCount = state.notes.filter((item) => item.dirty || !item.publishedAt).length;
+  useEffect(() => { if (!isOpen) return undefined; const frame = window.requestAnimationFrame(() => menuRef.current?.querySelector("[role=menuitem]:not(:disabled)")?.focus()); return () => window.cancelAnimationFrame(frame); }, [isOpen]);
+  const closeMenu = () => { handleAction("close-publish-actions"); window.requestAnimationFrame(() => triggerRef.current?.focus()); }; const runMenuAction = (action) => { handleAction("close-publish-actions"); handleAction(action); };
+  return h("div", { className: "publish-actions" }, h("div", { className: "publish-split-button" }, h("button", { className: "primary-btn document-publish-button", "data-publish-trigger": "", disabled: state.syncStatus === "publishing", onClick: () => handleAction("publish") }, state.syncStatus === "publishing" ? "\u53d1\u5e03\u4e2d" : [icon("upload", { size: 16 }), "\u53d1\u5e03"]), h("button", { ref: triggerRef, className: "primary-btn publish-menu-trigger", type: "button", "aria-label": "\u53d1\u5e03\u66f4\u591a\u64cd\u4f5c", "aria-haspopup": "menu", "aria-expanded": isOpen, onClick: () => handleAction("toggle-publish-actions") }, h(ChevronDown, { size: 17 }))), isOpen ? h("div", { ref: menuRef, className: "publish-actions-menu", role: "menu", "aria-label": "\u53d1\u5e03\u64cd\u4f5c" }, h("button", { type: "button", role: "menuitem", onClick: () => runMenuAction("view-local-changes") }, "\u67e5\u770b\u672c\u5730\u4fee\u6539", draftCount ? h("span", { className: "publish-change-badge" }, String(draftCount)) : null), h("button", { type: "button", role: "menuitem", className: "danger-menu-item", onClick: () => runMenuAction("delete-drafts") }, "\u5220\u9664\u6240\u6709\u672c\u5730\u4fee\u6539")) : null);
 }
 
 function documentStatusText(state, note) {
@@ -4200,6 +4107,11 @@ function summaryList(items, emptyText) {
     values.length > 12 ? h("li", { key: "more" }, `还有 ${values.length - 12} 项...`) : null
   );
 }
+function LocalChangesSheet({ state, handleAction }) {
+  const changes = state.modalContext?.changes || []; const labels = { create: "\u65b0\u589e\u5185\u5bb9", update: "\u4fee\u6539\u5185\u5bb9", delete: "\u5220\u9664\u5185\u5bb9" };
+  return h("div", { className: "modal-backdrop publish-sheet-backdrop", onMouseDown: (event) => { if (event.target === event.currentTarget) handleAction("close-modal"); } }, h("section", { className: "publish-sheet local-changes-sheet", role: "dialog", "aria-modal": "true", "aria-labelledby": "local-changes-title" }, h("header", { className: "publish-sheet-header" }, h("div", null, h("span", { className: "publish-sheet-eyebrow" }, "\u672c\u5730\u8349\u7a3f"), h("h2", { id: "local-changes-title" }, "\u672c\u5730\u4fee\u6539"), h("p", null, changes.length ? `\u5171 ${changes.length} \u9879\u672a\u53d1\u5e03\u4fee\u6539` : "\u6682\u65e0\u672a\u53d1\u5e03\u4fee\u6539")), h("button", { type: "button", className: "publish-sheet-close", onClick: () => handleAction("close-modal"), "aria-label": "\u5173\u95ed" }, h(X, { size: 18 }))), h("div", { className: "publish-sheet-body local-changes-body" }, changes.length ? h("div", { className: "local-change-list" }, changes.map((change) => h("article", { key: change.id, className: `local-change-row is-${change.action}` }, h("div", null, h("strong", null, change.kind === "folders" ? "\u4fee\u6539\u5c42\u7ea7" : change.kind === "tags" ? "\u4fee\u6539\u6807\u7b7e" : labels[change.action] || "\u4fee\u6539"), h("span", null, change.title)), h("button", { type: "button", className: "ghost-btn", onClick: () => handleAction("revert-local-change", change.id) }, "\u64a4\u9500")))) : h("p", { className: "empty-state" }, "\u6ca1\u6709\u9700\u8981\u5904\u7406\u7684\u672c\u5730\u4fee\u6539\u3002")), changes.length ? h("footer", { className: "publish-sheet-footer" }, h("span", null, "\u672a\u53d1\u5e03\u7684\u6539\u52a8\u4ec5\u4fdd\u5b58\u5728\u672c\u5730"), h("button", { type: "button", className: "danger-outline-btn", onClick: () => handleAction("delete-drafts") }, "\u5220\u9664\u6240\u6709\u672c\u5730\u4fee\u6539")) : null));
+}
+
 function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
   const closeButtonRef = useRef(null);
   const sheetRef = useRef(null);
@@ -4452,6 +4364,7 @@ function renderModal(state, handleAction) {
       { confirmClassName: "danger-btn" }
     );
   }
+  if (state.modal === "local-changes") return h(LocalChangesSheet, { state, handleAction });
   if (state.modal === "publish-review") {
     return h(PublishReviewSheet, { state, handleAction, returnFocusSelector: publishTriggerSelector });
   }

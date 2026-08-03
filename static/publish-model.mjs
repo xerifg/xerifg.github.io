@@ -265,6 +265,25 @@ export function buildPublishChangeDetails(localState, remoteState, change) {
   }
   return details;
 }
+export function revertDraftChange(localState, remoteState, change) {
+  const next = clone(localState || {});
+  if (!change) return next;
+  const remoteById = new Map((remoteState?.notes || []).map((note) => [note.id, clone(note)]));
+  if (change.kind === "note") {
+    const remote = remoteById.get(change.noteId);
+    if (change.action === "create") {
+      next.notes = (next.notes || []).filter((note) => note.id !== change.noteId);
+    } else if (change.action === "delete" && remote) {
+      next.notes = [...(next.notes || []), remote];
+    } else if (remote) {
+      next.notes = (next.notes || []).map((note) => note.id === change.noteId ? remote : note);
+    }
+  }
+  if (change.kind === "folders") next.folders = clone(remoteState?.folders || []);
+  if (change.kind === "tags") next.deletedTags = clone(remoteState?.deletedTags || []);
+  return next;
+}
+
 export function validatePublishSelection(changes, selectedIds) {
   const selected = new Set(selectedIds || []);
   const tags = (changes || []).find((change) => change.id === "tags");
