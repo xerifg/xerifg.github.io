@@ -40,7 +40,6 @@ notebooks/
 tests/
   *.test.mjs             # 数据模型、交互、编辑器、发布与 shell 回归测试
 server.py               # 本地辅助服务
-start-notebook.cmd      # Windows 本地启动脚本
 ```
 
 ## 在线使用
@@ -112,12 +111,6 @@ notebooks/assets/{noteId}/
 ## 本地运行
 
 直接打开 `index.html` 可以阅读和使用基础功能。需要本地附件缓存或稳定预览时，启动本地服务：
-
-```cmd
-start-notebook.cmd
-```
-
-或手动运行：
 
 ```bash
 python server.py
