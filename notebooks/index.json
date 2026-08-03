@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-02T13:43:02.154Z",
+  "updatedAt": "2026-08-03T06:12:24.719Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -51,6 +51,11 @@
       "id": "folder-1785677240481",
       "name": "NLP模型",
       "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1785737383606",
+      "name": "个人项目",
+      "parentId": null
     }
   ],
   "docs": [
@@ -275,13 +280,13 @@
       "file": "notebooks/docs/llm训练指南.json"
     },
     {
-      "id": "note-1785677699689",
+      "id": "note-1785737460760",
       "title": "未学习内容",
-      "folderId": "folder-writing",
-      "path": "Notebooks",
+      "folderId": null,
+      "path": "",
       "tags": [],
-      "updatedAt": "2026-08-02T13:43:02.154Z",
-      "file": "notebooks/docs/未学习内容.json"
+      "updatedAt": "2026-08-03T06:12:24.719Z",
+      "file": "notebooks/docs/未学习内容-2.json"
     }
   ]
 }
