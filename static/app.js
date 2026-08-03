@@ -25,6 +25,7 @@ import {
 } from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
+import { filterCommandItems } from "./command-palette.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
 import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
@@ -332,6 +333,7 @@ function createEnhancedCodeBlockElement(options = {}) {
   copyButton.type = "button";
   copyButton.textContent = "\u590d\u5236";
   copyButton.title = "\u590d\u5236\u4ee3\u7801";
+  copyButton.setAttribute("aria-live", "polite");
   actions.append(copyButton);
   header.append(collapseButton, actions);
   const body = document.createElement("div");
@@ -533,8 +535,17 @@ function App() {
   const [dragTarget, setDragTarget] = useState(null);
   const [draggedTreeItem, setDraggedTreeItem] = useState(null);
   const draggedTreeItemRef = useRef(null);
+  const [isDocumentSwitching, setIsDocumentSwitching] = useState(false);
   const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(false);
   const [treeFocusId, setTreeFocusId] = useState("");
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const commandPaletteTriggerRef = useRef(null);
+  const closeCommandPalette = () => {
+    setCommandPaletteOpen(false);
+    setCommandQuery("");
+    window.setTimeout(() => commandPaletteTriggerRef.current?.isConnected && commandPaletteTriggerRef.current.focus(), 0);
+  };
   const notebookPersistencePayload = JSON.stringify(notebookStateForPersistence(state));
 
   useEffect(() => {
@@ -586,6 +597,16 @@ function App() {
       if (savedTimer) window.clearTimeout(savedTimer);
     };
   }, [notebookPersistencePayload]);
+  const retryLocalPersistence = () => {
+    setLocalPersistenceStatus(resolveLocalPersistenceStatus("start"));
+    try {
+      persist(notebookPersistencePayload);
+      window.setTimeout(() => setLocalPersistenceStatus(resolveLocalPersistenceStatus("success")), 120);
+    } catch (error) {
+      console.error("Draft persistence retry failed", error);
+      setLocalPersistenceStatus(resolveLocalPersistenceStatus("failure"));
+    }
+  };
 
   useEffect(() => {
     try {
@@ -608,6 +629,18 @@ function App() {
     const timer = window.setTimeout(() => setToast(""), 2600);
     return () => window.clearTimeout(timer);
   }, [toast]);
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        commandPaletteTriggerRef.current = document.activeElement;
+        setCommandPaletteOpen((open) => !open);
+      }
+      if (event.key === "Escape") closeCommandPalette();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
 
   const note = currentNote(state);
@@ -697,6 +730,7 @@ function App() {
     return false;
   };
   const selectNote = (noteId) => {
+    setIsDocumentSwitching(true);
     patchState((draft) => {
       draft.activeId = noteId;
       draft.collapsedFolders = revealNoteFolderPath(draft.collapsedFolders, draft.folders, draft.notes, noteId);
@@ -706,6 +740,7 @@ function App() {
       draft.openCreateMenu = null;
     });
     setIsContextSidebarOpen(false);
+    window.setTimeout(() => setIsDocumentSwitching(false), 180);
   };
 
   const treeDragDisabled = Boolean(state.query.trim());
@@ -719,6 +754,7 @@ function App() {
   };
   const treeDrag = {
     disabled: treeDragDisabled,
+    draggedItem: draggedTreeItem,
     start: (event, item) => {
       if (treeDragDisabled) return;
       draggedTreeItemRef.current = item;
@@ -795,6 +831,11 @@ function App() {
     });
     setIsContextSidebarOpen(false);
   };
+  const commandItems = filterCommandItems([
+    { id: "new-note", label: "新建笔记", run: () => createNote() },
+    { id: "settings", label: "打开设置", run: () => navigate("settings") },
+    { id: "library", label: "打开笔记", run: () => navigate("library") }
+  ], commandQuery);
   const openArea = (folderId) => {
     patchState((draft) => {
       const folderIds = new Set([folderId]);
@@ -1387,8 +1428,16 @@ function App() {
       publishSelectedChanges(state.modalContext?.settings, state.modalContext?.review, selectedIds);
     }
     if (action === "confirm-delete-drafts") confirmDeleteDrafts();
-    if (action === "delete-note") deleteNote(targetFolderId || state.activeId);
-    if (action === "delete-folder") deleteFolder(targetFolderId);
+    if (action === "delete-note" || action === "delete-folder") {
+      patchState((draft) => {
+        draft.modal = action === "delete-note" ? "confirm-delete-note" : "confirm-delete-folder";
+        draft.modalContext = { targetId: targetFolderId || state.activeId };
+        draft.openCreateMenu = null;
+      });
+    }
+    if (action === "confirm-delete-note") deleteNote(state.modalContext?.targetId);
+    if (action === "confirm-delete-folder") deleteFolder(state.modalContext?.targetId);
+    if (action === "retry-local-persistence") retryLocalPersistence();
     if (action === "rename-note-tag") {
       if (state.mode !== "edit") {
         setToast("请先进入编辑模式再修改标签");
@@ -1534,7 +1583,7 @@ function App() {
         : state.view === "library"
           ? renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen)
           : null,
-      h("main", { className: "content" },
+      h("main", { className: `content ${isDocumentSwitching ? "is-document-switching" : ""}` },
         state.view === "library"
           ? h("button", {
               type: "button",
@@ -1558,7 +1607,26 @@ function App() {
       )
     ),
     renderModal(state, handleAction),
-    toast ? h("div", { className: "toast" }, toast) : null
+    toast ? h("div", { className: "toast", role: "status", "aria-live": "polite", "aria-atomic": "true" }, toast) : null,
+    commandPaletteOpen ? h("div", { className: "command-palette-backdrop", onMouseDown: closeCommandPalette },
+      h("div", { className: "command-palette", role: "dialog", "aria-modal": "true", "aria-label": "命令面板", onMouseDown: (event) => event.stopPropagation(), onKeyDown: (event) => {
+        if (event.key !== "Tab") return;
+        const focusable = Array.from(event.currentTarget.querySelectorAll("input:not(:disabled), button:not(:disabled)"));
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (!first || !last) return;
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      } },
+        h("input", { autoFocus: true, value: commandQuery, placeholder: "搜索命令…", onChange: (event) => setCommandQuery(event.target.value), onKeyDown: (event) => {
+          const buttons = Array.from(event.currentTarget.closest(".command-palette")?.querySelectorAll(".command-palette-list button") || []);
+          if (event.key === "ArrowDown") { event.preventDefault(); buttons[0]?.focus(); }
+          if (event.key === "ArrowUp") { event.preventDefault(); buttons.at(-1)?.focus(); }
+          if (event.key === "Enter") { event.preventDefault(); buttons[0]?.click(); }
+        } }),
+        h("div", { className: "command-palette-list" }, commandItems.map((item) => h("button", { key: item.id, type: "button", onClick: () => { item.run(); closeCommandPalette(); } }, item.label)))
+      )
+    ) : null
   );
 }
 
@@ -1671,10 +1739,10 @@ function customScrollbarGeometry(scrollOffset, clientSize, scrollSize) {
   const offset = Math.max(0, Math.min(maxOffset, (scrollOffset / Math.max(1, scrollSize - clientSize)) * maxOffset));
   return { visible, size, offset };
 }
-function renderNoteTagPill(tag, note, handleAction, editable) {
+function renderNoteTagPill(tag, note, handleAction) {
   return h("span", { className: "pill note-tag-pill", key: tag },
     h("span", { className: "note-tag-label" }, tag),
-    editable ? h("span", { className: "note-tag-actions", "aria-hidden": "false" },
+    h("span", { className: "note-tag-actions", "aria-hidden": "false" },
       h("button", {
         type: "button",
         className: "note-tag-action note-tag-rename",
@@ -1691,7 +1759,7 @@ function renderNoteTagPill(tag, note, handleAction, editable) {
         onClick: () => handleAction("delete-note-tag", tag),
         onPointerDown: (event) => event.stopPropagation()
       }, icon("trash", { size: 12, strokeWidth: 2 }))
-    ) : null
+    )
   );
 }
 
@@ -1700,6 +1768,7 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
   const readerRef = useRef(null);
   const closePreviewTimerRef = useRef(0);
+  const imagePreviewTriggerRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
@@ -1719,6 +1788,7 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
     closePreviewTimerRef.current = window.setTimeout(() => {
       closePreviewTimerRef.current = 0;
       setImagePreview(null);
+      imagePreviewTriggerRef.current?.isConnected && imagePreviewTriggerRef.current.focus();
     }, 180);
   }, []);
 
@@ -1734,6 +1804,8 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
   const openImagePreview = useCallback((event) => {
     const image = event.target?.closest?.("img");
     if (!image) return false;
+    image.tabIndex = 0;
+    imagePreviewTriggerRef.current = image;
     event.preventDefault();
     event.stopPropagation();
     if (closePreviewTimerRef.current) {
@@ -1772,7 +1844,7 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
         : h("h1", { className: "doc-title" }, note.title),
       h("div", { className: "doc-meta" },
         h("span", { className: "pill" }, folderPath(state, note.folderId) || "未归档"),
-        ensureDefaultTags(note.tags).map((tag) => renderNoteTagPill(tag, note, handleAction, editable)),
+        ensureDefaultTags(note.tags).map((tag) => renderNoteTagPill(tag, note, handleAction)),
         editable ? h("button", {
           type: "button",
           className: "pill note-tag-create",
@@ -2375,6 +2447,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
             key: "style-trigger",
             className: "feishu-bubble-button feishu-style-trigger",
             title: "\u6587\u672c\u6837\u5f0f",
+            "aria-label": "\u6587\u672c\u6837\u5f0f",
             onClick: () => {
               setColorPanelOpen(false);
               setStyleMenuOpen((open) => !open);
@@ -2385,6 +2458,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
             key: button.command + "-" + index,
             className: ["feishu-bubble-button", button.active ? "active" : "", button.className || ""].filter(Boolean).join(" "),
             title: button.title || button.command,
+            "aria-label": button.title || button.command,
             onClick: () => runBubbleCommand(button.command)
           }, button.icon ? iconNode(button.icon) : button.label)
         ]
@@ -2392,6 +2466,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
           key: button.command + "-" + index,
           className: ["feishu-bubble-button", button.active ? "active" : "", button.className || ""].filter(Boolean).join(" "),
           title: button.title || button.command,
+          "aria-label": button.title || button.command,
           onClick: () => button.panel
             ? (setStyleMenuOpen(false), setColorPanelOpen((open) => !open))
             : runBubbleCommand(button.command)
@@ -3105,11 +3180,15 @@ function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, 
       note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null,
       h("strong", null, note ? note.title : "创建第一篇笔记")
     ),
-    note ? h("span", {
+    note ? h(localPersistenceStatus === "error" ? "button" : "span", {
       className: "document-save-status",
       role: "status",
+      "aria-live": "polite",
+      "data-state": localPersistenceStatus,
+      type: localPersistenceStatus === "error" ? "button" : undefined,
+      onClick: localPersistenceStatus === "error" ? () => handleAction("retry-local-persistence") : undefined,
       title: localPersistenceStatusText(localPersistenceStatus)
-    }, localPersistenceStatusText(localPersistenceStatus)) : null,
+    }, localPersistenceStatus === "error" ? "保存失败，点击重试" : localPersistenceStatusText(localPersistenceStatus)) : null,
     h("div", { className: "toolbar" },
       note ? h("div", { className: "document-action-group" },
         h("button", {
@@ -3326,7 +3405,7 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
           h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-folder", folder.id) }, "删除文件夹")
         )
       : null,
-    isCollapsed ? null : h("div", { role: "group" },
+    isCollapsed ? null : h("div", { className: "tree-folder-children", role: "group" },
       notes.map((note) => renderNoteItem(state, note, depth + 1, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)),
       children.map((child) => renderFolder(state, child, depth + 1, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard))
     )
@@ -3881,7 +3960,7 @@ function FeishuTableControls({ editor, shellRef }) {
         }
         return h("div", { className: "table-toolbar-popover", style: { left: `${toolbarMenu.left}px` } }, menuItems.map((item, index) => item.divider
           ? h("span", { className: "table-toolbar-popover-divider", key: `divider-${index}` })
-          : h("button", { key: item.command, onPointerDown: (event) => activate(event, item.command, activeLine || {}) }, h("span", { className: "table-toolbar-menu-icon" }, item.icon), item.label)));
+          : h("button", { key: item.command, "aria-label": item.label, onPointerDown: (event) => activate(event, item.command, activeLine || {}) }, h("span", { className: "table-toolbar-menu-icon" }, item.icon), item.label)));
       };
       return h("div", {
       className: "table-selection-toolbar",
@@ -3893,34 +3972,40 @@ function FeishuTableControls({ editor, shellRef }) {
       h("button", {
         className: "table-toolbar-menu-trigger",
         title: "文本样式",
+        "aria-label": "文本样式",
         onPointerDown: (event) => openToolbarMenu(event, "style")
       }, "T⌄"),
       h("button", {
         className: "table-toolbar-menu-trigger",
         title: "对齐",
+        "aria-label": "对齐",
         onPointerDown: (event) => openToolbarMenu(event, "align")
       }, "≡⌄"),
       h("span", { className: "table-toolbar-divider" }),
       formatActions.map(([command, label, title]) => h("button", {
         key: command,
         title,
+        "aria-label": title,
         onPointerDown: (event) => activate(event, command, activeLine || {})
       }, label)),
       h("button", {
         className: "table-toolbar-menu-trigger table-text-color-trigger",
         title: "\u6587\u5b57\u989c\u8272",
+        "aria-label": "\u6587\u5b57\u989c\u8272",
         onPointerDown: (event) => openToolbarMenu(event, "textColor")
       }, "A v"),
       h("button", {
         className: "table-toolbar-menu-trigger table-cell-background-trigger",
         title: "\u5355\u5143\u683c\u80cc\u666f\u989c\u8272",
+        "aria-label": "\u5355\u5143\u683c\u80cc\u666f\u989c\u8272",
         onPointerDown: (event) => openToolbarMenu(event, "cellBackground")
       }, "Bg v"),
       activeLine ? h("span", { className: "table-toolbar-divider" }) : null,
-      activeLine ? h("button", { title: "合并或拆分单元格", onPointerDown: (event) => activate(event, "merge-or-split", activeLine) }, "▦") : null,
+      activeLine ? h("button", { title: "合并或拆分单元格", "aria-label": "合并或拆分单元格", onPointerDown: (event) => activate(event, "merge-or-split", activeLine) }, "▦") : null,
       activeLine ? h("button", {
         className: "table-delete-action",
         title: activeLine.kind === "row" ? "删除行" : "删除列",
+        "aria-label": activeLine.kind === "row" ? "删除行" : "删除列",
         onPointerDown: (event) => activate(event, activeLine.kind === "row" ? "delete-row" : "delete-column", activeLine)
       }, "⌫") : null,
       renderToolbarMenu()
@@ -3957,7 +4042,7 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
   const isActive = note.id === state.activeId;
   return h("div", { className: "tree-section", key: note.id },
     h("button", {
-      className: `tree-note indent-${Math.min(depth, 3)} ${isActive ? "active" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
+      className: `tree-note indent-${Math.min(depth, 3)} ${isActive ? "active" : ""} ${treeDrag.draggedItem?.type === "note" && treeDrag.draggedItem.id === note.id ? "is-dragging" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
       role: "treeitem",
       "aria-level": depth + 1,
       "aria-current": isActive ? "page" : undefined,
@@ -4246,6 +4331,14 @@ function renderModal(state, handleAction) {
     return modalShell("重命名文档", "修改后，发表时会同步到文档索引。",
       h("div", { className: "field" }, h("label", null, "文档名"), h("input", { "data-modal-input": "renameNote", defaultValue: note?.title || "", placeholder: "文档名" })),
       "保存", "confirm-rename-note", handleAction);
+  }
+  if (state.modal === "confirm-delete-note") {
+    const note = state.notes.find((item) => item.id === state.modalContext?.targetId);
+    return modalShell("删除文档？", `「${note?.title || "未命名文档"}」会从本地草稿中移除。`, null, "删除", "confirm-delete-note", handleAction, { confirmClassName: "danger-btn" });
+  }
+  if (state.modal === "confirm-delete-folder") {
+    const folder = state.folders.find((item) => item.id === state.modalContext?.targetId);
+    return modalShell("删除文件夹？", `「${folder?.name || "未命名文件夹"}」及其内容会从本地草稿中移除。`, null, "删除", "confirm-delete-folder", handleAction, { confirmClassName: "danger-btn" });
   }
   if (state.modal === "manage-tag") {
     const isRename = state.modalContext?.mode === "rename" || state.modalContext?.mode === "rename-note";
