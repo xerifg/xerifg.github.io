@@ -7,8 +7,13 @@ const insertMenu = app.slice(app.indexOf("function FeishuInsertMenu"), app.index
 
 assert.match(insertMenu, /onMouseEnter:.*onTableHoverStart/s);
 assert.match(insertMenu, /onMouseLeave:.*onTableHoverEnd/s);
+assert.doesNotMatch(insertMenu, /onTablePickerEnter|onTablePickerLeave/);
 assert.match(app, /clearTimeout\(tablePickerCloseTimerRef\.current\)/);
 assert.match(app, /setTimeout\(\(\) => \{[\s\S]*setTablePicker\(null\);[\s\S]*\}, 100\)/);
+assert.match(app, /onTablePickerEnter: cancelTablePickerClose/);
+assert.match(app, /onTablePickerLeave: closeTablePicker/);
+assert.match(app, /onMouseEnter: onTablePickerEnter/);
+assert.match(app, /onMouseLeave: onTablePickerLeave/);
 assert.match(css, /\.table-insert-grid\.is-closing\s*\{[\s\S]*animation:\s*tablePickerOut/);
 assert.match(css, /@keyframes tablePickerOut/);
 assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.table-insert-grid/s);

@@ -2322,9 +2322,14 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
     insertMenu ? h(FeishuInsertMenu, { position: insertMenu, run, onTableHoverStart: openTablePicker, onTableHoverEnd: closeTablePicker }) : null,
     tablePicker ? h(TableInsertGrid, {
       position: tablePicker,
+      isClosing: tablePickerClosing,
+      onTablePickerEnter: cancelTablePickerClose,
+      onTablePickerLeave: closeTablePicker,
       onSelect: (rows, cols) => {
+        cancelTablePickerClose();
         editorRef.current?.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
         setTablePicker(null);
+        setTablePickerClosing(false);
         setInsertMenu(null);
         if (editorRef.current) onChange(editorRef.current.getHTML());
       },
@@ -4045,7 +4050,7 @@ function FeishuTableControls({ editor, shellRef }) {
   );
 }
 
-function TableInsertGrid({ position, isClosing, onSelect }) {
+function TableInsertGrid({ position, isClosing, onTablePickerEnter, onTablePickerLeave, onSelect }) {
   const [selected, setSelected] = useState({ rows: 3, cols: 3 });
   const cells = [];
   for (let rows = 1; rows <= 6; rows += 1) {
@@ -4063,6 +4068,8 @@ function TableInsertGrid({ position, isClosing, onSelect }) {
   return h("div", {
     className: `table-insert-grid ${isClosing ? "is-closing" : ""}`,
     style: { left: `${position.left}px`, top: `${position.top}px` },
+    onMouseEnter: onTablePickerEnter,
+    onMouseLeave: onTablePickerLeave,
     onMouseDown: (event) => event.preventDefault()
   },
     h("div", { className: "table-grid-cells" }, cells),
