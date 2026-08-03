@@ -34,11 +34,11 @@ assert.match(tableControlsSource, /const nextWidth = Math\.max\(96, state\.right
 assert.match(appSource, /function FeishuTableControls/, "the editor should render controls for the active table");
 assert.match(appSource, /function TableInsertGrid/, "table insertion should support selecting a grid size");
 assert.match(appSource, /run\(item\.command, \{ event, item \}\)/, "insert menu items should pass their trigger event for submenu anchoring");
-assert.match(appSource, /setTablePicker\(tablePickerPositionForTrigger\(context\.event, shellRef\.current, insertMenu/, "table picker should anchor beside the table menu item instead of replacing the insert menu");
+assert.match(appSource, /const openTablePicker = \(event\) => \{[\s\S]*setTablePicker\(tablePickerPositionForTrigger\(event, shellRef\.current, insertMenu/, "table picker should anchor beside the table menu item instead of replacing the insert menu");
 const editorRunSource = appSource.slice(appSource.indexOf("const run = async"), appSource.indexOf("const handleFileInput"));
 const insertTableCommandBranch = editorRunSource.match(/if \(command === "table"\) \{[\s\S]*?return;\r?\n\s*\}/)?.[0] || "";
 assert.ok(insertTableCommandBranch, "table insert command should have a dedicated branch");
-assert.match(insertTableCommandBranch, /setTablePicker\(tablePickerPositionForTrigger\(context\.event/, "the table branch should open the picker from the triggering insert-menu item");
+assert.match(insertTableCommandBranch, /openTablePicker\(context\.event\)/, "the table branch should open the picker from the triggering insert-menu item");
 assert.doesNotMatch(insertTableCommandBranch, /setInsertMenu\(null\)/, "opening the table picker should keep the insert menu visible");
 assert.match(appSource, /closest\?\.\("\.feishu-insert-menu, \.table-insert-grid, \.feishu-plus"\)/, "clicking outside insert controls should dismiss both insert panels");
 assert.doesNotMatch(appSource, /onMouseLeave: onClose/, "table grid picker should not close while moving between the insert menu and the grid");
