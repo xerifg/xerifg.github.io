@@ -2296,6 +2296,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
             key: "style-trigger",
             className: "feishu-bubble-button feishu-style-trigger",
             title: "\u6587\u672c\u6837\u5f0f",
+            "aria-label": "\u6587\u672c\u6837\u5f0f",
             onClick: () => {
               setColorPanelOpen(false);
               setStyleMenuOpen((open) => !open);
@@ -2306,6 +2307,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
             key: button.command + "-" + index,
             className: ["feishu-bubble-button", button.active ? "active" : "", button.className || ""].filter(Boolean).join(" "),
             title: button.title || button.command,
+            "aria-label": button.title || button.command,
             onClick: () => runBubbleCommand(button.command)
           }, button.icon ? iconNode(button.icon) : button.label)
         ]
@@ -2313,6 +2315,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
           key: button.command + "-" + index,
           className: ["feishu-bubble-button", button.active ? "active" : "", button.className || ""].filter(Boolean).join(" "),
           title: button.title || button.command,
+          "aria-label": button.title || button.command,
           onClick: () => button.panel
             ? (setStyleMenuOpen(false), setColorPanelOpen((open) => !open))
             : runBubbleCommand(button.command)
