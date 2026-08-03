@@ -1463,7 +1463,7 @@ function App() {
       )
     ),
     renderModal(state, handleAction),
-    toast ? h("div", { className: "toast" }, toast) : null,
+    toast ? h("div", { className: "toast", role: "status", "aria-live": "polite", "aria-atomic": "true" }, toast) : null,
     commandPaletteOpen ? h("div", { className: "command-palette-backdrop", onMouseDown: closeCommandPalette },
       h("div", { className: "command-palette", role: "dialog", "aria-modal": "true", "aria-label": "命令面板", onMouseDown: (event) => event.stopPropagation(), onKeyDown: (event) => {
         if (event.key !== "Tab") return;
