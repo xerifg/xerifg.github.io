@@ -27,7 +27,7 @@ import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { filterCommandItems } from "./command-palette.mjs";
 import { clearModalState } from "./library-ui-model.mjs";
-import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
+import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260803-unified-diff-v1";
 import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
@@ -4138,6 +4138,24 @@ function LocalChangesSheet({ state, handleAction }) {
   return h("div", { className: "modal-backdrop publish-sheet-backdrop", onMouseDown: (event) => { if (event.target === event.currentTarget) handleAction("close-modal"); } }, h("section", { className: "publish-sheet local-changes-sheet", role: "dialog", "aria-modal": "true", "aria-labelledby": "local-changes-title" }, h("header", { className: "publish-sheet-header" }, h("div", null, h("span", { className: "publish-sheet-eyebrow" }, "\u672c\u5730\u8349\u7a3f"), h("h2", { id: "local-changes-title" }, "\u672c\u5730\u4fee\u6539"), h("p", null, changes.length ? `\u5171 ${changes.length} \u9879\u672a\u53d1\u5e03\u4fee\u6539` : "\u6682\u65e0\u672a\u53d1\u5e03\u4fee\u6539")), h("button", { type: "button", className: "publish-sheet-close", onClick: () => handleAction("close-modal"), "aria-label": "\u5173\u95ed" }, h(X, { size: 18 }))), h("div", { className: "publish-sheet-body local-changes-body" }, changes.length ? h("div", { className: "local-change-list" }, changes.map((change) => h("article", { key: change.id, className: `local-change-row is-${change.action}` }, h("div", null, h("strong", null, change.kind === "folders" ? "\u4fee\u6539\u5c42\u7ea7" : change.kind === "tags" ? "\u4fee\u6539\u6807\u7b7e" : labels[change.action] || "\u4fee\u6539"), h("span", null, change.title)), h("button", { type: "button", className: "ghost-btn", onClick: () => handleAction("revert-local-change", change.id) }, "\u64a4\u9500")))) : h("p", { className: "empty-state" }, "\u6ca1\u6709\u9700\u8981\u5904\u7406\u7684\u672c\u5730\u4fee\u6539\u3002")), changes.length ? h("footer", { className: "publish-sheet-footer" }, h("span", null, "\u672a\u53d1\u5e03\u7684\u6539\u52a8\u4ec5\u4fdd\u5b58\u5728\u672c\u5730"), h("button", { type: "button", className: "danger-outline-btn", onClick: () => handleAction("delete-drafts") }, "\u5220\u9664\u6240\u6709\u672c\u5730\u4fee\u6539")) : null));
 }
 
+function UnifiedDiff({ diff }) {
+  return h("div", { className: "publish-unified-diff" },
+    h("div", { className: "publish-unified-diff-stats", "aria-label": `新增 ${diff.added} 行，删除 ${diff.removed} 行` },
+      diff.added ? h("span", { className: "is-add" }, `+${diff.added}`) : null,
+      diff.removed ? h("span", { className: "is-remove" }, `−${diff.removed}`) : null
+    ),
+    diff.hunks.map((hunk, hunkIndex) => h("section", { className: "publish-diff-hunk", key: `${hunk.oldStart}-${hunk.newStart}-${hunkIndex}` },
+      h("div", { className: "publish-diff-hunk-head" }, `@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@`),
+      hunk.lines.map((line, lineIndex) => h("div", { className: `publish-diff-line is-${line.type}`, key: `${line.oldLine}-${line.newLine}-${lineIndex}` },
+        h("span", { className: "publish-diff-line-number" }, line.oldLine || ""),
+        h("span", { className: "publish-diff-line-number" }, line.newLine || ""),
+        h("span", { className: "publish-diff-line-prefix", "aria-hidden": "true" }, line.type === "add" ? "+" : line.type === "remove" ? "−" : " "),
+        h("span", { className: "publish-diff-line-text" }, line.text)
+      ))
+    ))
+  );
+}
+
 function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
   const closeButtonRef = useRef(null);
   const sheetRef = useRef(null);
@@ -4261,10 +4279,12 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
                         h("strong", null, detail.label),
                         detail.summary ? h("span", null, detail.summary) : null
                       ),
-                      h("div", { className: "publish-diff-grid" },
-                        h("div", null, h("b", null, "远端"), h("pre", null, detail.remote)),
-                        h("div", null, h("b", null, "本地待发表"), h("pre", null, detail.local))
-                      )
+                      detail.diff
+                        ? h(UnifiedDiff, { diff: detail.diff })
+                        : h("div", { className: "publish-diff-grid" },
+                          h("div", null, h("b", null, "远端"), h("pre", null, detail.remote)),
+                          h("div", null, h("b", null, "本地待发表"), h("pre", null, detail.local))
+                        )
                     )))
                     : h("p", { className: "empty" }, "没有可展示的字段差异。")
                 ));

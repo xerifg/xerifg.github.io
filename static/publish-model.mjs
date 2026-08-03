@@ -83,6 +83,80 @@ function textFromHtml(html) {
     .trim();
 }
 
+function diffTextFromHtml(html) {
+  return String(html || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<(br|\/p|\/div|\/li|\/h[1-6]|\/blockquote|\/pre)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function buildUnifiedTextDiff(remoteText, localText, contextLines = 1) {
+  const remoteLines = String(remoteText || "").split(/\r?\n/).filter(Boolean);
+  const localLines = String(localText || "").split(/\r?\n/).filter(Boolean);
+  const table = Array.from({ length: remoteLines.length + 1 }, () => Array(localLines.length + 1).fill(0));
+  for (let remoteIndex = remoteLines.length - 1; remoteIndex >= 0; remoteIndex -= 1) {
+    for (let localIndex = localLines.length - 1; localIndex >= 0; localIndex -= 1) {
+      table[remoteIndex][localIndex] = remoteLines[remoteIndex] === localLines[localIndex]
+        ? table[remoteIndex + 1][localIndex + 1] + 1
+        : Math.max(table[remoteIndex + 1][localIndex], table[remoteIndex][localIndex + 1]);
+    }
+  }
+
+  const operations = [];
+  let remoteIndex = 0;
+  let localIndex = 0;
+  while (remoteIndex < remoteLines.length || localIndex < localLines.length) {
+    if (remoteLines[remoteIndex] === localLines[localIndex]) {
+      operations.push({ type: "context", oldLine: remoteIndex + 1, newLine: localIndex + 1, text: remoteLines[remoteIndex] });
+      remoteIndex += 1;
+      localIndex += 1;
+    } else if (localIndex >= localLines.length || (remoteIndex < remoteLines.length && table[remoteIndex + 1][localIndex] >= table[remoteIndex][localIndex + 1])) {
+      operations.push({ type: "remove", oldLine: remoteIndex + 1, newLine: null, text: remoteLines[remoteIndex] });
+      remoteIndex += 1;
+    } else {
+      operations.push({ type: "add", oldLine: null, newLine: localIndex + 1, text: localLines[localIndex] });
+      localIndex += 1;
+    }
+  }
+
+  const changedIndexes = operations.flatMap((operation, index) => operation.type === "context" ? [] : [index]);
+  const added = operations.filter((operation) => operation.type === "add").length;
+  const removed = operations.filter((operation) => operation.type === "remove").length;
+  if (!changedIndexes.length) return { added, removed, hunks: [] };
+
+  const ranges = [];
+  for (const index of changedIndexes) {
+    const start = Math.max(0, index - contextLines);
+    const end = Math.min(operations.length, index + contextLines + 1);
+    const previous = ranges.at(-1);
+    if (previous && start <= previous.end) previous.end = Math.max(previous.end, end);
+    else ranges.push({ start, end });
+  }
+  return {
+    added,
+    removed,
+    hunks: ranges.map(({ start, end }) => {
+      const lines = operations.slice(start, end);
+      return {
+        oldStart: lines.find((line) => line.oldLine !== null)?.oldLine || 0,
+        oldLines: lines.filter((line) => line.oldLine !== null).length,
+        newStart: lines.find((line) => line.newLine !== null)?.newLine || 0,
+        newLines: lines.filter((line) => line.newLine !== null).length,
+        lines
+      };
+    })
+  };
+}
+
 function previewText(value, fallback = "无") {
   const text = String(value || "").replace(/\s+/g, " ").trim();
   if (!text) return fallback;
@@ -236,10 +310,13 @@ export function buildPublishChangeDetails(localState, remoteState, change) {
   const remoteText = textFromHtml(remoteComparable.html);
   const localText = textFromHtml(localComparable.html);
   if (!sameValue(remoteComparable.html, localComparable.html)) {
+    const remoteDiffText = diffTextFromHtml(remoteComparable.html);
+    const localDiffText = diffTextFromHtml(localComparable.html);
     details.push({
       label: "正文",
       remote: remoteUnavailable ? "未加载" : previewText(remoteText),
       local: previewText(localText),
+      diff: remoteUnavailable ? null : buildUnifiedTextDiff(remoteDiffText, localDiffText),
       summary: remoteUnavailable
         ? "远端正文未能读取，无法计算完整正文差异"
         : `文本长度 ${remoteText.length} -> ${localText.length}，HTML 长度 ${remoteComparable.html.length} -> ${localComparable.html.length}`
