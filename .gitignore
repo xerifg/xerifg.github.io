@@ -23,3 +23,5 @@ dev/selenium-debug.log
 dev/package-lock.json
 .superpowers/
 
+docs/
+tests/
