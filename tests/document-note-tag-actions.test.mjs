@@ -42,23 +42,18 @@ assert.match(
 );
 assert.match(
   documentPaper,
-  /ensureDefaultTags\(note\.tags\)\.map\(\(tag\) => renderNoteTagPill\(tag, note, handleAction\)\)/,
-  "only real note tags should render with rename and delete controls"
+  /ensureDefaultTags\(note\.tags\)\.map\(\(tag\) => renderNoteTagPill\(tag, note, editable, handleAction\)\)/,
+  "document tags should receive the current editability when rendered"
 );
 assert.match(
   app,
-  /className:\s*"pill note-tag-pill"/,
-  "editable note tags should have a dedicated pill class"
+  /function renderNoteTagPill\(tag, note, editable, handleAction\)/,
+  "the tag pill should know whether the document is editable"
 );
 assert.match(
   app,
-  /onClick:\s*\(\) => handleAction\("rename-note-tag", tag\)/,
-  "note tag pills should expose a rename action"
-);
-assert.match(
-  app,
-  /onClick:\s*\(\) => handleAction\("delete-note-tag", tag\)/,
-  "note tag pills should expose a delete action"
+  /editable \? h\("span", \{ className: "note-tag-actions", "aria-hidden": "false" \}/,
+  "read-mode tag pills must not render rename or delete actions"
 );
 
 const staticMetaSource = documentPaper.slice(
@@ -66,7 +61,7 @@ const staticMetaSource = documentPaper.slice(
   documentPaper.indexOf('h("div", { className: "tiptap-shell" }')
 );
 assert.match(staticMetaSource, /folderPath\(state, note\.folderId\).*className:\s*"pill"/s);
-assert.match(staticMetaSource, /note\.dirty \? "本地草稿" : "已发表"/);
+assert.match(staticMetaSource, /note\.dirty \? "本地草稿" : "已发�?/);
 assert.match(staticMetaSource, /formatDate\(note\.date\)/);
 assert.doesNotMatch(staticMetaSource, /rename-folder-tag|delete-folder-tag|rename-publish|delete-publish/);
 

@@ -13,6 +13,10 @@ export function toggleContextDrawer(isOpen) {
   return !Boolean(isOpen);
 }
 
+export function clearModalState() {
+  return { modal: null, modalContext: null };
+}
+
 export function resolveLocalPersistenceStatus(event) {
   if (event === "start") return "saving";
   if (event === "failure") return "error";

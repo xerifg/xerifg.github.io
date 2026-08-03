@@ -26,6 +26,7 @@ import {
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { filterCommandItems } from "./command-palette.mjs";
+import { clearModalState } from "./library-ui-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
 import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
@@ -49,7 +50,7 @@ const mermaidExample = `graph TD
          RawPoints[原始点云] --> InputTensor[输入张量]
          end
          InputTensor --> Encoder[特征编码]
-         UT1[上采样特征 1] & UT2[上采样特征 2] & UT3[上采样特征 3] --> Concat[多尺度拼接]
+         UT1[上采样特�?1] & UT2[上采样特�?2] & UT3[上采样特�?3] --> Concat[多尺度拼接]
          classDef inputStyle fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
          class RawPoints,InputTensor inputStyle;
   Encoder --> Output[输出]`;
@@ -240,7 +241,7 @@ function MermaidPreview({ code, error, onRenderError, onRenderSuccess }) {
         }
       } catch {
         if (!cancelled) {
-          const message = "Mermaid 无法渲染当前源码，请检查语法。";
+          const message = "Mermaid 无法渲染当前源码，请检查语法�?;
           setRenderError(message);
           onRenderError?.(message);
         }
@@ -446,7 +447,7 @@ const FileAttachment = Node.create({
       name: {
         default: "附件",
         parseHTML: (element) => element.querySelector("a")?.getAttribute("download")
-          || element.querySelector("a")?.textContent?.replace(/^附件：/, "").trim()
+          || element.querySelector("a")?.textContent?.replace(/^附件�?, "").trim()
           || "附件"
       },
       size: {
@@ -463,7 +464,7 @@ const FileAttachment = Node.create({
     const name = HTMLAttributes.name || "附件";
     const size = HTMLAttributes.size || "";
     return ["div", { "data-type": "file-attachment", class: "doc-attachment-card" },
-      ["a", mergeAttributes({ class: "doc-attachment", href, download: name }, { href }), `附件：${name}`],
+      ["a", mergeAttributes({ class: "doc-attachment", href, download: name }, { href }), `附件�?{name}`],
       ["span", {}, size]
     ];
   }
@@ -471,10 +472,10 @@ const FileAttachment = Node.create({
 
 const seedHtml = [
   "<h2>记录方式</h2>",
-  "<p>这里是一套纯笔记系统。左侧像飞书文档一样管理文件夹和文档，右侧默认是阅读模式。</p>",
-  "<p>现在编辑器已经切换为 Tiptap/ProseMirror，并自定义了飞书式加号菜单和选区工具条。编辑会先自动保存到浏览器本地草稿，点击「发表」后才会写入 GitHub 仓库。</p>",
+  "<p>这里是一套纯笔记系统。左侧像飞书文档一样管理文件夹和文档，右侧默认是阅读模式�?/p>",
+  "<p>现在编辑器已经切换为 Tiptap/ProseMirror，并自定义了飞书式加号菜单和选区工具条。编辑会先自动保存到浏览器本地草稿，点击「发表」后才会写入 GitHub 仓库�?/p>",
   "<h2>保存方式</h2>",
-  "<p>首次编辑或发表前，会弹出账号和密码验证。验证通过后，文档会保存到当前笔记本 GitHub 仓库的 main 分支。</p>"
+  "<p>首次编辑或发表前，会弹出账号和密码验证。验证通过后，文档会保存到当前笔记�?GitHub 仓库�?main 分支�?/p>"
 ].join("");
 
 const seed = {
@@ -505,15 +506,15 @@ const seed = {
     token: ""
   },
   folders: [
-    { id: "folder-writing", name: "写作台", parentId: null },
+    { id: "folder-writing", name: "写作�?, parentId: null },
     { id: "folder-system", name: "使用说明", parentId: "folder-writing" }
   ],
   notes: [
     {
       id: "note-welcome",
-      title: "个人知识库起点",
+      title: "个人知识库起�?,
       folderId: "folder-system",
-      tags: ["知识库", "Tiptap", "GitHub"],
+      tags: ["知识�?, "Tiptap", "GitHub"],
       date: now(),
       file: "notebooks/docs/welcome.json",
       dirty: false,
@@ -590,7 +591,7 @@ function App() {
     } catch (error) {
       console.error("Draft persistence failed", error);
       setLocalPersistenceStatus(resolveLocalPersistenceStatus("failure"));
-      setToast("本地草稿保存失败，请减少图片大小后重试");
+      setToast("本地草稿保存失败，请减少图片大小后重�?);
     }
     return () => {
       cancelled = true;
@@ -704,7 +705,7 @@ function App() {
       draft.deletedTags = uniqueTags([...(draft.deletedTags || []), tag]);
       draft.message = "标签已从所有文档中删除";
     });
-    setToast("标签已删除并保存为本地草稿");
+    setToast("标签已删除并保存为本地草�?);
   };
   useEffect(() => {
     if (!state.openCreateMenu) return undefined;
@@ -788,7 +789,7 @@ function App() {
         const dragged = JSON.parse(event.dataTransfer.getData("application/x-notebook-tree-item"));
         const result = applyTreeDrop(state, dragged, target);
         if (!result.changed) {
-          if (result.reason === "descendant-folder") setToast("文件夹不能拖入自身的子目录");
+          if (result.reason === "descendant-folder") setToast("文件夹不能拖入自身的子目�?);
           return;
         }
         patchState((draft) => {
@@ -800,9 +801,9 @@ function App() {
           if (target.type === "folder" && target.position === "inside") {
             delete draft.collapsedFolders?.[target.id];
           }
-          draft.message = "目录位置已更新，发表后同步";
+          draft.message = "目录位置已更新，发表后同�?;
         });
-        setToast("目录位置已更新，发表后同步");
+        setToast("目录位置已更新，发表后同�?);
       } catch {
         setToast("拖拽位置无效");
       }
@@ -872,7 +873,7 @@ function App() {
       updater(item, draft);
       item.date = now();
       item.dirty = true;
-      draft.message = "草稿已保存本地";
+      draft.message = "草稿已保存本�?;
     });
   };
 
@@ -891,7 +892,7 @@ function App() {
 
   const createNote = (targetFolderId) => {
     if (!requireEditPermission("edit")) return;
-    const title = document.querySelector("[data-modal-input='noteTitle']")?.value.trim() || "未命名文档";
+    const title = document.querySelector("[data-modal-input='noteTitle']")?.value.trim() || "未命名文�?;
     patchState((draft) => {
       const id = `note-${Date.now()}`;
       const folderId = targetFolderId ?? draft.modalContext?.folderId ?? null;
@@ -916,9 +917,9 @@ function App() {
       draft.openCreateMenu = null;
       draft.modal = null;
       draft.modalContext = null;
-      draft.message = "新文档已保存为本地草稿";
+      draft.message = "新文档已保存为本地草�?;
     });
-    setToast("文档已创建");
+    setToast("文档已创�?);
   };
 
   const renameFolder = () => {
@@ -930,12 +931,12 @@ function App() {
       draft.modal = null;
       draft.modalContext = null;
     });
-    setToast("文件夹已重命名");
+    setToast("文件夹已重命�?);
   };
 
   const renameNote = () => {
     if (!requireEditPermission("edit")) return;
-    const title = document.querySelector("[data-modal-input='renameNote']")?.value.trim() || "未命名文档";
+    const title = document.querySelector("[data-modal-input='renameNote']")?.value.trim() || "未命名文�?;
     const noteId = state.modalContext?.noteId;
     if (!noteId) return;
     updateNote(noteId, (item) => {
@@ -952,7 +953,7 @@ function App() {
   const deleteNote = (noteId = state.activeId) => {
     if (!requireEditPermission("edit")) return;
     if (state.notes.length <= 1) {
-      setToast("至少保留一篇笔记");
+      setToast("至少保留一篇笔�?);
       return;
     }
     patchState((draft) => {
@@ -960,9 +961,10 @@ function App() {
       draft.activeId = draft.activeId === noteId ? draft.notes[0]?.id || "" : draft.activeId;
       draft.mode = "read";
       draft.openCreateMenu = null;
-      draft.message = "删除已保存到本地，发表任意文档后目录会更新";
+      Object.assign(draft, clearModalState());
+      draft.message = "删除已保存到本地，发表任意文档后目录会更�?;
     });
-    setToast("文档已移入本地草稿变更");
+    setToast("文档已移入本地草稿变�?);
   };
 
   const deleteFolder = (folderId) => {
@@ -980,7 +982,7 @@ function App() {
     }
     const noteIds = new Set(state.notes.filter((item) => folderIds.has(item.folderId)).map((item) => item.id));
     if (noteIds.size >= state.notes.length) {
-      setToast("至少保留一篇笔记");
+      setToast("至少保留一篇笔�?);
       return;
     }
     patchState((draft) => {
@@ -989,8 +991,9 @@ function App() {
       if (noteIds.has(draft.activeId)) draft.activeId = draft.notes[0]?.id || "";
       folderIds.forEach((id) => delete draft.collapsedFolders?.[id]);
       draft.openCreateMenu = null;
+      Object.assign(draft, clearModalState());
       draft.mode = "read";
-      draft.message = "删除已保存到本地，发表任意文档后目录会更新";
+      draft.message = "删除已保存到本地，发表任意文档后目录会更�?;
     });
     setToast("文件夹已移入本地草稿变更");
   };
@@ -998,13 +1001,13 @@ function App() {
   const openDeleteDraftsModal = async () => {
     if (!note) return;
     patchState((draft) => {
-      draft.message = "正在检查本地草稿和已发表版本";
+      draft.message = "正在检查本地草稿和已发表版�?;
       draft.openCreateMenu = null;
     });
     try {
       const published = await loadPublishedLibrary();
       if (!published?.notes?.length) {
-        setToast("没有读取到已发表版本，暂时不能删除草稿");
+        setToast("没有读取到已发表版本，暂时不能删除草�?);
         return;
       }
       const summary = buildDraftDeletionSummary(state, published);
@@ -1016,14 +1019,14 @@ function App() {
       });
     } catch (error) {
       console.error(error);
-      setToast(error.message || "读取已发表版本失败");
+      setToast(error.message || "读取已发表版本失�?);
     }
   };
 
   const confirmDeleteDrafts = () => {
     const published = state.modalContext?.published;
     if (!published?.notes?.length) {
-      setToast("没有可恢复的已发表版本");
+      setToast("没有可恢复的已发表版�?);
       return;
     }
     localStorage.removeItem(blockNoteStorageKey);
@@ -1044,10 +1047,10 @@ function App() {
         modalContext: null,
         mode: "read",
         syncStatus: "ready",
-        message: "本地草稿已删除，已恢复为最近一次发表版本"
+        message: "本地草稿已删除，已恢复为最近一次发表版�?
       });
     });
-    setToast("本地草稿已删除");
+    setToast("本地草稿已删�?);
   };
   const confirmAuth = () => {
     const account = document.querySelector("[data-auth='account']")?.value.trim();
@@ -1080,7 +1083,7 @@ function App() {
 
   const openLocalTagModal = (mode, selectedTag = state.selectedTag) => {
     if (mode === "create" && !note) {
-      setToast("先打开一篇笔记，再为它新建标签");
+      setToast("先打开一篇笔记，再为它新建标�?);
       return;
     }
     if (mode === "rename" && !selectedTag) return;
@@ -1121,7 +1124,7 @@ function App() {
         });
         setToast("这个标签已经存在");
       } else {
-        setToast(result.error === "no-note" ? "先打开一篇笔记，再为它新建标签" : "请输入标签名称");
+        setToast(result.error === "no-note" ? "先打开一篇笔记，再为它新建标�? : "请输入标签名�?);
       }
       return;
     }
@@ -1136,7 +1139,7 @@ function App() {
       draft.modalContext = null;
       draft.message = "标签改动已保存为本地草稿";
     });
-    setToast(mode === "rename" || mode === "rename-note" ? "标签已重命名并保存为本地草稿" : "标签已创建并保存为本地草稿");
+    setToast(mode === "rename" || mode === "rename-note" ? "标签已重命名并保存为本地草稿" : "标签已创建并保存为本地草�?);
   };
 
   const openPublishTagModal = () => {
@@ -1204,7 +1207,7 @@ function App() {
     patchState((draft) => {
       draft.modal = null;
       draft.modalContext = null;
-      draft.message = "正在比较本地改动与 GitHub";
+      draft.message = "正在比较本地改动�?GitHub";
     });
     try {
       const remoteState = await loadGitHubPublishedLibrary(settings);
@@ -1222,21 +1225,21 @@ function App() {
         };
         draft.openCreateMenu = null;
         draft.syncStatus = "ready";
-        draft.message = changeSet.changes.length ? "已检测到待发表改动" : "没有检测到待发表改动";
+        draft.message = changeSet.changes.length ? "已检测到待发表改�? : "没有检测到待发表改�?;
       });
     } catch (error) {
       console.error(error);
       patchState((draft) => {
         draft.syncStatus = "error";
-        draft.message = error.message || "读取 GitHub 已发表内容失败";
+        draft.message = error.message || "读取 GitHub 已发表内容失�?;
       });
-      setToast(error.message || "读取 GitHub 已发表内容失败，请检查 token 和仓库权限");
+      setToast(error.message || "读取 GitHub 已发表内容失败，请检�?token 和仓库权�?);
     }
   };
 
   const publishSelectedChanges = async (settings, review, selectedIds) => {
     if (!selectedIds.size) {
-      setToast("请至少选择一项改动");
+      setToast("请至少选择一项改�?);
       return;
     }
     const validation = validatePublishSelection(review.changes, selectedIds);
@@ -1303,7 +1306,7 @@ function App() {
         next.notes = reconcilePublishedNotes(latest.notes, publishedNotes, selectedIds);
         if (merged.includeDeletedTags) next.deletedTags = [];
         next.syncStatus = "ready";
-        next.message = `已发表 ${selectedIds.size} 项改动到 GitHub 仓库`;
+        next.message = `已发�?${selectedIds.size} 项改动到 GitHub 仓库`;
         next.modal = null;
         next.modalContext = null;
         return next;
@@ -1315,7 +1318,7 @@ function App() {
         draft.syncStatus = "error";
         draft.message = error.message || "发表失败";
       });
-      setToast(error.message || "发表失败，请检查 token 和仓库权限");
+      setToast(error.message || "发表失败，请检�?token 和仓库权�?);
     }
   };
   const handleAction = (action, targetFolderId) => {
@@ -1400,7 +1403,7 @@ function App() {
     if (action === "confirm-local-tag") confirmLocalTag();
     if (action === "create-note-tag") {
       if (state.mode !== "edit") {
-        setToast("请先进入编辑模式再新建标签");
+        setToast("请先进入编辑模式再新建标�?);
         return;
       }
       openLocalTagModal("create");
@@ -1440,7 +1443,7 @@ function App() {
     if (action === "retry-local-persistence") retryLocalPersistence();
     if (action === "rename-note-tag") {
       if (state.mode !== "edit") {
-        setToast("请先进入编辑模式再修改标签");
+        setToast("请先进入编辑模式再修改标�?);
         return;
       }
       if (!targetFolderId || !note || !requireEditPermission("edit")) return;
@@ -1452,7 +1455,7 @@ function App() {
     }
     if (action === "delete-note-tag") {
       if (state.mode !== "edit") {
-        setToast("请先进入编辑模式再删除标签");
+        setToast("请先进入编辑模式再删除标�?);
         return;
       }
       if (!targetFolderId || !note || !requireEditPermission("edit")) return;
@@ -1468,7 +1471,7 @@ function App() {
       }
       patchState((draft) => {
         draft.notes = result.notes;
-        draft.message = "标签已从当前文档中删除";
+        draft.message = "标签已从当前文档中删�?;
       });
       setToast("标签已从当前文档删除");
     }
@@ -1543,7 +1546,7 @@ function App() {
     }
     if (state.view !== "library") {
       return h("section", { className: "empty library-placeholder" },
-        h("div", null, h("h2", null, "知识库设置"), h("p", null, "此视图将在下一阶段接入。"))
+        h("div", null, h("h2", null, "知识库设�?), h("p", null, "此视图将在下一阶段接入�?))
       );
     }
     return h(React.Fragment, null,
@@ -1559,7 +1562,7 @@ function App() {
               handleAction
             })
           : h("div", { className: "empty" },
-              h("div", null, h("h2", null, "选择一篇笔记"), h("p", null, "选择左侧文档开始阅读")))
+              h("div", null, h("h2", null, "选择一篇笔�?), h("p", null, "选择左侧文档开始阅�?)))
       )
     );
   };
@@ -1618,7 +1621,7 @@ function App() {
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
         if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       } },
-        h("input", { autoFocus: true, value: commandQuery, placeholder: "搜索命令…", onChange: (event) => setCommandQuery(event.target.value), onKeyDown: (event) => {
+        h("input", { autoFocus: true, value: commandQuery, placeholder: "搜索命令�?, onChange: (event) => setCommandQuery(event.target.value), onKeyDown: (event) => {
           const buttons = Array.from(event.currentTarget.closest(".command-palette")?.querySelectorAll(".command-palette-list button") || []);
           if (event.key === "ArrowDown") { event.preventDefault(); buttons[0]?.focus(); }
           if (event.key === "ArrowUp") { event.preventDefault(); buttons.at(-1)?.focus(); }
@@ -1739,15 +1742,15 @@ function customScrollbarGeometry(scrollOffset, clientSize, scrollSize) {
   const offset = Math.max(0, Math.min(maxOffset, (scrollOffset / Math.max(1, scrollSize - clientSize)) * maxOffset));
   return { visible, size, offset };
 }
-function renderNoteTagPill(tag, note, handleAction) {
+function renderNoteTagPill(tag, note, editable, handleAction) {
   return h("span", { className: "pill note-tag-pill", key: tag },
     h("span", { className: "note-tag-label" }, tag),
-    h("span", { className: "note-tag-actions", "aria-hidden": "false" },
+    editable ? h("span", { className: "note-tag-actions", "aria-hidden": "false" },
       h("button", {
         type: "button",
         className: "note-tag-action note-tag-rename",
-        title: `重命名标签 ${tag}`,
-        "aria-label": `重命名标签 ${tag}`,
+        title: `重命名标�?${tag}`,
+        "aria-label": `重命名标�?${tag}`,
         onClick: () => handleAction("rename-note-tag", tag),
         onPointerDown: (event) => event.stopPropagation()
       }, icon("edit", { size: 12, strokeWidth: 2 })),
@@ -1836,22 +1839,22 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
         ? h("input", {
             className: "doc-title-input",
             value: note.title,
-            placeholder: "无标题",
+            placeholder: "无标�?,
             onChange: (event) => updateNote(note.id, (item) => {
               item.title = event.target.value;
             })
           })
         : h("h1", { className: "doc-title" }, note.title),
       h("div", { className: "doc-meta" },
-        h("span", { className: "pill" }, folderPath(state, note.folderId) || "未归档"),
-        ensureDefaultTags(note.tags).map((tag) => renderNoteTagPill(tag, note, handleAction)),
+        h("span", { className: "pill" }, folderPath(state, note.folderId) || "未归�?),
+        ensureDefaultTags(note.tags).map((tag) => renderNoteTagPill(tag, note, editable, handleAction)),
         editable ? h("button", {
           type: "button",
           className: "pill note-tag-create",
           onClick: () => handleAction("create-note-tag"),
           "aria-label": "新建标签"
         }, icon("add", { size: 14, strokeWidth: 2 }), "新建标签") : null,
-        h("span", { className: `pill ${note.dirty ? "dirty" : ""}` }, note.dirty ? "本地草稿" : "已发表"),
+        h("span", { className: `pill ${note.dirty ? "dirty" : ""}` }, note.dirty ? "本地草稿" : "已发�?),
         h("span", { className: "pill" }, formatDate(note.date))
       ),
       h("div", { className: "tiptap-shell" },
@@ -2486,9 +2489,9 @@ function FeishuInsertMenu({ position, run }) {
         { icon: Heading3, label: "标题 3", command: "h3" },
         { icon: ListOrdered, label: "有序列表", command: "orderedList" },
         { icon: List, label: "无序列表", command: "bulletList" },
-        { icon: Braces, label: "代码块", command: "codeBlock" },
+        { icon: Braces, label: "代码�?, command: "codeBlock" },
         { icon: Quote, label: "引用", command: "blockquote" },
-        { icon: Minus, label: "分割线", command: "divider" },
+        { icon: Minus, label: "分割�?, command: "divider" },
         { icon: LinkIcon, label: "链接", command: "link" }
       ]
     },
@@ -2499,7 +2502,7 @@ function FeishuInsertMenu({ position, run }) {
         { icon: VideoIcon, label: "视频", command: "video", color: "#15b8a6" },
         { icon: FileUp, label: "文件附件", command: "file", color: "#64748b" },
         { icon: TableIcon, label: "表格", command: "table", color: "#00b578", arrow: true },
-        { icon: GitBranch, label: "Mermaid 流程图", command: "mermaidDiagram", color: "#3370ff" },
+        { icon: GitBranch, label: "Mermaid 流程�?, command: "mermaidDiagram", color: "#3370ff" },
         { icon: Sigma, label: "\u516c\u5f0f", command: "mathBlock", color: "#6b7280" }
       ]
     }
@@ -2513,7 +2516,7 @@ function FeishuInsertMenu({ position, run }) {
     section.items.map((item) => h("button", { key: `${section.title}-${item.label}`, onClick: (event) => run(item.command, { event, item }) },
       h("span", { className: "feishu-menu-icon", style: { color: item.color || "#1f2329" } }, typeof item.icon === "string" ? item.icon : iconNode(item.icon)),
       h("span", null, item.label),
-      item.arrow ? h("i", null, "›") : null
+      item.arrow ? h("i", null, "�?) : null
     ))
   )));
 }
@@ -2603,7 +2606,7 @@ function commandName(command) {
     video: "视频",
     table: "表格",
     columns: "分栏",
-    highlightBlock: "高亮块",
+    highlightBlock: "高亮�?,
     button: "按钮",
     template: "模板"
   };
@@ -3174,11 +3177,11 @@ function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, 
       state.tagReturnContext ? h("button", {
         className: "tag-return-button",
         onClick: () => handleAction("back-to-tag"),
-        "aria-label": `返回标签：${state.tagReturnContext.selectedTag}`
+        "aria-label": `返回标签�?{state.tagReturnContext.selectedTag}`
       }, icon("back", { size: 16 }), "返回标签") : null,
-      h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "未归档" : "没有笔记"),
+      h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "未归�? : "没有笔记"),
       note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null,
-      h("strong", null, note ? note.title : "创建第一篇笔记")
+      h("strong", null, note ? note.title : "创建第一篇笔�?)
     ),
     note ? h(localPersistenceStatus === "error" ? "button" : "span", {
       className: "document-save-status",
@@ -3188,7 +3191,7 @@ function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, 
       type: localPersistenceStatus === "error" ? "button" : undefined,
       onClick: localPersistenceStatus === "error" ? () => handleAction("retry-local-persistence") : undefined,
       title: localPersistenceStatusText(localPersistenceStatus)
-    }, localPersistenceStatus === "error" ? "保存失败，点击重试" : localPersistenceStatusText(localPersistenceStatus)) : null,
+    }, localPersistenceStatus === "error" ? "保存失败，点击重�? : localPersistenceStatusText(localPersistenceStatus)) : null,
     h("div", { className: "toolbar" },
       note ? h("div", { className: "document-action-group" },
         h("button", {
@@ -3204,7 +3207,7 @@ function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, 
         "data-publish-trigger": "",
         disabled: state.syncStatus === "publishing",
         onClick: () => handleAction("publish")
-      }, state.syncStatus === "publishing" ? "发表中" : [icon("upload", { size: 16 }), "发布"]) : null
+      }, state.syncStatus === "publishing" ? "发表�? : [icon("upload", { size: 16 }), "发布"]) : null
     )
   );
 }
@@ -3269,7 +3272,7 @@ function DocumentOverflowMenu({ state, note, handleAction }) {
 
 function renderDocumentActionsMenu(state, menuRef, handleMenuKeyDown, onAction) {
   return h("div", { ref: menuRef, className: "document-overflow-menu", role: "menu", "aria-label": "文档操作" },
-    h("button", { type: "button", role: "menuitem", onClick: () => onAction("rename-note") }, "重命名"),
+    h("button", { type: "button", role: "menuitem", onClick: () => onAction("rename-note") }, "重命�?),
     h("button", { type: "button", role: "menuitem", onClick: () => onAction("delete-drafts") }, "删除本地草稿"),
     h("button", {
       type: "button",
@@ -3282,11 +3285,11 @@ function renderDocumentActionsMenu(state, menuRef, handleMenuKeyDown, onAction) 
 }
 
 function documentStatusText(state, note) {
-  if (!note) return "选择或新建一篇文档开始记录。";
-  if (state.syncStatus === "publishing") return "正在发表到 GitHub，请稍候。";
-  if (note.dirty || !note.publishedAt) return "当前内容已临时保存在本地，点击「发表」后会推送到 GitHub。";
+  if (!note) return "选择或新建一篇文档开始记录�?;
+  if (state.syncStatus === "publishing") return "正在发表�?GitHub，请稍候�?;
+  if (note.dirty || !note.publishedAt) return "当前内容已临时保存在本地，点击「发表」后会推送到 GitHub�?;
   const path = note.file || `notebooks/docs/${slugify(note.title || note.id)}.json`;
-  return `已发表，GitHub 保存地址：${githubBrowserUrl(state.settings, path)}`;
+  return `已发表，GitHub 保存地址�?{githubBrowserUrl(state.settings, path)}`;
 }
 
 function githubBrowserUrl(settings, path) {
@@ -3300,11 +3303,11 @@ function renderContextSidebar(state, visibleNotes, selectNote, handleAction, tre
   return h("nav", {
     id: "context-sidebar",
     className: `sidebar context-sidebar ${isContextSidebarOpen ? "is-open" : ""}`,
-    "aria-label": "知识库目录"
+    "aria-label": "知识库目�?
   },
     h("header", { className: "sidebar-heading" },
       h("div", null,
-        h("strong", null, "我的知识库"),
+        h("strong", null, "我的知识�?),
         h("span", null, "个人笔记")
       ),
       h("div", { className: "sidebar-create-control" },
@@ -3317,7 +3320,7 @@ function renderContextSidebar(state, visibleNotes, selectNote, handleAction, tre
         state.openCreateMenu === "root"
           ? h("div", { className: "create-menu" },
               h("button", { onClick: () => handleAction("new-note-in-folder", null) }, "新建文档"),
-              h("button", { onClick: () => handleAction("new-folder-in-folder", null) }, "新建文件夹")
+              h("button", { onClick: () => handleAction("new-folder-in-folder", null) }, "新建文件�?)
             )
           : null
       )
@@ -3328,7 +3331,7 @@ function renderContextSidebar(state, visibleNotes, selectNote, handleAction, tre
       h("input", {
         className: "search",
         value: state.query,
-        placeholder: "搜索笔记、标签、内容",
+        placeholder: "搜索笔记、标签、内�?,
         onChange: (event) => handleAction("search-library", event.target.value)
       })
     ),
@@ -3345,7 +3348,7 @@ function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dra
     ...orphanNotes.map((note) => renderNoteItem(state, note, 0, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard))
   ];
   if (!visibleNotes.length) {
-    children.push(h("div", { className: "empty", key: "empty" }, h("div", null, h("strong", null, "没有找到笔记"), h("p", null, "换个关键词试试。"))));
+    children.push(h("div", { className: "empty", key: "empty" }, h("div", null, h("strong", null, "没有找到笔记"), h("p", null, "换个关键词试试�?))));
   }
   return children;
 }
@@ -3400,9 +3403,9 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
     }, icon("add", { size: 15 })),
     state.openCreateMenu === folder.id
       ? h("div", { className: "create-menu" },
-          h("button", { onClick: () => handleAction("new-folder-in-folder", folder.id) }, "新建文件夹"),
+          h("button", { onClick: () => handleAction("new-folder-in-folder", folder.id) }, "新建文件�?),
           h("button", { onClick: () => handleAction("new-note-in-folder", folder.id) }, "新建文档"),
-          h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-folder", folder.id) }, "删除文件夹")
+          h("button", { className: "danger-menu-item", onClick: () => handleAction("delete-folder", folder.id) }, "删除文件�?)
         )
       : null,
     isCollapsed ? null : h("div", { className: "tree-folder-children", role: "group" },
@@ -3809,7 +3812,7 @@ function FeishuTableControls({ editor, shellRef }) {
     run(command, context);
     setToolbarMenu(null);
   };
-  const formatActions = [["bold", "B", "加粗"], ["strike", "S", "删除线"], ["italic", "I", "斜体"], ["underline", "U", "下划线"], ["link", "↗", "链接"], ["code", "</>", "行内代码"]];
+  const formatActions = [["bold", "B", "加粗"], ["strike", "S", "删除�?], ["italic", "I", "斜体"], ["underline", "U", "下划�?], ["link", "�?, "链接"], ["code", "</>", "行内代码"]];
 
   return h("div", { className: "feishu-table-controls", onMouseDown: (event) => event.preventDefault() },
     hoveredTable ? h(React.Fragment, null,
@@ -3826,7 +3829,7 @@ function FeishuTableControls({ editor, shellRef }) {
         return h("button", {
           className: "table-column-selector",
           key: `column-${index}`,
-          title: "选中列",
+          title: "选中�?,
           style: { left: `${Math.max(0, selectorLeft)}px`, width: `${Math.min(selectorRight, visibleTableWidth) - Math.max(0, selectorLeft)}px` },
           onPointerDown: (event) => {
             event.preventDefault();
@@ -3855,7 +3858,7 @@ function FeishuTableControls({ editor, shellRef }) {
         return h("button", {
           className: "table-row-selector",
           key: `row-${index}`,
-          title: "选中行",
+          title: "选中�?,
           style: { top: `${rect.top - tableRect.top}px`, height: `${rect.height}px` },
           onPointerDown: (event) => {
             event.preventDefault();
@@ -3974,7 +3977,7 @@ function FeishuTableControls({ editor, shellRef }) {
         title: "文本样式",
         "aria-label": "文本样式",
         onPointerDown: (event) => openToolbarMenu(event, "style")
-      }, "T⌄"),
+      }, "T�?),
       h("button", {
         className: "table-toolbar-menu-trigger",
         title: "对齐",
@@ -4001,13 +4004,13 @@ function FeishuTableControls({ editor, shellRef }) {
         onPointerDown: (event) => openToolbarMenu(event, "cellBackground")
       }, "Bg v"),
       activeLine ? h("span", { className: "table-toolbar-divider" }) : null,
-      activeLine ? h("button", { title: "合并或拆分单元格", "aria-label": "合并或拆分单元格", onPointerDown: (event) => activate(event, "merge-or-split", activeLine) }, "▦") : null,
+      activeLine ? h("button", { title: "合并或拆分单元格", "aria-label": "合并或拆分单元格", onPointerDown: (event) => activate(event, "merge-or-split", activeLine) }, "�?) : null,
       activeLine ? h("button", {
         className: "table-delete-action",
-        title: activeLine.kind === "row" ? "删除行" : "删除列",
-        "aria-label": activeLine.kind === "row" ? "删除行" : "删除列",
+        title: activeLine.kind === "row" ? "删除�? : "删除�?,
+        "aria-label": activeLine.kind === "row" ? "删除�? : "删除�?,
         onPointerDown: (event) => activate(event, activeLine.kind === "row" ? "delete-row" : "delete-column", activeLine)
-      }, "⌫") : null,
+      }, "�?) : null,
       renderToolbarMenu()
     ); })() : null
   );
@@ -4022,7 +4025,7 @@ function TableInsertGrid({ position, onSelect }) {
       cells.push(h("button", {
         key: `${rows}-${cols}`,
         className: active ? "active" : "",
-        title: `${rows} 行 ${cols} 列`,
+        title: `${rows} �?${cols} 列`,
         onMouseEnter: () => setSelected({ rows, cols }),
         onClick: () => onSelect(rows, cols)
       }));
@@ -4063,7 +4066,7 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
         icon("file", { className: "tree-note-icon" }),
         note.dirty ? h("span", { className: "tree-note-dirty", title: "本地草稿" }) : null
       ),
-      h("strong", null, note.title || "未命名笔记"),
+      h("strong", null, note.title || "未命名笔�?),
 
     ),
     h("button", {
@@ -4089,13 +4092,13 @@ function buildDraftDeletionSummary(localState, publishedState) {
   const localById = new Map((localState.notes || []).map((item) => [item.id, item]));
   const dirtyNotes = (localState.notes || [])
     .filter((item) => item.dirty || !item.publishedAt)
-    .map((item) => item.title || "未命名文档");
+    .map((item) => item.title || "未命名文�?);
   const localOnlyNotes = (localState.notes || [])
     .filter((item) => !publishedById.has(item.id))
-    .map((item) => item.title || "未命名文档");
+    .map((item) => item.title || "未命名文�?);
   const restoredNotes = (publishedState.notes || [])
     .filter((item) => !localById.has(item.id))
-    .map((item) => item.title || "未命名文档");
+    .map((item) => item.title || "未命名文�?);
   const changedPublishedNotes = (localState.notes || [])
     .filter((item) => {
       const published = publishedById.get(item.id);
@@ -4105,7 +4108,7 @@ function buildDraftDeletionSummary(localState, publishedState) {
         || item.folderId !== published.folderId
         || normalizeHtml(item.html || blocksToHtml(item.blocks)) !== normalizeHtml(published.html || blocksToHtml(published.blocks));
     })
-    .map((item) => item.title || "未命名文档");
+    .map((item) => item.title || "未命名文�?);
   const folderChanged = JSON.stringify(localState.folders || []) !== JSON.stringify(publishedState.folders || []);
   return {
     dirtyNotes: uniqueValues(dirtyNotes),
@@ -4130,8 +4133,8 @@ function buildPublishSummary(state, notes = state.notes) {
   const deletedTags = state.deletedTags || [];
   return {
     totalNotes: notes.length,
-    dirtyNotes: dirtyNotes.map((item) => item.title || "未命名文档"),
-    existingNotes: renamedOrMovedNotes.map((item) => item.title || "未命名文档"),
+    dirtyNotes: dirtyNotes.map((item) => item.title || "未命名文�?),
+    existingNotes: renamedOrMovedNotes.map((item) => item.title || "未命名文�?),
     folderCount: folders.length,
     folderNames: folders.map((item) => item.name || "未命名文件夹"),
     tagNames,
@@ -4143,7 +4146,7 @@ function summaryList(items, emptyText) {
   const values = (items || []).filter(Boolean);
   if (!values.length) return h("p", { className: "empty" }, emptyText);
   return h("ul", { className: "publish-summary-list" }, values.slice(0, 12).map((item) => h("li", { key: item }, item)),
-    values.length > 12 ? h("li", { key: "more" }, `还有 ${values.length - 12} 项...`) : null
+    values.length > 12 ? h("li", { key: "more" }, `还有 ${values.length - 12} �?..`) : null
   );
 }
 function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
@@ -4196,8 +4199,8 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
   }, []);
 
   const changeDescription = (change) => {
-    if (change.kind === "folders") return "目录结构会随必要的索引更新发表";
-    if (change.kind === "tags") return "已删除标签会从线上标签目录移除";
+    if (change.kind === "folders") return "目录结构会随必要的索引更新发�?;
+    if (change.kind === "tags") return "已删除标签会从线上标签目录移�?;
     return `${typeLabels[change.action] || "修改"}文档`;
   };
 
@@ -4216,8 +4219,8 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
       h("header", { className: "publish-sheet-header" },
         h("div", null,
           h("span", { className: "publish-sheet-eyebrow" }, "发布审阅"),
-          h("h2", { id: "publish-sheet-title" }, "发表到 GitHub"),
-          h("p", null, "确认目标位置与本次公开的内容。")
+          h("h2", { id: "publish-sheet-title" }, "发表�?GitHub"),
+          h("p", null, "确认目标位置与本次公开的内容�?)
         ),
         h("button", {
           ref: closeButtonRef,
@@ -4229,18 +4232,18 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
       ),
       h("div", { className: "publish-sheet-body" },
         h("section", { className: "publish-destination", "aria-label": "发表目标" },
-          h("div", null, h("span", null, "仓库"), h("strong", null, `${destination.owner || "—"}/${destination.repo || "—"}`)),
+          h("div", null, h("span", null, "仓库"), h("strong", null, `${destination.owner || "�?}/${destination.repo || "�?}`)),
           h("div", null, h("span", null, "分支"), h("strong", null, destination.branch || "main")),
-          h("span", { className: "publish-connection-status" }, state.authenticated ? "已连接" : "连接待确认")
+          h("span", { className: "publish-connection-status" }, state.authenticated ? "已连�? : "连接待确�?)
         ),
         publishError ? h("div", { className: "publish-sheet-error", role: "alert" }, publishError) : null,
         h("section", { className: "publish-change-section", "aria-labelledby": "publish-changes-title" },
           h("div", { className: "publish-section-heading" },
             h("div", null,
               h("h3", { id: "publish-changes-title" }, "本次变更"),
-              h("p", null, "默认选中全部检测到的改动。")
+              h("p", null, "默认选中全部检测到的改动�?)
             ),
-            h("button", { type: "button", className: "ghost-btn publish-select-toggle", onClick: () => handleAction("toggle-publish-selection") }, "全选 / 取消全选")
+            h("button", { type: "button", className: "ghost-btn publish-select-toggle", onClick: () => handleAction("toggle-publish-selection") }, "全�?/ 取消全�?)
           ),
           h("div", { className: "publish-change-list" },
             review.changes.length
@@ -4271,13 +4274,13 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
                       ),
                       h("div", { className: "publish-diff-grid" },
                         h("div", null, h("b", null, "远端"), h("pre", null, detail.remote)),
-                        h("div", null, h("b", null, "本地待发表"), h("pre", null, detail.local))
+                        h("div", null, h("b", null, "本地待发�?), h("pre", null, detail.local))
                       )
                     )))
-                    : h("p", { className: "empty" }, "没有可展示的字段差异。")
+                    : h("p", { className: "empty" }, "没有可展示的字段差异�?)
                 ));
               })
-              : h("p", { className: "empty" }, "没有检测到待发表改动。")
+              : h("p", { className: "empty" }, "没有检测到待发表改动�?)
           )
         ),
         h("section", { className: "publish-tags", "aria-labelledby": "publish-tags-title" },
@@ -4291,7 +4294,7 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
               : h("span", { className: "publish-tags-empty" }, "所选改动不包含公开标签")
           )
         ),
-        h("p", { className: "publish-draft-note" }, "未选中的改动会继续保留为本地草稿")
+        h("p", { className: "publish-draft-note" }, "未选中的改动会继续保留为本地草�?)
       ),
       h("footer", { className: "publish-sheet-footer" },
         h("span", null, "已选择 ", h("strong", { "data-publish-selected-count": "" }, String(selectedCount)), ` / ${review.changes.length} 项改动`),
@@ -4302,7 +4305,7 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
             className: "primary-btn",
             disabled: isPublishing || !review.changes.length || !selectedCount,
             onClick: () => handleAction("confirm-publish-selected")
-          }, isPublishing ? "发表中…" : "确认发表")
+          }, isPublishing ? "发表中�? : "确认发表")
         )
       )
     )
@@ -4311,40 +4314,40 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
 function renderModal(state, handleAction) {
   if (!state.modal) return null;
   if (state.modal === "name-folder") {
-    return modalShell("新文件夹", "文件夹会创建在选中的目录层级下。",
+    return modalShell("新文件夹", "文件夹会创建在选中的目录层级下�?,
       h("div", { className: "field" }, h("label", null, "文件夹名"), h("input", { "data-modal-input": "folderName", placeholder: "例如 前端学习" })),
       "创建", "confirm-folder", handleAction);
   }
   if (state.modal === "name-note") {
-    return modalShell("新文档", "新文档会先保存为本地草稿，发表后进入 GitHub 仓库。",
+    return modalShell("新文�?, "新文档会先保存为本地草稿，发表后进入 GitHub 仓库�?,
       h("div", { className: "field" }, h("label", null, "文档标题"), h("input", { "data-modal-input": "noteTitle", placeholder: "例如 阅读摘记" })),
       "创建", "confirm-note", handleAction);
   }
   if (state.modal === "rename-folder") {
     const folder = state.folders.find((item) => item.id === state.modalContext?.folderId);
-    return modalShell("重命名文件夹", "修改后，目录层级会立即更新。",
+    return modalShell("重命名文件夹", "修改后，目录层级会立即更新�?,
       h("div", { className: "field" }, h("label", null, "文件夹名"), h("input", { "data-modal-input": "renameFolder", defaultValue: folder?.name || "", placeholder: "文件夹名" })),
       "保存", "confirm-rename-folder", handleAction);
   }
   if (state.modal === "rename-note") {
     const note = state.notes.find((item) => item.id === state.modalContext?.noteId);
-    return modalShell("重命名文档", "修改后，发表时会同步到文档索引。",
-      h("div", { className: "field" }, h("label", null, "文档名"), h("input", { "data-modal-input": "renameNote", defaultValue: note?.title || "", placeholder: "文档名" })),
+    return modalShell("重命名文�?, "修改后，发表时会同步到文档索引�?,
+      h("div", { className: "field" }, h("label", null, "文档�?), h("input", { "data-modal-input": "renameNote", defaultValue: note?.title || "", placeholder: "文档�? })),
       "保存", "confirm-rename-note", handleAction);
   }
   if (state.modal === "confirm-delete-note") {
     const note = state.notes.find((item) => item.id === state.modalContext?.targetId);
-    return modalShell("删除文档？", `「${note?.title || "未命名文档"}」会从本地草稿中移除。`, null, "删除", "confirm-delete-note", handleAction, { confirmClassName: "danger-btn" });
+    return modalShell("删除文档�?, `�?{note?.title || "未命名文�?}」会从本地草稿中移除。`, null, "删除", "confirm-delete-note", handleAction, { confirmClassName: "danger-btn" });
   }
   if (state.modal === "confirm-delete-folder") {
     const folder = state.folders.find((item) => item.id === state.modalContext?.targetId);
-    return modalShell("删除文件夹？", `「${folder?.name || "未命名文件夹"}」及其内容会从本地草稿中移除。`, null, "删除", "confirm-delete-folder", handleAction, { confirmClassName: "danger-btn" });
+    return modalShell("删除文件夹？", `�?{folder?.name || "未命名文件夹"}」及其内容会从本地草稿中移除。`, null, "删除", "confirm-delete-folder", handleAction, { confirmClassName: "danger-btn" });
   }
   if (state.modal === "manage-tag") {
     const isRename = state.modalContext?.mode === "rename" || state.modalContext?.mode === "rename-note";
     const isNoteScopedRename = state.modalContext?.mode === "rename-note";
     const selectedTag = state.modalContext?.selectedTag || "";
-    return modalShell(isRename ? "重命名标签" : "新建标签", isRename ? (isNoteScopedRename ? "只修改当前文档里的这个标签，不影响其他笔记。" : "名称会在所有使用此标签的本地笔记中更新，不会触发发表。") : "标签会附加到当前笔记并保存为本地草稿，不会触发发表。",
+    return modalShell(isRename ? "重命名标�? : "新建标签", isRename ? (isNoteScopedRename ? "只修改当前文档里的这个标签，不影响其他笔记�? : "名称会在所有使用此标签的本地笔记中更新，不会触发发表�?) : "标签会附加到当前笔记并保存为本地草稿，不会触发发表�?,
       h("div", { className: "field" }, h("label", null, "标签名称"), h("input", { "data-local-tag-name": "", "data-modal-initial-focus": "", defaultValue: selectedTag, placeholder: "例如 阅读" })),
       isRename ? "保存" : "创建", "confirm-local-tag", handleAction);
   }
@@ -4353,14 +4356,14 @@ function renderModal(state, handleAction) {
     const note = state.notes.find((item) => item.id === state.modalContext?.noteId) || currentNote(state);
     const selectedTags = new Set(ensureDefaultTags(note?.tags));
     const tags = tagCatalog(state);
-    return modalShell("选择发表标签", "选择当前笔记要公开的标签，也可以在发表前新增一个标签。",
+    return modalShell("选择发表标签", "选择当前笔记要公开的标签，也可以在发表前新增一个标签�?,
       h("div", { className: "tag-publish-panel" },
         h("div", { className: "field publish-tag-create" },
           h("label", null, "新增标签"),
           h("input", { "data-publish-tag-new": "", placeholder: "例如 阅读" })
         ),
         h("details", { className: "tag-dropdown" },
-          h("summary", null, `选择标签（已选 ${selectedTags.size} 个）`),
+          h("summary", null, `选择标签（已�?${selectedTags.size} 个）`),
           h("div", { className: "tag-choice-list" },
             tags.map((tag) => h("div", { className: "tag-choice", key: tag, "data-tag-row": tag },
               h("label", { className: "tag-check" },
@@ -4378,19 +4381,19 @@ function renderModal(state, handleAction) {
     const summary = state.modalContext?.summary || buildDraftDeletionSummary(state, state.modalContext?.published || state);
     return modalShell(
       "删除本地草稿",
-      "此操作只清理当前浏览器里的本地草稿缓存，不会删除 GitHub 上已经发表的内容。确认后页面会恢复为最近一次发表版本。",
+      "此操作只清理当前浏览器里的本地草稿缓存，不会删除 GitHub 上已经发表的内容。确认后页面会恢复为最近一次发表版本�?,
       h("div", { className: "publish-summary" },
             h("div", { className: `summary-row ${summary.hasChanges ? "danger" : ""}` }, h("strong", null, "结果"), h("span", null, summary.hasChanges ? "将丢弃本地未发表内容" : "没有检测到本地草稿差异")),
-            h("h3", null, "将删除的本地草稿 / 未发表文档"),
-            summaryList(summary.dirtyNotes, "没有本地草稿。"),
+            h("h3", null, "将删除的本地草稿 / 未发表文�?),
+            summaryList(summary.dirtyNotes, "没有本地草稿�?),
             h("h3", null, "仅存在于本地的新文档"),
-            summaryList(summary.localOnlyNotes, "没有仅存在于本地的文档。"),
+            summaryList(summary.localOnlyNotes, "没有仅存在于本地的文档�?),
             h("h3", null, "将从已发表版本恢复的文档"),
-            summaryList(summary.restoredNotes, "没有需要恢复的已发表文档。"),
+            summaryList(summary.restoredNotes, "没有需要恢复的已发表文档�?),
             h("h3", null, "将回退的已发表文档本地改动"),
-            summaryList(summary.changedPublishedNotes, "没有已发表文档的本地改动。"),
-            summary.folderChanged ? h("div", { className: "summary-row danger" }, h("strong", null, "目录"), h("span", null, "本地目录改动会恢复为已发表版本")) : null,
-            summary.deletedTags.length ? h("div", { className: "summary-row danger" }, h("strong", null, "标签"), h("span", null, summary.deletedTags.join("、"))) : null
+            summaryList(summary.changedPublishedNotes, "没有已发表文档的本地改动�?),
+            summary.folderChanged ? h("div", { className: "summary-row danger" }, h("strong", null, "目录"), h("span", null, "本地目录改动会恢复为已发表版�?)) : null,
+            summary.deletedTags.length ? h("div", { className: "summary-row danger" }, h("strong", null, "标签"), h("span", null, summary.deletedTags.join("�?))) : null
           ),
       "确认删除草稿",
       "confirm-delete-drafts",
@@ -4402,7 +4405,7 @@ function renderModal(state, handleAction) {
     return h(PublishReviewSheet, { state, handleAction, returnFocusSelector: publishTriggerSelector });
   }
   if (state.modal === "auth") {
-    return modalShell("编辑验证", "验证通过后，文档会发表到当前笔记本 GitHub 仓库的 main 分支。",
+    return modalShell("编辑验证", "验证通过后，文档会发表到当前笔记�?GitHub 仓库�?main 分支�?,
       h(React.Fragment, null,
         h("div", { className: "field" }, h("label", null, "账号"), h("input", { "data-auth": "account", defaultValue: state.settings.account || state.settings.owner, placeholder: "账号" })),
         h("div", { className: "field" }, h("label", null, "密码"), h("input", { "data-auth": "password", defaultValue: state.settings.token, type: "password", placeholder: "密码" }))
@@ -4580,7 +4583,7 @@ function buildRemotePublishedNote(summary, documentData) {
   const documentHtml = normalizeHtml(documentData.html || blocksToHtml(documentData.blocks));
   return {
     id: documentData.id || summary.id,
-    title: documentData.title || summary.title || "未命名文档",
+    title: documentData.title || summary.title || "未命名文�?,
     folderId: documentData.folderId || summary.folderId || null,
     tags: ensureDefaultTags(documentData.tags || summary.tags),
     date: documentData.updatedAt || summary.updatedAt || now(),
@@ -4714,9 +4717,9 @@ async function publishPendingAssets(settings, note) {
 async function assetContentBase64(asset) {
   if (asset.content) return asset.content;
   if (asset.dataUrl) return dataUrlToBase64(asset.dataUrl);
-  if (!asset.localUrl) throw new Error(`附件缺少本地缓存：${asset.name || asset.fileName}`);
+  if (!asset.localUrl) throw new Error(`附件缺少本地缓存�?{asset.name || asset.fileName}`);
   const response = await fetch(asset.localUrl, { cache: "no-store" });
-  if (!response.ok) throw new Error(`读取本地附件失败：${asset.name || asset.fileName}`);
+  if (!response.ok) throw new Error(`读取本地附件失败�?{asset.name || asset.fileName}`);
   return blobToBase64(await response.blob());
 }
 
@@ -4810,7 +4813,7 @@ function migrate(data) {
     const noteAssets = Array.isArray(note.assets) ? note.assets : [];
     return {
       id: note.id || `note-${Date.now()}`,
-      title: note.title || "未命名文档",
+      title: note.title || "未命名文�?,
       folderId: note.folderId || null,
       tags: ensureDefaultTags(note.tags),
       date: note.date || note.updatedAt || now(),
@@ -4875,7 +4878,7 @@ function migrateLegacy(legacy) {
 function isNotebookRoute() {
   return new URLSearchParams(window.location.search).get("v") === "notebook";
 }
-const defaultTagOptions = ["AI", "工具", "模型", "自动驾驶", "机器人"];
+const defaultTagOptions = ["AI", "工具", "模型", "自动驾驶", "机器�?];
 
 function tagCatalog(state) {
   const deleted = new Set(uniqueTags(state.deletedTags || []));
