@@ -3789,7 +3789,7 @@ function FeishuTableControls({ editor, shellRef }) {
         }
         return h("div", { className: "table-toolbar-popover", style: { left: `${toolbarMenu.left}px` } }, menuItems.map((item, index) => item.divider
           ? h("span", { className: "table-toolbar-popover-divider", key: `divider-${index}` })
-          : h("button", { key: item.command, onPointerDown: (event) => activate(event, item.command, activeLine || {}) }, h("span", { className: "table-toolbar-menu-icon" }, item.icon), item.label)));
+          : h("button", { key: item.command, "aria-label": item.label, onPointerDown: (event) => activate(event, item.command, activeLine || {}) }, h("span", { className: "table-toolbar-menu-icon" }, item.icon), item.label)));
       };
       return h("div", {
       className: "table-selection-toolbar",
@@ -3801,34 +3801,40 @@ function FeishuTableControls({ editor, shellRef }) {
       h("button", {
         className: "table-toolbar-menu-trigger",
         title: "文本样式",
+        "aria-label": "文本样式",
         onPointerDown: (event) => openToolbarMenu(event, "style")
       }, "T⌄"),
       h("button", {
         className: "table-toolbar-menu-trigger",
         title: "对齐",
+        "aria-label": "对齐",
         onPointerDown: (event) => openToolbarMenu(event, "align")
       }, "≡⌄"),
       h("span", { className: "table-toolbar-divider" }),
       formatActions.map(([command, label, title]) => h("button", {
         key: command,
         title,
+        "aria-label": title,
         onPointerDown: (event) => activate(event, command, activeLine || {})
       }, label)),
       h("button", {
         className: "table-toolbar-menu-trigger table-text-color-trigger",
         title: "\u6587\u5b57\u989c\u8272",
+        "aria-label": "\u6587\u5b57\u989c\u8272",
         onPointerDown: (event) => openToolbarMenu(event, "textColor")
       }, "A v"),
       h("button", {
         className: "table-toolbar-menu-trigger table-cell-background-trigger",
         title: "\u5355\u5143\u683c\u80cc\u666f\u989c\u8272",
+        "aria-label": "\u5355\u5143\u683c\u80cc\u666f\u989c\u8272",
         onPointerDown: (event) => openToolbarMenu(event, "cellBackground")
       }, "Bg v"),
       activeLine ? h("span", { className: "table-toolbar-divider" }) : null,
-      activeLine ? h("button", { title: "合并或拆分单元格", onPointerDown: (event) => activate(event, "merge-or-split", activeLine) }, "▦") : null,
+      activeLine ? h("button", { title: "合并或拆分单元格", "aria-label": "合并或拆分单元格", onPointerDown: (event) => activate(event, "merge-or-split", activeLine) }, "▦") : null,
       activeLine ? h("button", {
         className: "table-delete-action",
         title: activeLine.kind === "row" ? "删除行" : "删除列",
+        "aria-label": activeLine.kind === "row" ? "删除行" : "删除列",
         onPointerDown: (event) => activate(event, activeLine.kind === "row" ? "delete-row" : "delete-column", activeLine)
       }, "⌫") : null,
       renderToolbarMenu()
