@@ -2062,11 +2062,13 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
   };
   const closeTablePicker = () => {
     cancelTablePickerClose();
-    setTablePickerClosing(true);
     tablePickerCloseTimerRef.current = window.setTimeout(() => {
-      setTablePicker(null);
-      setTablePickerClosing(false);
-      tablePickerCloseTimerRef.current = 0;
+      setTablePickerClosing(true);
+      tablePickerCloseTimerRef.current = window.setTimeout(() => {
+        setTablePicker(null);
+        setTablePickerClosing(false);
+        tablePickerCloseTimerRef.current = 0;
+      }, 100);
     }, 100);
   };
 

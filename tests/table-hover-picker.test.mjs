@@ -9,7 +9,7 @@ assert.match(insertMenu, /onMouseEnter:.*onTableHoverStart/s);
 assert.match(insertMenu, /onMouseLeave:.*onTableHoverEnd/s);
 assert.doesNotMatch(insertMenu, /onTablePickerEnter|onTablePickerLeave/);
 assert.match(app, /clearTimeout\(tablePickerCloseTimerRef\.current\)/);
-assert.match(app, /setTimeout\(\(\) => \{[\s\S]*setTablePicker\(null\);[\s\S]*\}, 100\)/);
+assert.match(app, /setTimeout\(\(\) => \{\s*setTablePickerClosing\(true\);[\s\S]*setTimeout\(\(\) => \{[\s\S]*setTablePicker\(null\);[\s\S]*\}, 100\);[\s\S]*\}, 100\)/);
 assert.match(app, /onTablePickerEnter: cancelTablePickerClose/);
 assert.match(app, /onTablePickerLeave: closeTablePicker/);
 assert.match(app, /onMouseEnter: onTablePickerEnter/);
