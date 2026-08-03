@@ -28,7 +28,7 @@ import { sortTableRows } from "./table-model.mjs";
 import { filterCommandItems } from "./command-palette.mjs";
 import { clearModalState } from "./library-ui-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260731-library-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -623,6 +623,8 @@ function App() {
     document.documentElement.dataset.density = state.uiPreferences.sidebarDensity;
     document.documentElement.dataset.transparency = state.uiPreferences.translucentMaterials ? "translucent" : "solid";
     document.documentElement.style.setProperty("--document-width", `${state.uiPreferences.contentWidthRatio}%`);
+    document.documentElement.style.setProperty("--notebook-sidebar-width", `${state.uiPreferences.notebookSidebarWidth}vw`);
+    document.documentElement.style.setProperty("--document-outline-width", `${state.uiPreferences.documentOutlineWidth}vw`);
   }, [state.uiPreferences]);
 
   useEffect(() => {
@@ -678,6 +680,27 @@ function App() {
       draft.uiPreferences = normalizeUiPreferences({ ...draft.uiPreferences, ...nextPreferences });
     });
   }, [patchState]);
+  const onStartDirectoryResize = useCallback((event, preference, direction) => {
+    if (window.innerWidth <= 1100) return;
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = state.uiPreferences[preference];
+    const target = event.currentTarget;
+    const updateWidth = (moveEvent) => updateUiPreferences({
+      [preference]: resizeDirectoryWidth(startWidth, startX, moveEvent.clientX, direction, window.innerWidth)
+    });
+    const finishResize = (finishEvent) => {
+      if (finishEvent.type === "pointerup") updateWidth(finishEvent);
+      window.removeEventListener("pointermove", updateWidth);
+      window.removeEventListener("pointerup", finishResize);
+      window.removeEventListener("pointercancel", finishResize);
+      target.releasePointerCapture?.(event.pointerId);
+    };
+    target.setPointerCapture?.(event.pointerId);
+    window.addEventListener("pointermove", updateWidth);
+    window.addEventListener("pointerup", finishResize);
+    window.addEventListener("pointercancel", finishResize);
+  }, [state.uiPreferences, updateUiPreferences]);
   const updateGitHubSettings = useCallback((nextSettings) => {
     patchState((draft) => {
       draft.settings = {
@@ -1572,7 +1595,8 @@ function App() {
               state,
               editable: state.mode === "edit",
               updateNote,
-              handleAction
+              handleAction,
+              onStartDirectoryResize
             })
           : h("div", { className: "empty" },
               h("div", null, h("h2", null, "选择一篇笔记"), h("p", null, "选择左侧文档开始阅读")))
@@ -1597,7 +1621,7 @@ function App() {
               }
             }))
         : state.view === "library"
-          ? renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen)
+          ? renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen, onStartDirectoryResize)
           : null,
       h("main", { className: `content ${isDocumentSwitching ? "is-document-switching" : ""}` },
         state.view === "library"
@@ -1779,7 +1803,7 @@ function renderNoteTagPill(tag, note, editable, handleAction) {
   );
 }
 
-function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
+function DocumentPaper({ note, state, editable, updateNote, handleAction, onStartDirectoryResize }) {
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
   const readerRef = useRef(null);
@@ -1894,7 +1918,7 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction }) {
       )
     ),
     imagePreview ? h(DocumentImagePreview, { preview: imagePreview, onClose: closeImagePreview }) : null,
-    state.uiPreferences.showOutline ? h(DocumentOutline, { noteId: note.id, outline }) : null
+    state.uiPreferences.showOutline ? h(DocumentOutline, { noteId: note.id, outline, onStartDirectoryResize }) : null
   );
 }
 
@@ -1927,7 +1951,7 @@ function DocumentImagePreview({ preview, onClose }) {
   );
 }
 
-function DocumentOutline({ noteId, outline }) {
+function DocumentOutline({ noteId, outline, onStartDirectoryResize }) {
   const activeButtonRef = useRef(null);
   const [activeHeadingIndex, setActiveHeadingIndex] = useState(outline[0]?.index ?? -1);
 
@@ -1974,6 +1998,7 @@ function DocumentOutline({ noteId, outline }) {
     className: "document-outline",
     "aria-label": "\u6587\u6863\u76ee\u5f55"
   },
+    h("div", { className: "directory-resize-handle document-outline-resize-handle", title: "\u62d6\u62fd\u8c03\u6574\u6587\u6863\u76ee\u5f55\u5bbd\u5ea6", onPointerDown: (event) => onStartDirectoryResize(event, "documentOutlineWidth", -1) }),
     h("div", { className: "document-outline-title" }, "\u5927\u7eb2"),
     outline.length
       ? h("ol", null, outline.map((item) => h("li", {
@@ -3255,7 +3280,7 @@ function githubBrowserUrl(settings, path) {
   if (!owner || !repo || !path) return path || "notebooks/index.json";
   return `https://github.com/${owner}/${repo}/blob/${branch}/${trimSlash(path)}`;
 }
-function renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen) {
+function renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen, onStartDirectoryResize) {
   return h("nav", {
     id: "context-sidebar",
     className: `sidebar context-sidebar ${isContextSidebarOpen ? "is-open" : ""}`,
@@ -3293,7 +3318,8 @@ function renderContextSidebar(state, visibleNotes, selectNote, handleAction, tre
     ),
     h("div", { className: "tree", role: "tree", "aria-label": "文档目录" },
       renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)
-    )
+    ),
+    h("div", { className: "directory-resize-handle sidebar-resize-handle", title: "拖拽调整笔记目录宽度", onPointerDown: (event) => onStartDirectoryResize(event, "notebookSidebarWidth", 1) })
   );
 }
 function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
