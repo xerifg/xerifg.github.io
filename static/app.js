@@ -2164,7 +2164,7 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
         TextStyle,
         Color.configure({ types: ["textStyle"] }),
         Highlight.configure({ multicolor: true }),
-        Image,
+        Image.configure({ allowBase64: true }),
         Video,
         FileAttachment,
         Table.configure({ resizable: true, cellMinWidth: 96, lastColumnResizable: false }),
