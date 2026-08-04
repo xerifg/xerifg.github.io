@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-04T03:54:23.398Z",
+  "updatedAt": "2026-08-04T06:33:59.238Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -287,6 +287,17 @@
       "tags": [],
       "updatedAt": "2026-08-03T06:12:24.719Z",
       "file": "notebooks/docs/未学习内容-2.json"
+    },
+    {
+      "id": "note-1785815741268",
+      "title": "个人笔记系统",
+      "folderId": "folder-1785737383606",
+      "path": "个人项目",
+      "tags": [
+        "个人项目"
+      ],
+      "updatedAt": "2026-08-04T06:33:59.238Z",
+      "file": "notebooks/docs/个人笔记系统.json"
     }
   ]
 }
