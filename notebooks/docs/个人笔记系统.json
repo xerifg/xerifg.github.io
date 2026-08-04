@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "id": "note-1785815741268",
+  "title": "个人笔记系统",
+  "folderId": "folder-1785737383606",
+  "path": "个人项目",
+  "tags": [
+    "个人项目"
+  ],
+  "createdAt": "2026-08-04T06:33:41.889Z",
+  "updatedAt": "2026-08-04T06:33:59.238Z",
+  "assets": [
+    {
+      "id": "asset-1785824091581-0399og",
+      "name": "image.png",
+      "fileName": "image-20260804061451-iq16p.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 52885,
+      "localUrl": "notebooks/assets/note-1785815741268/image-20260804061451-iq16p.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1785815741268/image-20260804061451-iq16p.png",
+      "remoteUrl": "notebooks/assets/note-1785815741268/image-20260804061451-iq16p.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1785825127483-347y2d",
+      "name": "image.png",
+      "fileName": "image-20260804063207-7hqyb.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 33817,
+      "localUrl": "notebooks/assets/note-1785815741268/image-20260804063207-7hqyb.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1785815741268/image-20260804063207-7hqyb.png",
+      "remoteUrl": "notebooks/assets/note-1785815741268/image-20260804063207-7hqyb.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<p>地址：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://github.com/xerifg/xerifg.github.io\">https://github.com/xerifg/xerifg.github.io</a></p><p>笔记内容完全保存在github上的一个在线个人笔记系统，可以实现前端笔记编写，github保存笔记，不用再担心笔记容易丢，保存位置太分散问题了。</p><hr><img src=\"notebooks/assets/note-1785815741268/image-20260804061451-iq16p.png\" alt=\"image.png\" title=\"image.png\"><img src=\"notebooks/assets/note-1785815741268/image-20260804063207-7hqyb.png\" alt=\"image.png\" title=\"image.png\"><h1><strong>Personal Notebook</strong></h1><p>一个部署在 GitHub Pages 上的个人知识库和笔记本。前端直接运行在浏览器中，知识库首页、文档树、标签浏览、设置、阅读、编辑、附件预览和发布都围绕 <code>notebooks/</code> 目录工作；本地辅助服务只用于本地预览、附件缓存和可选的 GitHub 写入代理。</p><h2><strong>当前功能</strong></h2><ul><li><p>GitHub Pages 静态访问，入口为 <code>index.html</code>。</p></li><li><p>Tiptap/ProseMirror 富文本编辑器，支持标题、列表、引用、代码块、表格、任务列表、链接、高亮、图片、视频和文件附件。</p></li><li><p>56px 主功能轨提供首页、笔记、标签和设置入口；上下文目录保留文件夹、文档、搜索、重命名和删除能力。</p></li><li><p>知识库首页汇总知识领域、常用标签和库概览；标签浏览器支持搜索、排序、分组筛选和打开相关笔记。</p></li><li><p>默认从知识库首页启动；可在“通用”设置中选择记住上次位置。</p></li><li><p>浏览器本地草稿自动保存，未发布内容不会丢失。</p></li><li><p>发布保持选择性与 GitHub-backed：审阅后只提交勾选的文档、目录和标签索引，未选改动继续保留为本地草稿。</p></li><li><p>附件先缓存在本地或浏览器中，发布后上传到 <code>notebooks/assets/{noteId}/</code> 并替换为仓库相对路径。</p></li><li><p>发布前验证 GitHub token，并处理文档路径去重、删除文档同步和 GitHub 写入冲突重试。</p></li></ul><h2><strong>实现路线</strong></h2><p>当前实现以纯静态前端为主：</p><ol><li><p>页面由 <code>index.html</code> 加载 <code>static/app.css</code> 和 <code>static/app.js</code>。</p></li><li><p><code>static/app.js</code> 负责 React UI、Tiptap 编辑器、文档库状态、发布流程和 GitHub Contents API 调用。</p></li><li><p><code>static/library-ui-model.mjs</code> 提供启动偏好、首页概览和标签浏览计算，<code>static/library-ui.mjs</code> 提供主功能轨、首页、标签和设置视图。</p></li><li><p><code>server.py</code> 是本地辅助服务，提供静态文件服务和本地附件缓存接口。</p></li><li><p>已发布内容存放在 <code>notebooks/</code> 下，GitHub Pages 直接读取这些 JSON 和资源文件。</p></li></ol><h2><strong>目录结构</strong></h2><pre><code>index.html              # GitHub Pages 入口\nstatic/\n  app.js                # 前端应用、编辑器、发布逻辑\n  app.css               # 页面样式\n  library-ui.mjs        # 主功能轨、首页、标签与设置视图\n  library-ui-model.mjs  # 启动偏好、知识库概览与标签浏览模型\nnotebooks/\n  index.json            # 已发布文档索引\n  docs/                 # 已发布文档 JSON\n  assets/               # 已发布附件资源\ntests/\n  *.test.mjs             # 数据模型、交互、编辑器、发布与 shell 回归测试\nserver.py               # 本地辅助服务\n</code></pre><h2><strong>在线使用</strong></h2><p>访问：</p><pre><code>https://xerifg.github.io/\n</code></pre><p>如果浏览器缓存了早期页面，可以强制刷新，或访问：</p><pre><code>https://xerifg.github.io/?v=notebook\n</code></pre><h2><strong>GitHub Pages 配置</strong></h2><p>仓库 <code>Settings -&gt; Pages</code> 保持以下配置：</p><pre><code>Source: Deploy from a branch\nBranch: main\nFolder: / (root)\n</code></pre><p>提交并推送到 <code>main</code> 后，GitHub Pages 会从仓库根目录发布页面。</p><h2><strong>编辑和发布</strong></h2><ol><li><p>打开笔记本首页。</p></li><li><p>点击编辑入口进入编辑模式。</p></li><li><p>首次编辑或发布时输入 GitHub 账号和有仓库写入权限的 token。</p></li><li><p>内容会先保存到浏览器本地草稿。</p></li><li><p>点击发布后，应用会先对比本地草稿与 GitHub 已发表内容，并列出新增、修改、删除以及目录和标签变更。</p></li><li><p>审阅弹窗默认选中所有检测到的变更；可以取消选择不希望发表的项目。未选内容会继续保留为本地草稿。</p></li><li><p>选中文档时，必要的 <code>notebooks/index.json</code>、目录和标签信息会自动一并更新，保证线上页面能够正确显示。</p></li></ol><p>发布后的核心文件：</p><pre><code>notebooks/index.json\nnotebooks/docs/*.json\nnotebooks/assets/{noteId}/\n</code></pre><h2><strong>附件处理</strong></h2><p>编辑器支持三类附件：</p><ul><li><p>图片：插入为图片预览。</p></li><li><p>视频：插入为播放器。</p></li><li><p>文件附件：插入为下载卡片。</p></li></ul><p>本地服务运行时，附件会先缓存到：</p><pre><code>.notebook-cache/assets/\n</code></pre><p>发布后，附件会上传到：</p><pre><code>notebooks/assets/{noteId}/\n</code></pre><p>文档中的本地临时地址会替换为仓库内相对路径，因此线上访问时资源来自 GitHub Pages。</p><h2><strong>本地运行</strong></h2><p>直接打开 <code>index.html</code> 可以阅读和使用基础功能。需要本地附件缓存或稳定预览时，启动本地服务：</p><pre><code>python server.py</code></pre><p>默认地址：</p><pre><code>http://127.0.0.1:8000/\n</code></pre><h2><strong>本地服务配置</strong></h2><p>本地服务默认监听 <code>8000</code> 端口。如需修改，可设置环境变量：</p><pre><code>PORT=8000\n</code></pre><p>编辑和发布仍由浏览器直接使用 GitHub token 调用 GitHub Contents API，不经过 <code>server.py</code>。</p><h2><strong>测试</strong></h2><p>运行完整测试：</p><pre><code>Get-ChildItem tests\\*.test.mjs | ForEach-Object { node $_.FullName }</code></pre><p>检查前端脚本语法：</p><pre><code>node --check static/app.js</code></pre><h2><strong>发布</strong></h2><pre><code>git add .\ngit commit -m \"update notebook\"\ngit push origin main</code></pre><p>部署完成后访问：</p><pre><code>https://xerifg.github.io/\n</code></pre><p><br></p>"
+}
