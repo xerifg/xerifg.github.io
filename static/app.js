@@ -875,7 +875,7 @@ function App() {
       draft.view = "library";
       draft.selectedTag = "";
       draft.query = "";
-      draft.activeId = draft.notes.find((item) => folderIds.has(item.folderId))?.id || draft.activeId;
+      draft.activeId = "";
       draft.mode = draft.uiPreferences.defaultMode;
       draft.modal = null;
       draft.modalContext = null;
