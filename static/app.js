@@ -758,7 +758,6 @@ function App() {
     patchState((draft) => {
       draft.activeId = noteId;
       draft.collapsedFolders = revealNoteFolderPath(draft.collapsedFolders, draft.folders, draft.notes, noteId);
-      draft.mode = draft.uiPreferences.defaultMode;
       draft.view = "library";
       draft.modal = null;
       draft.openCreateMenu = null;
