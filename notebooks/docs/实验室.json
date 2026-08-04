@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1785853197444",
+  "title": "实验室",
+  "folderId": "folder-1785849397124",
+  "path": "网站收集",
+  "tags": [],
+  "createdAt": "2026-08-04T14:24:00.677Z",
+  "updatedAt": "2026-08-04T14:36:43.678Z",
+  "assets": [],
+  "html": "<h2><a target=\"_blank\" rel=\"noreferrer\" href=\"https://arc.tencent.com/\">腾讯的ARC实验室</a></h2><p>ARC（Applied Research Center）是腾讯旗下的前沿人工智能实验室，致力于探索与挑战 AI 领域的前沿技术，并推动技术落地与工业化应用，比如图像生成，视频生成，3d重建，图像检测，图像理解等。</p>"
+}
