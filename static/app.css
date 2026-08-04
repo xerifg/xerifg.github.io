@@ -4054,11 +4054,11 @@ body { background: #fff; }
   }
 
   .document-outline {
-    position: fixed;
+    position: sticky;
     width: var(--document-outline-width);
-    justify-self: end;
-    top: 64px;
-    right: 0;
+    justify-self: stretch;
+    align-self: start;
+    top: 0;
     height: calc(100vh - 64px);
     max-height: none;
     overflow: hidden;
