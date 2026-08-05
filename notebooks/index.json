@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-04T14:36:43.678Z",
+  "updatedAt": "2026-08-05T04:01:39.451Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -196,7 +196,7 @@
         "模型",
         "PointPillars"
       ],
-      "updatedAt": "2026-08-04T03:54:23.398Z",
+      "updatedAt": "2026-08-05T04:01:39.451Z",
       "file": "notebooks/docs/pointpillars模型.json"
     },
     {
@@ -222,7 +222,7 @@
         "AI",
         "github"
       ],
-      "updatedAt": "2026-08-04T13:10:51.525Z",
+      "updatedAt": "2026-08-05T04:01:39.451Z",
       "file": "notebooks/docs/优质github项目.json"
     },
     {
