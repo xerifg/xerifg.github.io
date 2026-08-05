@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-05T04:01:39.451Z",
+  "updatedAt": "2026-08-05T08:40:11.038Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -322,6 +322,17 @@
       "tags": [],
       "updatedAt": "2026-08-04T14:36:43.678Z",
       "file": "notebooks/docs/ai.json"
+    },
+    {
+      "id": "note-1785917881854",
+      "title": "碰撞检测-MTV算法",
+      "folderId": "folder-1783672397764",
+      "path": "Notebooks/自动驾驶",
+      "tags": [
+        "MTV"
+      ],
+      "updatedAt": "2026-08-05T08:40:11.038Z",
+      "file": "notebooks/docs/碰撞检测-mtv算法.json"
     }
   ]
 }
