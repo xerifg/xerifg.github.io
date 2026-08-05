@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "id": "note-1785917881854",
+  "title": "碰撞检测-MTV算法",
+  "folderId": "folder-1783672397764",
+  "path": "Notebooks/自动驾驶",
+  "tags": [
+    "MTV"
+  ],
+  "createdAt": "2026-08-05T08:39:39.529Z",
+  "updatedAt": "2026-08-05T08:40:11.038Z",
+  "assets": [
+    {
+      "id": "asset-1785919145190-c63cac",
+      "name": "image.png",
+      "fileName": "image-20260805083904-bdn79.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 141110,
+      "localUrl": "notebooks/assets/note-1785917881854/image-20260805083904-bdn79.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1785917881854/image-20260805083904-bdn79.png",
+      "remoteUrl": "notebooks/assets/note-1785917881854/image-20260805083904-bdn79.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1785919179492-c3cm7j",
+      "name": "image.png",
+      "fileName": "image-20260805083939-8xhyg.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 104963,
+      "localUrl": "notebooks/assets/note-1785917881854/image-20260805083939-8xhyg.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1785917881854/image-20260805083939-8xhyg.png",
+      "remoteUrl": "notebooks/assets/note-1785917881854/image-20260805083939-8xhyg.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<p><strong>MTV（Minimum Translation Vector，最小平移向量）</strong>：两个重叠的凸形体，沿某方向平移其中一个，使二者分离所需的 <strong>最短位移向量</strong>。</p><p>常用于 2D 游戏物理、碰撞检测后的位置修正；你们感知里则用于「侵入保护」——把重叠框沿最短方向推开。</p><hr><h2><strong>1. 问题定义</strong></h2><p>给定两个凸多边形 A、B，已知相交，求向量 <strong>T</strong>，使得：</p><ol><li><p>将 B 平移 T（或平移 A 为 -T）后，A 与 B <strong>不再重叠</strong></p></li><li><p>在所有满足条件的 T 中，<strong>|T| 最小</strong></p></li></ol><p>平移前： [A] 与 [B] 重叠</p><p>平移后： [A] [B] （沿 T 分离，|T| 尽可能小）</p><p><strong>注意</strong>：经典 MTV 求的是 <strong>平移 B 的向量</strong>；平移 A 则为 <strong>-T</strong>。</p><hr><h2><strong>2. 理论基础：SAT（分离轴定理）</strong></h2><h3><strong>2.1 核心定理</strong></h3><p>两个凸多边形 <strong>不相交</strong>，当且仅当存在一条轴，使两图形在该轴上的 <strong>一维投影区间不重叠</strong>，分离轴就是某个多边形边的法向量。</p><h3><strong>2.2 对矩形的含义</strong></h3><p>两个有向矩形（OBB）只需检测 <strong>最多 4 条分离轴</strong>：</p><ul><li><p>矩形 A 的两条边法线（互相垂直）</p></li><li><p>矩形 B 的两条边法线（互相垂直）</p></li></ul><p>共 4 条独立轴（8 条法线里有重复）。</p><h3><strong>2.3 投影与重叠</strong></h3><p>将两图形所有顶点投影到轴 <code>n</code>（单位法线）上，得到区间：</p><p>A: [min_a, max_a]</p><p>B: [min_b, max_b]</p><table style=\"min-width: 192px;\"><colgroup><col style=\"min-width: 96px;\"><col style=\"min-width: 96px;\"></colgroup><tbody><tr><th colspan=\"1\" rowspan=\"1\"><p><strong>条件</strong></p></th><th colspan=\"1\" rowspan=\"1\"><p><strong>含义</strong></p></th></tr><tr><td colspan=\"1\" rowspan=\"1\"><p><code>max_a &lt; min_b</code> 或 <code>max_b &lt; min_a</code></p></td><td colspan=\"1\" rowspan=\"1\"><p>该轴上已分离 → 两图形 <strong>不相交</strong></p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>区间有重叠</p></td><td colspan=\"1\" rowspan=\"1\"><p>该轴上有 <strong>穿透深度</strong></p></td></tr></tbody></table><p><strong>穿透深度（Penetration Depth）</strong>：</p><p>overlap = min(max_a - min_b, max_b - min_a)</p><ul><li><p><code>overlap &gt; 0</code>：沿该轴仍有重叠，深度为 <code>overlap</code></p></li><li><p><code>overlap ≤ 0</code>：该轴已分离</p></li></ul><hr><h2><strong>3. MTV 核心思想</strong></h2><p>若两图形相交，<strong>每条候选轴</strong> 都对应一个「沿该轴推开」的最小位移；经典 MTV 在所有轴里取 <strong>穿透深度最小</strong> 的那一个。</p><p>对每条候选法线 n：</p><p>1. 算 overlap</p><p>2. 若 overlap &lt; 0 → 不相交，无 MTV</p><p>3. 否则该轴候选位移 = n * overlap（方向待定）</p><p>MTV = 所有候选中 |位移| 最小的那个</p><p>对凸多边形，<strong>最小穿透深度对应的轴，就是 MTV 方向</strong>（MTV 长度等于该轴上的 overlap）。</p><hr><h2><strong>4. 算法流程（2D OBB）</strong></h2><h3><strong>Step 1：构造候选分离轴</strong></h3><p>对矩形 A、B 各取 4 条边，算法上常只保留 <strong>2 条独立法线</strong>（另 2 条与之平行）。</p><h3><strong>Step 2：逐轴投影</strong></h3><p>对每个单位法线 n：</p><p>将 A 的 4 个角点投影到 n → [min_a, max_a]</p><p>将 B 的 4 个角点投影到 n → [min_b, max_b]</p><p>投影：<code>proj = point · n</code></p><h3><strong>Step 3：判断相交</strong></h3><p>若存在某轴 overlap &lt; 0：</p><p>→ 两矩形不相交，无 MTV，返回零向量</p><p>SAT 判定：<strong>任一条轴分离即不相交</strong>。</p><h3><strong>Step 4：计算穿透深度</strong></h3><p>overlap = min(max_a - min_b, max_b - min_a)</p><p>示意：</p><p>轴 n 方向 →</p><p>min_a -------- max_a (A)</p><p>       min_b -------- max_b (B)</p><p>overlap = min(max_a - min_b, max_b - min_a)</p><p>             = 两区间重叠段的长度</p><img src=\"notebooks/assets/note-1785917881854/image-20260805083904-bdn79.png\" alt=\"image.png\" title=\"image.png\"><p></p><h3><strong>Step 5：确定推开方向</strong></h3><p>沿 <code>n</code> 可推 <code>+n * overlap</code> 或 <code>-n * overlap</code>，选使 B 离开 A 的一侧：</p><p>若 |max_a - min_b| &lt; |max_b - min_a|：</p><p>T = +n * overlap // B 向 +n 推</p><p>否则：</p><p>T = -n * overlap // B 向 -n 推</p><p>也可用中心差判断：</p><p>若 (center_B - center_A) · n &gt; 0：</p><p>T = +n * overlap</p><p>否则：</p><p>T = -n * overlap</p><img src=\"notebooks/assets/note-1785917881854/image-20260805083939-8xhyg.png\" alt=\"image.png\" title=\"image.png\"><p></p><h3><strong>Step 6：取全局最小</strong></h3><p>min_overlap = +∞</p><p>best_T = (0, 0)</p><p>对每个轴：</p><p>若 overlap &lt; min_overlap：</p><p>min_overlap = overlap</p><p>best_T = ±n * overlap</p><p>返回 best_T</p><hr><h2><strong>5. 完整伪代码</strong></h2><pre><code>function MTV(A_corners, B_corners):\n  axes = []\n  for each edge in A.edges: axes.add(edge.normal)\n  for each edge in B.edges: axes.add(edge.normal)\n  min_overlap = +∞\n  best_translation = (0, 0)\n  for each axis n in axes:\n    [min_a, max_a] = project(A_corners, n)\n    [min_b, max_b] = project(B_corners, n)\n    overlap = min(max_a - min_b, max_b - min_a)\n  if overlap &lt; 0:\n     return (0, 0) // 不相交\n  if overlap &lt; min_overlap:\n     min_overlap = overlap\n   if |max_a - min_b| &lt; |max_b - min_a|:\n      best_translation = n * overlap\n   else:\n      best_translation = -n * overlap\nreturn best_translation</code></pre><p></p>"
+}
