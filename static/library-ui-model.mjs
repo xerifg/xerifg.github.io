@@ -31,6 +31,13 @@ export function localPersistenceStatusText(status) {
   return "已自动保存";
 }
 
+export function localPersistenceErrorText(error) {
+  if (error?.name === "QuotaExceededError" || /quota|exceeded/i.test(error?.message || "")) {
+    return "本地草稿空间不足，请删除未使用的草稿或附件后重试";
+  }
+  return "本地草稿保存失败，请重试";
+}
+
 export function notebookStateForPersistence(state = {}) {
   const {
     uiPreferences,
@@ -41,9 +48,28 @@ export function notebookStateForPersistence(state = {}) {
     openCreateMenu,
     syncStatus,
     message,
+    draftAssetsReady,
     ...notebookState
   } = state;
-  return notebookState;
+  return {
+    ...notebookState,
+    notes: (notebookState.notes || []).map((note) => {
+      const indexedAssets = (note.assets || []).filter((asset) => asset?.storage === "indexeddb" && asset?.assetId && asset?.localUrl);
+      const html = indexedAssets.reduce(
+        (content, asset) => content.split(asset.localUrl).join(`draft-asset://${asset.assetId}`),
+        note.html || ""
+      );
+      return {
+        ...note,
+        html,
+        assets: (note.assets || []).map((asset) => {
+          if (asset?.storage !== "indexeddb") return asset;
+          const { localUrl, content, dataUrl, ...persistedAsset } = asset;
+          return persistedAsset;
+        })
+      };
+    })
+  };
 }
 
 export function resolveMenuKeyboard(currentIndex, key, itemCount) {

@@ -27,8 +27,9 @@ import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { filterCommandItems } from "./command-palette.mjs";
 import { clearModalState } from "./library-ui-model.mjs";
+import { blobToBase64, createDraftAssetStore, hydrateDraftAsset, restoreDraftAssetReferences } from "./draft-asset-store.mjs?v=20260805-indexeddb-draft-assets-v1";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260803-unified-diff-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260801-note-tag-actions-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260805-indexeddb-draft-assets-v1";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
 
 const h = React.createElement;
@@ -37,8 +38,8 @@ const uiPreferencesStorageKey = "personal-notebook-ui-preferences-v1";
 const blockNoteStorageKey = "personal-notebook-blocknote-v1";
 const legacyStorageKey = "personal-notebook-v2";
 const publishedIndexPath = "notebooks/index.json";
-const localAssetPrefix = "/api/local-assets/";
 const assetRootPath = "notebooks/assets";
+const draftAssetStore = createDraftAssetStore();
 const publishTriggerSelector = "[data-publish-trigger]";
 const now = () => new Date().toISOString();
 const mathInlineType = "mathInline";
@@ -529,7 +530,7 @@ function App() {
   const [state, setState] = useState(() => {
     const migrated = migrate(loadLocalState() || seed);
     const uiPreferences = loadUiPreferences();
-    return { ...migrated, ...resolveStartupState(migrated, uiPreferences), uiPreferences };
+    return { ...migrated, ...resolveStartupState(migrated, uiPreferences), uiPreferences, draftAssetsReady: false };
   });
   const [toast, setToast] = useState("");
   const [localPersistenceStatus, setLocalPersistenceStatus] = useState("saved");
@@ -548,6 +549,43 @@ function App() {
     window.setTimeout(() => commandPaletteTriggerRef.current?.isConnected && commandPaletteTriggerRef.current.focus(), 0);
   };
   const notebookPersistencePayload = JSON.stringify(notebookStateForPersistence(state));
+
+  useEffect(() => {
+    let cancelled = false;
+    const hydrateDraftAssets = async () => {
+      try {
+        const hydratedNotes = await Promise.all(state.notes.map(async (note) => {
+          const pairs = await Promise.all((note.assets || []).map(async (asset) => ({
+            original: asset,
+            hydrated: await hydrateDraftAsset(asset, draftAssetStore)
+          })));
+          let html = note.html || "";
+          pairs.forEach(({ original, hydrated }) => {
+            html = restoreDraftAssetReferences(html, [hydrated]);
+            [original.localUrl, original.dataUrl].filter(Boolean).forEach((url) => {
+              if (hydrated.localUrl && url !== hydrated.localUrl) html = html.split(url).join(hydrated.localUrl);
+            });
+          });
+          return { ...note, html: normalizeHtml(html), assets: pairs.map((pair) => pair.hydrated) };
+        }));
+        if (cancelled) return;
+        const byId = new Map(hydratedNotes.map((note) => [note.id, note]));
+        setState((current) => ({
+          ...current,
+          notes: current.notes.map((note) => byId.get(note.id) || note),
+          draftAssetsReady: true
+        }));
+      } catch (error) {
+        console.error("Draft asset hydration failed", error);
+        if (!cancelled) {
+          setState((current) => ({ ...current, draftAssetsReady: true }));
+          setToast(error.message || "本地附件恢复失败，请勿刷新页面后重试");
+        }
+      }
+    };
+    hydrateDraftAssets();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -591,7 +629,7 @@ function App() {
     } catch (error) {
       console.error("Draft persistence failed", error);
       setLocalPersistenceStatus(resolveLocalPersistenceStatus("failure"));
-      setToast("本地草稿保存失败，请减少图片大小后重试");
+      setToast(localPersistenceErrorText(error));
     }
     return () => {
       cancelled = true;
@@ -606,6 +644,7 @@ function App() {
     } catch (error) {
       console.error("Draft persistence retry failed", error);
       setLocalPersistenceStatus(resolveLocalPersistenceStatus("failure"));
+      setToast(localPersistenceErrorText(error));
     }
   };
 
@@ -1214,6 +1253,10 @@ function App() {
 
   const preparePublish = (overrideSettings, skipTagModal = false) => {
     if (!note) return;
+    if (!state.draftAssetsReady) {
+      setToast("本地附件正在恢复，请稍候再发表");
+      return;
+    }
     const settings = { ...(overrideSettings || state.settings), branch: "main" };
     if (!overrideSettings && !state.authenticated) {
       requireEditPermission("publish");
@@ -2919,36 +2962,16 @@ function openAssetPicker({ fileInputRef, pendingAssetKindRef }, kind) {
 async function cacheNotebookAsset(note, file, requestedKind) {
   const kind = normalizeAssetKind(requestedKind, file.type, file.name);
   validateAssetFile(file, kind);
-  const dataUrl = await readFileAsDataUrl(file);
-  const content = dataUrlToBase64(dataUrl);
   const fileName = uniqueAssetFileName(file.name, file.type);
   const noteSegment = safeSegment(note.id || "note");
   const remotePath = `${assetRootPath}/${noteSegment}/${fileName}`;
-  let localUrl = dataUrl;
-  let cached = false;
-
-  try {
-    const response = await fetch("/api/assets/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        noteId: note.id,
-        name: fileName,
-        type: file.type || "application/octet-stream",
-        content
-      })
-    });
-    if (response.ok) {
-      const data = await response.json();
-      localUrl = data.localUrl || `${localAssetPrefix}${noteSegment}/${fileName}`;
-      cached = true;
-    }
-  } catch {
-    cached = false;
-  }
+  const id = `asset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  await draftAssetStore.put(id, file);
+  const localUrl = await draftAssetStore.createObjectUrl(id);
 
   return {
-    id: `asset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id,
+    assetId: id,
     name: file.name || fileName,
     fileName,
     kind,
@@ -2959,9 +2982,10 @@ async function cacheNotebookAsset(note, file, requestedKind) {
     remotePath,
     remoteUrl: remotePath,
     createdAt: Date.now(),
-    cached,
-    content: cached ? "" : content,
-    dataUrl: cached ? "" : dataUrl,
+    storage: "indexeddb",
+    cached: true,
+    content: "",
+    dataUrl: "",
     published: false
   };
 }
@@ -4679,7 +4703,7 @@ function uniqueValues(values) {
 }
 function sanitizePublishedAsset(asset) {
   const remotePath = asset?.remotePath || asset?.remoteUrl || "";
-  const { content, dataUrl, createdAt, ...rest } = asset || {};
+  const { content, dataUrl, createdAt, assetId, storage, ...rest } = asset || {};
   return {
     ...rest,
     remotePath,
@@ -4717,6 +4741,9 @@ async function publishPendingAssets(settings, note) {
       dataUrl: "",
       published: true
     });
+    if (asset.storage === "indexeddb" && asset.assetId) {
+      draftAssetStore.remove(asset.assetId).catch((error) => console.warn("Published draft asset cleanup failed", error));
+    }
   }
   const publishedIds = new Set(published.map((asset) => asset.id));
   const preserved = referenced.filter((asset) => !publishedIds.has(asset.id));
@@ -4724,6 +4751,11 @@ async function publishPendingAssets(settings, note) {
 }
 
 async function assetContentBase64(asset) {
+  if (asset.storage === "indexeddb" && asset.assetId) {
+    const blob = await draftAssetStore.get(asset.assetId);
+    if (!blob) throw new Error(`附件缺少本地缓存：${asset.name || asset.fileName}`);
+    return blobToBase64(blob);
+  }
   if (asset.content) return asset.content;
   if (asset.dataUrl) return dataUrlToBase64(asset.dataUrl);
   if (!asset.localUrl) throw new Error(`附件缺少本地缓存：${asset.name || asset.fileName}`);
