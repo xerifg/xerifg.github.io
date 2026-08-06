@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-05T15:19:44.031Z",
+  "updatedAt": "2026-08-06T02:03:28.793Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -25,11 +25,6 @@
     {
       "id": "folder-1783668421369",
       "name": "自动标注",
-      "parentId": "folder-writing"
-    },
-    {
-      "id": "folder-1785325659605",
-      "name": "AI",
       "parentId": "folder-writing"
     },
     {
@@ -60,6 +55,11 @@
     {
       "id": "folder-1785849397124",
       "name": "网站收集",
+      "parentId": null
+    },
+    {
+      "id": "folder-1785981247369",
+      "name": "AI",
       "parentId": null
     }
   ],
@@ -215,38 +215,38 @@
     {
       "id": "note-1785325662432",
       "title": "优质github项目",
-      "folderId": "folder-1785325659605",
-      "path": "Notebooks/AI",
+      "folderId": "folder-1785981247369",
+      "path": "AI",
       "tags": [
         "工具",
         "AI",
         "github"
       ],
-      "updatedAt": "2026-08-05T04:01:39.451Z",
+      "updatedAt": "2026-08-06T02:03:28.793Z",
       "file": "notebooks/docs/优质github项目.json"
     },
     {
       "id": "note-1785376662628",
       "title": "AI Skills",
-      "folderId": "folder-1785325659605",
-      "path": "Notebooks/AI",
+      "folderId": "folder-1785981247369",
+      "path": "AI",
       "tags": [
         "AI",
         "skills"
       ],
-      "updatedAt": "2026-08-03T14:38:04.976Z",
+      "updatedAt": "2026-08-06T02:03:28.793Z",
       "file": "notebooks/docs/ai-skills.json"
     },
     {
       "id": "note-1785380466117",
       "title": "提示词",
-      "folderId": "folder-1785325659605",
-      "path": "Notebooks/AI",
+      "folderId": "folder-1785981247369",
+      "path": "AI",
       "tags": [
         "提示词",
         "AI"
       ],
-      "updatedAt": "2026-08-04T03:54:23.398Z",
+      "updatedAt": "2026-08-06T02:03:28.793Z",
       "file": "notebooks/docs/提示词.json"
     },
     {
