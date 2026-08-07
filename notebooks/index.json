@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-07T13:38:03.763Z",
+  "updatedAt": "2026-08-07T14:00:03.738Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -320,7 +320,7 @@
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-07T13:38:03.763Z",
+      "updatedAt": "2026-08-07T14:00:03.738Z",
       "file": "notebooks/docs/ai.json"
     },
     {
@@ -348,14 +348,32 @@
     {
       "id": "note-1786107829580",
       "title": "检索",
-      "folderId": "folder-1785849397124",
-      "path": "网站收集",
+      "folderId": "folder-1785981247369",
+      "path": "AI",
       "tags": [
         "AI",
         "检索"
       ],
-      "updatedAt": "2026-08-07T13:38:03.763Z",
+      "updatedAt": "2026-08-07T14:00:03.738Z",
       "file": "notebooks/docs/检索.json"
+    },
+    {
+      "id": "note-1786110211921",
+      "title": "资源",
+      "folderId": "folder-1785849397124",
+      "path": "网站收集",
+      "tags": [],
+      "updatedAt": "2026-08-07T14:00:03.738Z",
+      "file": "notebooks/docs/资源.json"
+    },
+    {
+      "id": "note-1786109949962",
+      "title": "AI创作",
+      "folderId": "folder-1785981247369",
+      "path": "AI",
+      "tags": [],
+      "updatedAt": "2026-08-07T14:00:03.738Z",
+      "file": "notebooks/docs/ai创作.json"
     }
   ]
 }
