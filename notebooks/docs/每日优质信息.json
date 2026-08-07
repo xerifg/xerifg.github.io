@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "id": "note-1785937591317",
+  "title": "每日优质信息",
+  "folderId": "folder-1785849397124",
+  "path": "网站收集",
+  "tags": [
+    "日报"
+  ],
+  "createdAt": "2026-08-05T15:17:33.788Z",
+  "updatedAt": "2026-08-05T15:19:44.031Z",
+  "assets": [
+    {
+      "id": "asset-1785938624759-btvxed",
+      "name": "image.png",
+      "fileName": "image-20260805140344-ga50p.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 874775,
+      "localUrl": "notebooks/assets/note-1785937591317/image-20260805140344-ga50p.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1785937591317/image-20260805140344-ga50p.png",
+      "remoteUrl": "notebooks/assets/note-1785937591317/image-20260805140344-ga50p.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1785942822662-pojpyj",
+      "name": "image.png",
+      "fileName": "image-20260805151342-ahh4v.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 153265,
+      "localUrl": "notebooks/assets/note-1785937591317/image-20260805151342-ahh4v.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1785937591317/image-20260805151342-ahh4v.png",
+      "remoteUrl": "notebooks/assets/note-1785937591317/image-20260805151342-ahh4v.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1785942923974-779323",
+      "name": "image.png",
+      "fileName": "image-20260805151523-hrpsi.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 270045,
+      "localUrl": "notebooks/assets/note-1785937591317/image-20260805151523-hrpsi.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1785937591317/image-20260805151523-hrpsi.png",
+      "remoteUrl": "notebooks/assets/note-1785937591317/image-20260805151523-hrpsi.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<h2><a target=\"_blank\" rel=\"noreferrer\" href=\"https://www.bestblogs.dev/explore/newsletter\">BestBlogs（周报）</a></h2><p><strong>Github:</strong> <a target=\"_blank\" rel=\"noreferrer\" href=\"https://github.com/ruanyf/weekly\">ruanyf/weekly: 科技爱好者周刊，每周五发布</a></p><p>官网原话“使用先进的大语言模型智能分析和评分技术内容，结合资深工程师的人工精选，为你筛选出最具价值的技术洞察”简单来说就是，帮您选出了最值得看的内容，减少信息过载,网站有文章、音频、视频的精选，还可以进行<a target=\"_blank\" rel=\"noreferrer noopener\" href=\"https://www.bestblogs.dev/#subscribe\">邮箱订阅</a>，每周五可以推送本周精选内容给你</p><img src=\"notebooks/assets/note-1785937591317/image-20260805140344-ga50p.png\" alt=\"image.png\" title=\"image.png\"><h2><a target=\"_blank\" rel=\"noreferrer\" href=\"https://www.ruanyifeng.com/blog/index.html\"><strong>阮一峰的网络日志（周报）</strong></a></h2><p>中文互联网上最权威的科技周报了，从2018年更新至今，GitHub上8w多的star，不仅仅是收录AI的内容，还有好玩的软件还有新闻等。</p><p><strong>Github:</strong><a target=\"_blank\" rel=\"noreferrer\" href=\"https://github.com/ruanyf/weekly?tab=readme-ov-file\">ruanyf/weekly: 科技爱好者周刊，每周五发布</a></p><img src=\"notebooks/assets/note-1785937591317/image-20260805151342-ahh4v.png\" alt=\"image.png\" title=\"image.png\"><h2><a target=\"_blank\" rel=\"noreferrer\" href=\"https://hex2077.dev/\">何夕2077AI(日报）</a></h2><p>通过AI自动化进行内容抓取的，但使用的是谷歌的gemini进行的处理，质量很高,内容覆盖面积广，适合任何人进行阅读</p><img src=\"notebooks/assets/note-1785937591317/image-20260805151523-hrpsi.png\" alt=\"image.png\" title=\"image.png\"><p></p>"
+}
