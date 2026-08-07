@@ -1890,6 +1890,9 @@ button.document-save-status[data-state="error"] { cursor: pointer; text-decorati
 
 .modal {
   width: min(520px, calc(100vw - 28px));
+  max-height: calc(100dvh - 28px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   background: rgba(255, 255, 255, .92);
   border: 1px solid rgba(255, 255, 255, .7);
   border-radius: 24px;
@@ -1915,6 +1918,11 @@ button.document-save-status[data-state="error"] { cursor: pointer; text-decorati
 .form {
   display: grid;
   gap: 12px;
+}
+
+.modal .form {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .field {
