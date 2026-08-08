@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-07T14:00:03.738Z",
+  "updatedAt": "2026-08-08T11:16:58.211Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -342,7 +342,7 @@
       "tags": [
         "日报"
       ],
-      "updatedAt": "2026-08-05T15:19:44.031Z",
+      "updatedAt": "2026-08-08T11:16:58.211Z",
       "file": "notebooks/docs/每日优质信息.json"
     },
     {
@@ -362,8 +362,10 @@
       "title": "资源",
       "folderId": "folder-1785849397124",
       "path": "网站收集",
-      "tags": [],
-      "updatedAt": "2026-08-07T14:00:03.738Z",
+      "tags": [
+        "资源"
+      ],
+      "updatedAt": "2026-08-08T11:16:58.211Z",
       "file": "notebooks/docs/资源.json"
     },
     {
@@ -374,6 +376,24 @@
       "tags": [],
       "updatedAt": "2026-08-07T14:00:03.738Z",
       "file": "notebooks/docs/ai创作.json"
+    },
+    {
+      "id": "note-1786186276783",
+      "title": "图片处理",
+      "folderId": "folder-1785849397124",
+      "path": "网站收集",
+      "tags": [],
+      "updatedAt": "2026-08-08T11:16:58.211Z",
+      "file": "notebooks/docs/图片处理.json"
+    },
+    {
+      "id": "note-1786182197714",
+      "title": "学习网站",
+      "folderId": "folder-1785849397124",
+      "path": "网站收集",
+      "tags": [],
+      "updatedAt": "2026-08-08T11:16:58.211Z",
+      "file": "notebooks/docs/学习网站.json"
     }
   ]
 }
