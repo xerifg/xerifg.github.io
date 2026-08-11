@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-11T06:53:41.277Z",
+  "updatedAt": "2026-08-11T14:17:00.385Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -330,7 +330,7 @@
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-11T06:51:06.654Z",
+      "updatedAt": "2026-08-11T14:17:00.385Z",
       "file": "notebooks/docs/ai.json"
     },
     {
@@ -375,7 +375,7 @@
       "tags": [
         "资源"
       ],
-      "updatedAt": "2026-08-11T06:51:06.654Z",
+      "updatedAt": "2026-08-11T14:17:00.385Z",
       "file": "notebooks/docs/资源.json"
     },
     {
@@ -393,7 +393,7 @@
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-08T11:16:58.211Z",
+      "updatedAt": "2026-08-11T14:17:00.385Z",
       "file": "notebooks/docs/学习网站.json"
     },
     {
@@ -404,7 +404,7 @@
       "tags": [
         "搜索"
       ],
-      "updatedAt": "2026-08-11T06:53:41.277Z",
+      "updatedAt": "2026-08-11T14:17:00.385Z",
       "file": "notebooks/docs/搜索.json"
     },
     {
@@ -424,7 +424,7 @@
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-11T06:51:06.654Z",
+      "updatedAt": "2026-08-11T14:17:00.385Z",
       "file": "notebooks/docs/音乐-音频.json"
     },
     {
@@ -433,7 +433,7 @@
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-11T06:51:06.654Z",
+      "updatedAt": "2026-08-11T14:17:00.385Z",
       "file": "notebooks/docs/视频.json"
     },
     {
@@ -449,11 +449,11 @@
     },
     {
       "id": "note-1786428498917",
-      "title": "图片",
+      "title": "图片/图表",
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-11T06:51:06.654Z",
+      "updatedAt": "2026-08-11T14:17:00.385Z",
       "file": "notebooks/docs/图片.json"
     },
     {
@@ -462,8 +462,35 @@
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-11T06:51:06.654Z",
+      "updatedAt": "2026-08-11T14:17:00.385Z",
       "file": "notebooks/docs/下载类资源.json"
+    },
+    {
+      "id": "note-1786457623322",
+      "title": "Tools",
+      "folderId": "folder-1785849397124",
+      "path": "网站收集",
+      "tags": [],
+      "updatedAt": "2026-08-11T14:17:00.385Z",
+      "file": "notebooks/docs/tools.json"
+    },
+    {
+      "id": "note-1786454956303",
+      "title": "微信",
+      "folderId": "folder-1783482449804",
+      "path": "Notebooks/工具",
+      "tags": [],
+      "updatedAt": "2026-08-11T14:17:00.385Z",
+      "file": "notebooks/docs/微信.json"
+    },
+    {
+      "id": "note-1786457218112",
+      "title": "字体",
+      "folderId": "folder-1785849397124",
+      "path": "网站收集",
+      "tags": [],
+      "updatedAt": "2026-08-11T14:17:00.385Z",
+      "file": "notebooks/docs/字体.json"
     }
   ]
 }
