@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-11T03:09:18.373Z",
+  "updatedAt": "2026-08-11T03:56:00.215Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -316,11 +316,11 @@
     },
     {
       "id": "note-1785849478972",
-      "title": "AI工具",
+      "title": "工具集",
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-07T14:00:03.738Z",
+      "updatedAt": "2026-08-11T03:56:00.215Z",
       "file": "notebooks/docs/ai.json"
     },
     {
@@ -342,7 +342,7 @@
       "tags": [
         "日报"
       ],
-      "updatedAt": "2026-08-08T11:16:58.211Z",
+      "updatedAt": "2026-08-11T03:56:00.215Z",
       "file": "notebooks/docs/每日优质信息.json"
     },
     {
@@ -394,6 +394,26 @@
       "tags": [],
       "updatedAt": "2026-08-08T11:16:58.211Z",
       "file": "notebooks/docs/学习网站.json"
+    },
+    {
+      "id": "note-1786419497307",
+      "title": "搜索",
+      "folderId": "folder-1785849397124",
+      "path": "网站收集",
+      "tags": [],
+      "updatedAt": "2026-08-11T03:56:00.215Z",
+      "file": "notebooks/docs/搜索.json"
+    },
+    {
+      "id": "note-1786419362471",
+      "title": "ppt资源",
+      "folderId": "folder-1785849397124",
+      "path": "网站收集",
+      "tags": [
+        "ppt"
+      ],
+      "updatedAt": "2026-08-11T03:56:00.215Z",
+      "file": "notebooks/docs/ppt资源.json"
     }
   ]
 }
