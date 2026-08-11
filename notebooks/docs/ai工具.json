@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "note-1786428760279",
+  "title": "AI工具",
+  "folderId": "folder-1785981247369",
+  "path": "AI",
+  "tags": [
+    "AI换脸"
+  ],
+  "createdAt": "2026-08-11T06:13:52.155Z",
+  "updatedAt": "2026-08-11T06:51:06.654Z",
+  "assets": [],
+  "html": "<h2><a target=\"_blank\" rel=\"noreferrer\" href=\"https://huggingface.co/welcome\">Hugging Face</a></h2><p><strong>Hugging Face</strong> 是全球最大的开源人工智能（AI）与机器学习（ML）开发者社区及协作平台，常被业界誉为 <strong>“AI 领域的 GitHub”</strong></p><p><strong>核心功能与生态组成</strong></p><ul><li><p><strong>模型 Hub（Model Hub）：</strong> 托管并分享了数十万款开源模型（如 LLaMA、Mistral、Stable Diffusion、BERT 等），覆盖自然语言处理（NLP）、计算机视觉（CV）、音频处理及多模态领域。</p></li><li><p><strong>核心开源库（Transformers / Diffusers / Datasets）：</strong> 开发了极受欢迎的 <code>transformers</code> Python 库，让开发者只需数行代码即可加载、微调和部署各种顶级 AI 模型。</p></li><li><p><strong>数据集与应用展示（Datasets &amp; Spaces）：</strong> 提供了海量的公开数据集供训练与评估，并通过 Hugging Face Spaces 允许开发者免费或低成本托管演示应用（如基于 Gradio 或 Streamlit 搭建的 AI 工具）。</p></li><li><p><strong>开发者服务（Inference &amp; Training）：</strong> 提供 Dedicated Endpoints、Inference Providers 等基础设施，方便企业进行模型训练和生产级 API 调用。</p></li></ul><h2><a target=\"_blank\" rel=\"noreferrer\" href=\"https://poe.com/\">Poe</a></h2><p>汇聚了市面上所有的ai大模型，在这里可以进行任意模型切换聊天</p><h2><a target=\"_blank\" rel=\"noreferrer\" href=\"https://swapface.org/#/home\">swapface</a></h2><p>免费的AI换脸工具</p><h2><a target=\"_blank\" rel=\"noreferrer\" href=\"https://xpressioncamera.com/\">xpressioncamera</a></h2><p>xpression camera 是一款基于生成式 AI 技术的虚拟摄像头应用，适用于视频会议（如 Zoom）、直播（如 Twitch）和视频创作。用户只需上传一张带有面部的照片，就能在视频通话中实时变身为该图像</p>"
+}
