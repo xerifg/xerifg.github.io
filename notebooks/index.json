@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-08T11:16:58.211Z",
+  "updatedAt": "2026-08-11T03:09:18.373Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -196,7 +196,7 @@
         "模型",
         "PointPillars"
       ],
-      "updatedAt": "2026-08-05T04:01:39.451Z",
+      "updatedAt": "2026-08-11T03:09:18.373Z",
       "file": "notebooks/docs/pointpillars模型.json"
     },
     {
@@ -374,7 +374,7 @@
       "folderId": "folder-1785981247369",
       "path": "AI",
       "tags": [],
-      "updatedAt": "2026-08-07T14:00:03.738Z",
+      "updatedAt": "2026-08-11T03:09:18.373Z",
       "file": "notebooks/docs/ai创作.json"
     },
     {
