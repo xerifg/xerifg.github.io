@@ -4012,8 +4012,7 @@ body { background: #fff; }
     gap: 24px;
   }
 
-  .document-workspace.without-outline,
-  .document-workspace.has-empty-outline {
+  .document-workspace.without-outline {
     grid-template-columns: 1fr;
   }
 

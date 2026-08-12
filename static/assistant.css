@@ -8,10 +8,32 @@
   color: var(--muted);
 }
 
-/* A short note does not naturally fill the reader's scroll surface, whereas a
-   long note does. Make the grid row itself fill that surface in both cases, so
-   the outer auxiliary rail's divider has exactly the same bottom edge. */
-.document-workspace.has-auxiliary { min-height: 100%; }
+/* Keep the auxiliary tools in the workspace's right column. This selector is
+   intentionally more specific than the legacy responsive workspace rules. */
+.document-workspace.has-auxiliary {
+  width: 100%;
+  margin: 0;
+  grid-template-columns: minmax(0, 1fr) var(--document-outline-width) !important;
+  justify-content: stretch;
+  gap: 24px;
+}
+
+.document-workspace.has-auxiliary > .paper {
+  grid-column: 1;
+}
+
+.document-workspace.has-auxiliary > .document-auxiliary {
+  grid-column: 2;
+  grid-row: 1;
+  width: var(--document-outline-width);
+  padding: 0 0 14px 18px;
+  border-top: 0;
+  border-left: 1px solid var(--line);
+}
+
+/* The rail content is inset by 18px, while its divider sits at the outer
+   edge. Move the resize target back to that divider. */
+.document-outline-resize-handle { left: -18px; }
 
 .document-auxiliary-sticky {
   position: sticky;
@@ -48,7 +70,15 @@
 }
 
 .document-auxiliary-tabs button.is-active { background: #eaf3ff; color: var(--blue-dark); box-shadow: 0 1px 3px rgba(20, 80, 145, .12); }
-.document-auxiliary .document-outline { position: static; width: auto; height: calc(100% - 48px); padding-top: 0; border-left: 0; }
+.document-auxiliary .document-outline {
+  position: static;
+  width: 100%;
+  align-self: stretch;
+  height: calc(100% - 48px);
+  padding-top: 0;
+  border-left: 0;
+}
+.document-auxiliary .document-outline ol { width: 100%; }
 
 .notebook-assistant { display: flex; min-height: 0; height: calc(100% - 48px); flex-direction: column; }
 .notebook-assistant-header { display: flex; align-items: start; justify-content: space-between; gap: 8px; padding: 2px 6px 10px; }
@@ -158,6 +188,29 @@
   .document-auxiliary-sticky { position: static; height: min(520px, 65vh); }
   .document-auxiliary .document-outline { height: calc(100% - 48px); }
   .assistant-workbench { grid-template-columns: minmax(0, 1fr) 250px; }
+}
+
+@media (min-width: 641px) and (max-width: 1100px) {
+  .document-workspace.has-auxiliary .document-auxiliary-sticky {
+    position: sticky;
+    top: 0;
+    height: calc(100dvh - 64px);
+  }
+}
+
+@media (max-width: 640px) {
+  .document-workspace.has-auxiliary {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .document-workspace.has-auxiliary > .document-auxiliary {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+    padding: 10px;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
 }
 
 @media (max-width: 820px) {
