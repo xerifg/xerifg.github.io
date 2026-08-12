@@ -35,6 +35,8 @@ import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, ic
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
 const uiPreferencesStorageKey = "personal-notebook-ui-preferences-v1";
+const assistantSettingsStorageKey = "personal-notebook-ai-settings-v1";
+const assistantChatStorageKey = "personal-notebook-ai-chat-v1";
 const blockNoteStorageKey = "personal-notebook-blocknote-v1";
 const legacyStorageKey = "personal-notebook-v2";
 const publishedIndexPath = "notebooks/index.json";
@@ -542,6 +544,7 @@ function App() {
   const [treeFocusId, setTreeFocusId] = useState("");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
+  const [assistantSettings, setAssistantSettings] = useState(loadAssistantSettings);
   const commandPaletteTriggerRef = useRef(null);
   const closeCommandPalette = () => {
     setCommandPaletteOpen(false);
@@ -656,6 +659,20 @@ function App() {
       setToast("界面偏好保存失败");
     }
   }, [state.uiPreferences]);
+
+  const updateAssistantSettings = useCallback((nextSettings) => {
+    setAssistantSettings((current) => {
+      const next = normalizeAssistantSettings({ ...current, ...nextSettings });
+      try {
+        if (next.rememberKey && next.apiKey) localStorage.setItem(assistantSettingsStorageKey, JSON.stringify(next));
+        else localStorage.removeItem(assistantSettingsStorageKey);
+      } catch (error) {
+        console.warn("AI settings persistence failed", error);
+        setToast("AI 设置无法保存在此浏览器");
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = state.uiPreferences.theme;
@@ -1616,7 +1633,9 @@ function App() {
         preferences: state.uiPreferences,
         github: state.settings,
         tags: tagCatalog(state),
+        assistant: assistantSettings,
         onChangePreferences: updateUiPreferences,
+        onChangeAssistant: updateAssistantSettings,
         onReorderTags: (tagOrder) => updateUiPreferences({ tagOrder }),
         onDeleteTag: deleteTag,
         onChangeGitHubSettings: updateGitHubSettings
@@ -1629,7 +1648,7 @@ function App() {
     }
     return h(React.Fragment, null,
       renderDocumentTopbar(state, note, state.uiPreferences, localPersistenceStatus, handleAction),
-      h(PaperScroll, null,
+      h(PaperScroll, { hasDocumentAuxiliary: Boolean(note) },
         note
           ? h(DocumentPaper, {
               key: `${note.id}-${state.mode}`,
@@ -1638,7 +1657,12 @@ function App() {
               editable: state.mode === "edit",
               updateNote,
               handleAction,
-              onStartDirectoryResize
+              onStartDirectoryResize,
+              onOpenNote: selectNote,
+              assistantSettings,
+              onOpenAssistantSettings: () => {
+                patchState((draft) => { draft.view = "settings"; draft.settingsCategory = "assistant"; });
+              }
             })
           : h("div", { className: "empty" },
               h("div", null, h("h2", null, "选择一篇笔记"), h("p", null, "选择左侧文档开始阅读")))
@@ -1712,7 +1736,7 @@ function App() {
   );
 }
 
-function PaperScroll({ children }) {
+function PaperScroll({ children, hasDocumentAuxiliary = false }) {
   const scrollRef = useRef(null);
   const dragRef = useRef(null);
   const [metrics, setMetrics] = useState({
@@ -1789,7 +1813,7 @@ function PaperScroll({ children }) {
   };
 
   return h("div", { className: "paper-scroll-shell" },
-    h("section", { className: "paper-scroll", ref: scrollRef }, children),
+    h("section", { className: `paper-scroll${hasDocumentAuxiliary ? " has-document-auxiliary" : ""}`, ref: scrollRef }, children),
     vertical.visible ? h("div", { className: "paper-scrollbar paper-scrollbar-y", "aria-hidden": "true" },
       h("span", {
         className: "paper-scrollbar-thumb",
@@ -1845,7 +1869,7 @@ function renderNoteTagPill(tag, note, editable, handleAction) {
   );
 }
 
-function DocumentPaper({ note, state, editable, updateNote, handleAction, onStartDirectoryResize }) {
+function DocumentPaper({ note, state, editable, updateNote, handleAction, onStartDirectoryResize, onOpenNote, assistantSettings, onOpenAssistantSettings }) {
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
   const readerRef = useRef(null);
@@ -1912,7 +1936,12 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
   }, []);
 
   const showOutline = state.uiPreferences.showOutline;
-  return h("div", { className: `document-workspace ${showOutline ? (outline.length ? "has-outline" : "has-empty-outline") : "without-outline"}` },
+  const [auxiliaryView, setAuxiliaryView] = useState(showOutline ? "outline" : "assistant");
+  useEffect(() => {
+    if (!showOutline) setAuxiliaryView("assistant");
+  }, [showOutline]);
+  const showAuxiliary = showOutline || auxiliaryView === "assistant";
+  return h("div", { className: `document-workspace ${showAuxiliary ? `has-auxiliary ${outline.length ? "has-outline" : "has-empty-outline"}` : "without-outline"}` },
     h("article", { className: `paper ${editable ? "is-editing" : ""}`, "data-note-id": note.id },
       editable
         ? h("input", {
@@ -1960,7 +1989,19 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
       )
     ),
     imagePreview ? h(DocumentImagePreview, { preview: imagePreview, onClose: closeImagePreview }) : null,
-    state.uiPreferences.showOutline ? h(DocumentOutline, { noteId: note.id, outline, onStartDirectoryResize }) : null
+    showAuxiliary ? h(DocumentAuxiliary, {
+      activeView: auxiliaryView,
+      onSelectView: setAuxiliaryView,
+      showOutline,
+      noteId: note.id,
+      outline,
+      onStartDirectoryResize,
+      notes: state.notes,
+      folders: state.folders,
+      onOpenNote,
+      assistantSettings,
+      onOpenAssistantSettings
+    }) : null
   );
 }
 
@@ -1989,6 +2030,21 @@ function DocumentImagePreview({ preview, onClose }) {
       onClick: (event) => event.stopPropagation()
     },
       h("img", { src: preview.src, alt: preview.alt, draggable: "false" })
+    )
+  );
+}
+
+function DocumentAuxiliary({ activeView, onSelectView, showOutline, noteId, outline, onStartDirectoryResize, notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings }) {
+  return h("aside", { className: "document-auxiliary", "aria-label": "文档辅助工具" },
+    h("div", { className: "document-auxiliary-sticky" },
+      h("div", { className: "directory-resize-handle document-outline-resize-handle", title: "拖拽调整右侧栏宽度", onPointerDown: (event) => onStartDirectoryResize(event, "documentOutlineWidth", -1) }),
+      h("div", { className: "document-auxiliary-tabs", role: "tablist", "aria-label": "文档辅助工具" },
+        showOutline ? h("button", { type: "button", role: "tab", className: activeView === "outline" ? "is-active" : "", "aria-selected": activeView === "outline", onClick: () => onSelectView("outline") }, "大纲") : null,
+        h("button", { type: "button", role: "tab", className: activeView === "assistant" ? "is-active" : "", "aria-selected": activeView === "assistant", onClick: () => onSelectView("assistant") }, "AI 助手")
+      ),
+      activeView === "outline" && showOutline
+        ? h(DocumentOutline, { noteId, outline, onStartDirectoryResize })
+        : h(NotebookAssistant, { notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings })
     )
   );
 }
@@ -2040,7 +2096,6 @@ function DocumentOutline({ noteId, outline, onStartDirectoryResize }) {
     className: "document-outline",
     "aria-label": "\u6587\u6863\u76ee\u5f55"
   },
-    h("div", { className: "directory-resize-handle document-outline-resize-handle", title: "\u62d6\u62fd\u8c03\u6574\u6587\u6863\u76ee\u5f55\u5bbd\u5ea6", onPointerDown: (event) => onStartDirectoryResize(event, "documentOutlineWidth", -1) }),
     h("div", { className: "document-outline-title" }, "\u5927\u7eb2"),
     outline.length
       ? h("ol", null, outline.map((item) => h("li", {
@@ -2057,6 +2112,248 @@ function DocumentOutline({ noteId, outline, onStartDirectoryResize }) {
         )))
       : h("p", { className: "document-outline-empty" }, "\u6682\u65e0\u6807\u9898")
   );
+}
+
+function NotebookAssistant({ notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings }) {
+  const [messages, setMessages] = useState(loadAssistantChat);
+  const [question, setQuestion] = useState("");
+  const [isAsking, setIsAsking] = useState(false);
+  const [error, setError] = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    try { sessionStorage.setItem(assistantChatStorageKey, JSON.stringify(messages.slice(-10))); } catch { /* session persistence is optional */ }
+  }, [messages]);
+
+  const ask = async () => {
+    const prompt = question.trim();
+    if (!prompt || isAsking) return;
+    if (!assistantSettings.apiKey) {
+      setError("请先在「设置 → AI 助手」中填写 DeepSeek API Key。");
+      return;
+    }
+    const sources = findRelevantNoteChunks(notes, folders, prompt);
+    if (!sources.length) {
+      setError("没有在笔记中找到足够相关的内容，请换一种说法。\n");
+      return;
+    }
+    const userMessage = { id: crypto.randomUUID(), role: "user", content: prompt };
+    const assistantMessage = { id: crypto.randomUUID(), role: "assistant", content: "", sources };
+    setMessages((current) => [...current, userMessage, assistantMessage]);
+    setQuestion("");
+    setError("");
+    setIsAsking(true);
+    try {
+      const answer = await requestDeepSeekAnswer({
+        apiKey: assistantSettings.apiKey,
+        model: assistantSettings.model,
+        question: prompt,
+        sources,
+        onDelta: (delta) => setMessages((current) => current.map((message) => message.id === assistantMessage.id ? { ...message, content: message.content + delta } : message))
+      });
+      if (!answer) throw new Error("DeepSeek 没有返回内容，请重试。");
+    } catch (requestError) {
+      const message = requestError?.message || "无法连接 DeepSeek，请检查网络、API Key 和浏览器跨域权限。";
+      setError(message);
+      setMessages((current) => current.map((item) => item.id === assistantMessage.id && !item.content ? { ...item, content: "本次回答未完成。" } : item));
+    } finally {
+      setIsAsking(false);
+      window.setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  };
+
+  return h("section", { className: "notebook-assistant", "aria-labelledby": "notebook-assistant-title" },
+    h("header", { className: "notebook-assistant-header" },
+      h("div", null, h("h2", { id: "notebook-assistant-title" }, "AI 笔记助手"), h("p", null, "仅基于筛选出的笔记片段回答")),
+      h("button", { type: "button", className: "assistant-settings-link", onClick: onOpenAssistantSettings }, "设置")
+    ),
+    h("div", { className: "assistant-chat", "aria-live": "polite" },
+      messages.length ? messages.map((message) => h("article", { key: message.id, className: `assistant-message is-${message.role}` },
+        h("div", { className: "assistant-message-content" }, message.content || (isAsking ? "正在整理笔记…" : "")),
+        message.role === "assistant" && message.sources?.length ? h(AssistantSources, { sources: message.sources, onOpenNote }) : null
+      )) : h("div", { className: "assistant-empty" }, h("strong", null, "问问你的笔记"), h("p", null, "例如：自动驾驶里有哪些点云 3D 检测模型？"))
+    ),
+    error ? h("p", { className: "assistant-error", role: "alert" }, error) : null,
+    h("form", { className: "assistant-composer", onSubmit: (event) => { event.preventDefault(); ask(); } },
+      h("textarea", { ref: inputRef, value: question, rows: 3, placeholder: "向你的笔记提问…", "aria-label": "向你的笔记提问", onChange: (event) => setQuestion(event.target.value), onKeyDown: (event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); ask(); } } }),
+      h("button", { type: "submit", disabled: isAsking || !question.trim() }, isAsking ? "回答中…" : "发送")
+    )
+  );
+}
+
+function AssistantSources({ sources, onOpenNote }) {
+  const uniqueSources = Array.from(new Map(sources.map((source) => [source.noteId, source])).values());
+  return h("section", { className: "assistant-sources", "aria-label": "引用笔记" },
+    h("h3", null, "引用笔记"),
+    uniqueSources.map((source) => h("button", { type: "button", key: source.noteId, onClick: () => onOpenNote(source.noteId) },
+      h("span", null, source.title),
+      h("small", null, `${source.relevance}%`)
+    ))
+  );
+}
+
+function normalizeAssistantSettings(value = {}) {
+  return {
+    apiKey: typeof value.apiKey === "string" ? value.apiKey.trim() : "",
+    rememberKey: value.rememberKey === true,
+    model: typeof value.model === "string" && value.model.trim() ? value.model.trim() : "deepseek-chat"
+  };
+}
+
+function loadAssistantSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(assistantSettingsStorageKey));
+    return normalizeAssistantSettings(saved || {});
+  } catch {
+    return normalizeAssistantSettings();
+  }
+}
+
+function loadAssistantChat() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(assistantChatStorageKey));
+    return Array.isArray(saved) ? saved.filter((item) => item?.id && item?.role && typeof item.content === "string").slice(-10) : [];
+  } catch {
+    return [];
+  }
+}
+
+function findRelevantNoteChunks(notes, folders, question) {
+  const terms = searchTermsFromQuestion(question);
+  if (!terms.length) return [];
+  const state = { folders, notes };
+  const candidates = notes.flatMap((note) => splitNoteForAssistant(note).map((chunk) => ({
+    ...chunk,
+    noteId: note.id,
+    title: note.title || "未命名笔记",
+    tags: ensureDefaultTags(note.tags),
+    path: folderPath(state, note.folderId) || "未归档"
+  })));
+  const ranked = candidates.map((candidate) => ({
+    ...candidate,
+    score: assistantChunkScore(candidate, terms)
+  })).filter((candidate) => candidate.score > 0)
+    .sort((left, right) => right.score - left.score || left.title.localeCompare(right.title, "zh-CN"));
+  const perNote = new Map();
+  const selected = [];
+  let characters = 0;
+  for (const candidate of ranked) {
+    const seen = perNote.get(candidate.noteId) || 0;
+    if (seen >= 2 || selected.length >= 8 || characters + candidate.text.length > 12000) continue;
+    selected.push(candidate);
+    perNote.set(candidate.noteId, seen + 1);
+    characters += candidate.text.length;
+  }
+  const best = selected[0]?.score || 1;
+  return selected.map((candidate) => ({
+    ...candidate,
+    relevance: Math.max(1, Math.min(99, Math.round((candidate.score / best) * 99)))
+  }));
+}
+
+function splitNoteForAssistant(note) {
+  const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
+  if (typeof DOMParser === "undefined") return [];
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const chunks = [];
+  let heading = "正文";
+  let text = "";
+  const flush = () => {
+    const cleaned = text.replace(/\s+/g, " ").trim();
+    if (!cleaned) return;
+    for (let start = 0; start < cleaned.length; start += 900) {
+      chunks.push({ heading, text: cleaned.slice(start, start + 1100) });
+      if (start + 1100 >= cleaned.length) break;
+    }
+    text = "";
+  };
+  Array.from(doc.body.children).forEach((node) => {
+    if (/^H[1-3]$/.test(node.tagName)) {
+      flush();
+      heading = (node.textContent || "正文").trim();
+    } else {
+      text += ` ${(node.textContent || "").trim()}`;
+      if (text.length >= 1100) flush();
+    }
+  });
+  flush();
+  if (!chunks.length) {
+    const textOnly = (doc.body.textContent || "").replace(/\s+/g, " ").trim();
+    if (textOnly) chunks.push({ heading: "正文", text: textOnly.slice(0, 1100) });
+  }
+  return chunks;
+}
+
+function searchTermsFromQuestion(question) {
+  const value = String(question || "").toLowerCase().replace(/[，。！？、；：：“”‘’（）()【】]/g, " ");
+  const ignored = new Set(["什么", "哪些", "如何", "怎么", "请问", "一下", "相关", "内容", "笔记", "可以", "帮我", "一下", "是否", "这个", "那个", "进行", "关于"]);
+  const terms = new Set();
+  (value.match(/[a-z][a-z0-9+.#_-]{1,}|\d+(?:d)?/g) || []).forEach((term) => terms.add(term));
+  (value.match(/[\u4e00-\u9fff]{2,}/g) || []).forEach((segment) => {
+    if (!ignored.has(segment)) terms.add(segment);
+    for (let width = 2; width <= Math.min(4, segment.length); width += 1) {
+      for (let index = 0; index <= segment.length - width; index += 1) {
+        const term = segment.slice(index, index + width);
+        if (!ignored.has(term)) terms.add(term);
+      }
+    }
+  });
+  return Array.from(terms).filter((term) => term.length >= 2).slice(0, 36);
+}
+
+function assistantChunkScore(chunk, terms) {
+  const scoreField = (value, weight) => {
+    const text = String(value || "").toLowerCase();
+    return terms.reduce((total, term) => total + (text.includes(term) ? weight : 0), 0);
+  };
+  return scoreField(chunk.title, 12)
+    + scoreField(chunk.tags.join(" "), 8)
+    + scoreField(chunk.path, 5)
+    + scoreField(chunk.heading, 4)
+    + scoreField(chunk.text, 1);
+}
+
+async function requestDeepSeekAnswer({ apiKey, model, question, sources, onDelta }) {
+  const evidence = sources.map((source, index) => `[${index + 1}] 笔记：${source.title}\n路径：${source.path}\n小节：${source.heading}\n内容：${source.text}`).join("\n\n");
+  const response = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: model || "deepseek-chat",
+      stream: true,
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: "你是个人笔记助手。只能依据给出的笔记证据回答；证据不足时明确说明。不要假装读过其他笔记。关键结论用 [笔记标题] 标注来源，使用中文，回答简洁清晰。" },
+        { role: "user", content: `问题：${question}\n\n笔记证据：\n${evidence}` }
+      ]
+    })
+  });
+  if (!response.ok) {
+    let detail = "";
+    try { detail = (await response.json())?.error?.message || ""; } catch { /* ignored */ }
+    throw new Error(detail || `DeepSeek 请求失败（${response.status}）`);
+  }
+  if (!response.body) throw new Error("浏览器不支持流式响应。");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let answer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    lines.forEach((line) => {
+      const payload = line.trim().replace(/^data:\s*/, "");
+      if (!payload || payload === "[DONE]") return;
+      try {
+        const delta = JSON.parse(payload)?.choices?.[0]?.delta?.content || "";
+        if (delta) { answer += delta; onDelta(delta); }
+      } catch { /* wait for the next complete SSE line */ }
+    });
+  }
+  return answer;
 }
 function documentOutlineFromHtml(html) {
   if (!html || typeof DOMParser === "undefined") return [];

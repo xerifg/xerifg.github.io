@@ -171,6 +171,7 @@ export function TagBrowser({ model, onQuery, onSort, onSelectTag, onOpenNote, on
 
 const settingCategories = [
   ["general", "通用"],
+  ["assistant", "AI 助手"],
   ["appearance", "外观"],
   ["reading", "阅读与编辑"],
   ["tags", "标签"],
@@ -265,6 +266,28 @@ function readingSettings(preferences, onChangePreferences) {
       settingSwitch(preferences.showOutline, "显示文档大纲", (showOutline) => onChangePreferences({ showOutline }))),
     settingRow("默认模式", "选择或新建笔记时使用的模式。",
       preferenceSelect(preferences.defaultMode, "默认模式", [["read", "阅读"], ["edit", "编辑"]], (defaultMode) => onChangePreferences({ defaultMode })))
+  ])];
+}
+
+function assistantSettings(assistant, onChangeAssistant) {
+  const update = (field, value) => onChangeAssistant({ ...assistant, [field]: value });
+  return [settingsGroup("DeepSeek", [
+    settingRow("API Key", "仅用于从浏览器直接请求 DeepSeek。默认仅在本次页面会话保留；勾选记住后会保存到此浏览器。", h("input", {
+      type: "password",
+      value: assistant.apiKey || "",
+      autoComplete: "off",
+      placeholder: "sk-…",
+      "aria-label": "DeepSeek API Key",
+      onChange: (event) => update("apiKey", event.target.value)
+    })),
+    settingRow("记住此设备", "仅在你自己的受信任设备上开启。", settingSwitch(Boolean(assistant.rememberKey), "记住 DeepSeek API Key", (rememberKey) => update("rememberKey", rememberKey))),
+    settingRow("模型", "用于基于笔记的问答。", h("input", {
+      type: "text",
+      value: assistant.model || "deepseek-chat",
+      placeholder: "deepseek-chat",
+      "aria-label": "DeepSeek 模型",
+      onChange: (event) => update("model", event.target.value)
+    }))
   ])];
 }
 
@@ -374,10 +397,11 @@ function githubSettings(settings, onChangeGitHubSettings) {
   ])];
 }
 
-export function SettingsPage({ category, preferences, github, tags, onChangePreferences, onReorderTags, onDeleteTag, onChangeGitHubSettings }) {
+export function SettingsPage({ category, preferences, github, tags, assistant, onChangePreferences, onChangeAssistant, onReorderTags, onDeleteTag, onChangeGitHubSettings }) {
   const meta = Object.fromEntries(settingCategories);
   let groups;
   if (category === "general") groups = generalSettings(preferences, onChangePreferences);
+  else if (category === "assistant") groups = assistantSettings(assistant, onChangeAssistant);
   else if (category === "appearance") groups = appearanceSettings(preferences, onChangePreferences);
   else if (category === "reading") groups = readingSettings(preferences, onChangePreferences);
   else if (category === "tags") groups = tagOrderSettings(tags, onReorderTags, onDeleteTag);
