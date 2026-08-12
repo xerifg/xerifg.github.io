@@ -382,7 +382,7 @@ export function enterTagView(state, tag, options = {}) {
 }
 
 export function navigatePrimaryView(state, requestedView) {
-  const view = ["home", "library", "tags", "settings"].includes(requestedView)
+  const view = ["home", "library", "assistant", "tags", "settings"].includes(requestedView)
     ? requestedView
     : "home";
   return {

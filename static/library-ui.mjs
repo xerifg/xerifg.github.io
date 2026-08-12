@@ -1,6 +1,6 @@
 import React from "https://esm.sh/react@18.3.1";
 import {
-  BookOpenText, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, FileText, Folder, Home, NotebookTabs, PenLine, Plus,
+  BookOpenText, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, FileText, Folder, Home, NotebookTabs, PenLine, Plus, Sparkles,
   GripVertical, Search, Settings, Tag, Trash2, Upload
 } from "https://esm.sh/lucide-react@0.468.0?external=react";
 
@@ -8,6 +8,7 @@ const h = React.createElement;
 const icons = {
   home: Home,
   notes: NotebookTabs,
+  assistant: Sparkles,
   tags: Tag,
   settings: Settings,
   folder: Folder,
@@ -31,7 +32,7 @@ export function icon(name, props = {}) {
 }
 
 export function PrimaryRail({ view, onNavigate }) {
-  const items = [["home", "首页"], ["library", "笔记"], ["tags", "标签"], ["settings", "设置"]];
+  const items = [["home", "首页"], ["library", "笔记"], ["assistant", "AI 助手"], ["tags", "标签"], ["settings", "设置"]];
   return h("nav", { className: "primary-rail", "aria-label": "主导航" },
     h("div", { className: "rail-brand", "aria-label": "知识库" }, icon("library")),
     h("div", { className: "rail-items" },
@@ -47,7 +48,7 @@ export function PrimaryRail({ view, onNavigate }) {
   );
 }
 
-export function LibraryHome({ summary, areas, tags, onCreateNote, onOpenArea, onOpenTag }) {
+export function LibraryHome({ summary, areas, tags, recentNotes = [], onCreateNote, onOpenArea, onOpenTag, onOpenNote, onOpenRecentNotes }) {
   const summaryItems = [
     ["file", summary.notes, "文档", "已记录的知识条目"],
     ["folder", summary.folders, "文件夹", "组织你的知识结构"],
@@ -84,6 +85,22 @@ export function LibraryHome({ summary, areas, tags, onCreateNote, onOpenArea, on
                 icon("next", { size: 17 })
               ))
             : h("div", { className: "library-inline-empty" }, "新建文件夹后，它会显示在这里。")
+        )
+      ),
+      h("section", { className: "library-section recent-notes-section", "aria-labelledby": "recent-notes-title" },
+        h("div", { className: "library-section-heading" },
+          h("h2", { id: "recent-notes-title" }, "最近笔记"),
+          h("button", { type: "button", className: "recent-notes-all", onClick: onOpenRecentNotes }, "查看全部")
+        ),
+        h("div", { className: "recent-note-list" },
+          recentNotes.length
+            ? recentNotes.map((note) => h("button", { key: note.id, type: "button", className: "recent-note-row", onClick: () => onOpenNote(note.id) },
+                h("span", { className: "recent-note-icon" }, icon("file", { size: 20 })),
+                h("span", { className: "recent-note-copy" }, h("strong", null, note.title || "未命名笔记"), h("small", null, note.excerpt || "暂无正文内容")),
+                h("time", { dateTime: note.date || undefined }, note.updatedLabel),
+                icon("next", { size: 17 })
+              ))
+            : h("div", { className: "library-inline-empty" }, "还没有可显示的笔记。")
         )
       ),
       h("section", { className: "library-section", "aria-labelledby": "tag-index-title" },

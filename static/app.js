@@ -21,7 +21,8 @@ import TaskItem from "https://esm.sh/@tiptap/extension-task-item@2.11.7";
 import {
   Bold, Braces, Check, ChevronDown, Code2, FileUp, Heading1, Heading2, Heading3, Image as ImageIcon,
   GitBranch, Italic, Link as LinkIcon, List, ListOrdered, Minus, Quote, Sigma, Strikethrough,
-  Table as TableIcon, Type, Underline as UnderlineIcon, Video as VideoIcon, X, Ellipsis
+  Table as TableIcon, Type, Underline as UnderlineIcon, Video as VideoIcon, X, Ellipsis,
+  ChevronRight, Database, FileText, Paperclip, Send, Sparkles
 } from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
@@ -29,8 +30,8 @@ import { filterCommandItems } from "./command-palette.mjs";
 import { clearModalState } from "./library-ui-model.mjs";
 import { blobToBase64 as blobToBase64FromDraftAsset, createDraftAssetStore, hydrateDraftAsset, restoreDraftAssetReferences } from "./draft-asset-store.mjs?v=20260805-indexeddb-draft-assets-v1";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260803-unified-diff-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260805-indexeddb-draft-assets-v1";
-import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260731-library-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260812-ai-assistant-v2";
+import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260812-ai-assistant-v2";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -723,6 +724,7 @@ function App() {
   const visibleTreeItems = useMemo(() => buildVisibleTreeItems(state.folders, visibleNotes, state.collapsedFolders, { isSearching: Boolean(state.query.trim()) }), [state.folders, visibleNotes, state.collapsedFolders, state.query]);
 
   const areas = useMemo(() => buildKnowledgeAreas(state.folders, state.notes), [state.folders, state.notes]);
+  const recentNotes = useMemo(() => buildRecentNotes(state.notes), [state.notes]);
 
   const patchState = useCallback((recipe) => {
     setState((current) => {
@@ -913,6 +915,7 @@ function App() {
   const commandItems = filterCommandItems([
     { id: "new-note", label: "新建笔记", run: () => createNote() },
     { id: "settings", label: "打开设置", run: () => navigate("settings") },
+    { id: "assistant", label: "打开 AI 助手", run: () => navigate("assistant") },
     { id: "library", label: "打开笔记", run: () => navigate("library") }
   ], commandQuery);
   const openArea = (folderId) => {
@@ -1615,6 +1618,11 @@ function App() {
   };
 
   const renderActiveView = () => {
+    if (state.view === "assistant") {
+      return h(AssistantPage, { notes: state.notes, folders: state.folders, assistantSettings, onOpenNote: selectNote, onOpenAssistantSettings: () => {
+        patchState((draft) => { draft.view = "settings"; draft.settingsCategory = "assistant"; });
+      } });
+    }
     if (state.view === "tags") {
       return h(TagBrowser, {
         model: tagBrowserModel,
@@ -1705,9 +1713,12 @@ function App() {
               summary,
               areas,
               tags: tagStats,
+              recentNotes,
               onCreateNote: () => createNote(),
               onOpenArea: openArea,
-              onOpenTag: enterTag
+              onOpenTag: enterTag,
+              onOpenNote: selectNote,
+              onOpenRecentNotes: () => navigate("library")
             })
           : renderActiveView()
       )
@@ -2114,7 +2125,7 @@ function DocumentOutline({ noteId, outline, onStartDirectoryResize }) {
   );
 }
 
-function NotebookAssistant({ notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings }) {
+function NotebookAssistant({ notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings, variant = "panel" }) {
   const [messages, setMessages] = useState(loadAssistantChat);
   const [question, setQuestion] = useState("");
   const [isAsking, setIsAsking] = useState(false);
@@ -2123,6 +2134,13 @@ function NotebookAssistant({ notes, folders, onOpenNote, assistantSettings, onOp
 
   useEffect(() => {
     try { sessionStorage.setItem(assistantChatStorageKey, JSON.stringify(messages.slice(-10))); } catch { /* session persistence is optional */ }
+  }, [messages]);
+
+  const latestSources = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (messages[index].role === "assistant" && messages[index].sources?.length) return messages[index].sources;
+    }
+    return [];
   }, [messages]);
 
   const ask = async () => {
@@ -2162,34 +2180,123 @@ function NotebookAssistant({ notes, folders, onOpenNote, assistantSettings, onOp
     }
   };
 
+  const conversation = h("div", { className: "assistant-chat", "aria-live": "polite" },
+    messages.length ? messages.map((message) => h("article", { key: message.id, className: `assistant-message is-${message.role}` },
+      message.role === "assistant"
+        ? h(MarkdownPreview, { content: message.content || (isAsking ? "正在整理笔记…" : "") })
+        : h("div", { className: "assistant-message-content" }, message.content)
+    )) : h("div", { className: "assistant-empty" },
+      h(Sparkles, { size: 22, "aria-hidden": "true" }),
+      h("strong", null, "问问你的笔记"),
+      h("p", null, "我会先在本地筛选相关内容，再基于这些笔记回答。")
+    )
+  );
+  const composer = h("form", { className: "assistant-composer", onSubmit: (event) => { event.preventDefault(); ask(); } },
+    h("textarea", { ref: inputRef, value: question, rows: variant === "page" ? 2 : 3, placeholder: "向你的笔记提问…", "aria-label": "向你的笔记提问", onChange: (event) => setQuestion(event.target.value), onKeyDown: (event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); ask(); } } }),
+    variant === "page" ? h("div", { className: "assistant-composer-actions" },
+      h("span", { className: "assistant-scope" }, h(Database, { size: 14, "aria-hidden": "true" }), "仅检索笔记"),
+      h("button", { type: "button", className: "assistant-attach", title: "附件功能即将推出", "aria-label": "附件功能即将推出" }, h(Paperclip, { size: 18, "aria-hidden": "true" })),
+      h("button", { type: "submit", className: "assistant-send", disabled: isAsking || !question.trim(), "aria-label": isAsking ? "回答中" : "发送问题" }, h(Send, { size: 18, "aria-hidden": "true" }))
+    ) : h("button", { type: "submit", disabled: isAsking || !question.trim() }, isAsking ? "回答中…" : "发送")
+  );
+
+  if (variant === "page") {
+    return h("section", { className: "notebook-assistant assistant-workbench", "aria-label": "AI 问答工作台" },
+      h("div", { className: "assistant-workbench-main" }, conversation, error ? h("p", { className: "assistant-error", role: "alert" }, error) : null, composer),
+      h(AssistantSources, { sources: latestSources, onOpenNote, emptyState: true })
+    );
+  }
+
   return h("section", { className: "notebook-assistant", "aria-labelledby": "notebook-assistant-title" },
     h("header", { className: "notebook-assistant-header" },
       h("div", null, h("h2", { id: "notebook-assistant-title" }, "AI 笔记助手"), h("p", null, "仅基于筛选出的笔记片段回答")),
       h("button", { type: "button", className: "assistant-settings-link", onClick: onOpenAssistantSettings }, "设置")
     ),
-    h("div", { className: "assistant-chat", "aria-live": "polite" },
-      messages.length ? messages.map((message) => h("article", { key: message.id, className: `assistant-message is-${message.role}` },
-        h("div", { className: "assistant-message-content" }, message.content || (isAsking ? "正在整理笔记…" : "")),
-        message.role === "assistant" && message.sources?.length ? h(AssistantSources, { sources: message.sources, onOpenNote }) : null
-      )) : h("div", { className: "assistant-empty" }, h("strong", null, "问问你的笔记"), h("p", null, "例如：自动驾驶里有哪些点云 3D 检测模型？"))
-    ),
+    conversation,
+    latestSources.length ? h(AssistantSources, { sources: latestSources, onOpenNote }) : null,
     error ? h("p", { className: "assistant-error", role: "alert" }, error) : null,
-    h("form", { className: "assistant-composer", onSubmit: (event) => { event.preventDefault(); ask(); } },
-      h("textarea", { ref: inputRef, value: question, rows: 3, placeholder: "向你的笔记提问…", "aria-label": "向你的笔记提问", onChange: (event) => setQuestion(event.target.value), onKeyDown: (event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); ask(); } } }),
-      h("button", { type: "submit", disabled: isAsking || !question.trim() }, isAsking ? "回答中…" : "发送")
-    )
+    composer
   );
 }
 
-function AssistantSources({ sources, onOpenNote }) {
+function AssistantPage({ notes, folders, assistantSettings, onOpenNote, onOpenAssistantSettings }) {
+  return h("section", { className: "assistant-page", "aria-label": "AI 笔记助手" },
+    h("header", { className: "assistant-page-header" },
+      h("div", { className: "assistant-page-title" },
+        h("span", { className: "assistant-page-icon" }, h(Sparkles, { size: 25, "aria-hidden": "true" })),
+        h("div", null, h("h1", null, "AI 笔记助手"), h("p", null, "基于你的笔记回答问题"))
+      ),
+      h("button", { type: "button", className: "assistant-settings-link assistant-page-settings", onClick: onOpenAssistantSettings }, "设置")
+    ),
+    h(NotebookAssistant, { notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings, variant: "page" })
+  );
+}
+
+function AssistantSources({ sources, onOpenNote, emptyState = false }) {
   const uniqueSources = Array.from(new Map(sources.map((source) => [source.noteId, source])).values());
   return h("section", { className: "assistant-sources", "aria-label": "引用笔记" },
-    h("h3", null, "引用笔记"),
-    uniqueSources.map((source) => h("button", { type: "button", key: source.noteId, onClick: () => onOpenNote(source.noteId) },
-      h("span", null, source.title),
-      h("small", null, `${source.relevance}%`)
-    ))
+    h("div", { className: "assistant-sources-heading" }, h("h3", null, "引用笔记"), uniqueSources.length ? h("span", null, `已检索 ${uniqueSources.length} 篇笔记`) : null),
+    uniqueSources.length ? uniqueSources.map((source) => h("button", { type: "button", key: source.noteId, onClick: () => onOpenNote(source.noteId) },
+      h(FileText, { size: 18, "aria-hidden": "true" }),
+      h("span", { className: "assistant-source-title" }, source.title),
+      h("small", null, `${source.relevance}%`),
+      h(ChevronRight, { size: 16, "aria-hidden": "true" })
+    )) : emptyState ? h("div", { className: "assistant-sources-empty" }, h(FileText, { size: 20, "aria-hidden": "true" }), h("p", null, "提问后会在这里显示用于回答的笔记。")) : null
   );
+}
+
+function MarkdownPreview({ content }) {
+  const lines = String(content || "").replace(/\r\n?/g, "\n").split("\n");
+  const blocks = [];
+  let index = 0;
+  const isSpecial = (line) => /^\s*(#{1,6}\s+|[-*+]\s+|\d+\.\s+|```|>\s*|---+\s*$)/.test(line);
+  while (index < lines.length) {
+    const line = lines[index];
+    if (!line.trim()) { index += 1; continue; }
+    if (/^```/.test(line)) {
+      const code = []; index += 1;
+      while (index < lines.length && !/^```/.test(lines[index])) { code.push(lines[index]); index += 1; }
+      if (index < lines.length) index += 1;
+      blocks.push(h("pre", { key: `code-${index}` }, h("code", null, code.join("\n"))));
+      continue;
+    }
+    const heading = line.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      const level = Math.min(4, heading[1].length + 1);
+      blocks.push(h(`h${level}`, { key: `heading-${index}` }, markdownInline(heading[2], `heading-${index}`)));
+      index += 1; continue;
+    }
+    if (/^---+\s*$/.test(line)) { blocks.push(h("hr", { key: `rule-${index}` })); index += 1; continue; }
+    const list = line.match(/^\s*(\d+\.|[-*+])\s+(.+)$/);
+    if (list) {
+      const ordered = /\d+\./.test(list[1]); const items = [];
+      while (index < lines.length) {
+        const item = lines[index].match(/^\s*(\d+\.|[-*+])\s+(.+)$/);
+        if (!item || /\d+\./.test(item[1]) !== ordered) break;
+        items.push(h("li", { key: `item-${index}` }, markdownInline(item[2], `item-${index}`))); index += 1;
+      }
+      blocks.push(h(ordered ? "ol" : "ul", { key: `list-${index}` }, items)); continue;
+    }
+    if (/^>\s*/.test(line)) {
+      const quote = []; while (index < lines.length && /^>\s*/.test(lines[index])) { quote.push(lines[index].replace(/^>\s?/, "")); index += 1; }
+      blocks.push(h("blockquote", { key: `quote-${index}` }, markdownInline(quote.join(" "), `quote-${index}`))); continue;
+    }
+    const paragraph = [line]; index += 1;
+    while (index < lines.length && lines[index].trim() && !isSpecial(lines[index])) { paragraph.push(lines[index]); index += 1; }
+    blocks.push(h("p", { key: `paragraph-${index}` }, paragraph.flatMap((text, paragraphIndex) => paragraphIndex ? [h("br", { key: `break-${paragraphIndex}` }), ...markdownInline(text, `paragraph-${index}-${paragraphIndex}`)] : markdownInline(text, `paragraph-${index}-0`))));
+  }
+  return h("div", { className: "assistant-message-content assistant-markdown" }, blocks);
+}
+
+function markdownInline(text, keyPrefix) {
+  const parts = String(text).split(/(`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_)/g);
+  return parts.filter(Boolean).map((part, index) => {
+    const key = `${keyPrefix}-${index}`;
+    if (/^`[^`]+`$/.test(part)) return h("code", { key }, part.slice(1, -1));
+    if (/^(\*\*[^*]+\*\*|__[^_]+__)$/.test(part)) return h("strong", { key }, part.slice(2, -2));
+    if (/^(\*[^*]+\*|_[^_]+_)$/.test(part)) return h("em", { key }, part.slice(1, -1));
+    return part;
+  });
 }
 
 function normalizeAssistantSettings(value = {}) {
@@ -5402,6 +5509,30 @@ function formatDate(value) {
   } catch {
     return "";
   }
+}
+
+function buildRecentNotes(notes = []) {
+  return [...notes]
+    .sort((left, right) => Date.parse(right.date || right.publishedAt || 0) - Date.parse(left.date || left.publishedAt || 0))
+    .slice(0, 5)
+    .map((note) => ({
+      id: note.id,
+      title: note.title,
+      date: note.date || note.publishedAt || "",
+      excerpt: htmlToText(note.html || blocksToHtml(note.blocks)).replace(/\s+/g, " ").trim().slice(0, 100),
+      updatedLabel: relativeNoteDate(note.date || note.publishedAt)
+    }));
+}
+
+function relativeNoteDate(value) {
+  const timestamp = Date.parse(value || "");
+  if (!Number.isFinite(timestamp)) return "";
+  const difference = Math.max(0, Date.now() - timestamp);
+  const days = Math.floor(difference / 86400000);
+  if (days === 0) return "今天";
+  if (days === 1) return "昨天";
+  if (days < 7) return `${days} 天前`;
+  return formatDate(value);
 }
 
 function inferOwner() {
