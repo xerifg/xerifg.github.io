@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-12T07:21:04.539Z",
+  "updatedAt": "2026-08-12T10:56:54.776Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -470,8 +470,10 @@
       "title": "Tools",
       "folderId": "folder-1785849397124",
       "path": "网站收集",
-      "tags": [],
-      "updatedAt": "2026-08-12T02:18:33.073Z",
+      "tags": [
+        "格式转换"
+      ],
+      "updatedAt": "2026-08-12T10:56:54.776Z",
       "file": "notebooks/docs/tools.json"
     },
     {
