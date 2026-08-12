@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-12T02:18:33.073Z",
+  "updatedAt": "2026-08-12T07:21:04.539Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -491,6 +491,17 @@
       "tags": [],
       "updatedAt": "2026-08-12T02:18:33.073Z",
       "file": "notebooks/docs/字体.json"
+    },
+    {
+      "id": "note-1786519161551",
+      "title": "Tmux",
+      "folderId": "folder-1783482449804",
+      "path": "Notebooks/工具",
+      "tags": [
+        "tmux"
+      ],
+      "updatedAt": "2026-08-12T07:21:04.539Z",
+      "file": "notebooks/docs/tmux.json"
     }
   ]
 }
