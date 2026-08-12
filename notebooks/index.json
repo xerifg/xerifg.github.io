@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-11T14:17:00.385Z",
+  "updatedAt": "2026-08-12T02:18:33.073Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -375,7 +375,7 @@
       "tags": [
         "资源"
       ],
-      "updatedAt": "2026-08-11T14:17:00.385Z",
+      "updatedAt": "2026-08-12T02:18:33.073Z",
       "file": "notebooks/docs/资源.json"
     },
     {
@@ -449,11 +449,11 @@
     },
     {
       "id": "note-1786428498917",
-      "title": "图片/图表",
+      "title": "图片/图表/图标",
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-11T14:17:00.385Z",
+      "updatedAt": "2026-08-12T02:18:33.073Z",
       "file": "notebooks/docs/图片.json"
     },
     {
@@ -471,7 +471,7 @@
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-11T14:17:00.385Z",
+      "updatedAt": "2026-08-12T02:18:33.073Z",
       "file": "notebooks/docs/tools.json"
     },
     {
@@ -489,7 +489,7 @@
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-11T14:17:00.385Z",
+      "updatedAt": "2026-08-12T02:18:33.073Z",
       "file": "notebooks/docs/字体.json"
     }
   ]
