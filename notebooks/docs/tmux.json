@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "note-1786519161551",
+  "title": "Tmux",
+  "folderId": "folder-1783482449804",
+  "path": "Notebooks/工具",
+  "tags": [
+    "tmux"
+  ],
+  "createdAt": "2026-08-12T07:20:19.645Z",
+  "updatedAt": "2026-08-12T07:21:04.539Z",
+  "assets": [],
+  "html": "<h3><span><strong>会话（session）</strong></span></h3><ul><li><p><span>新建会话：tmux new -s mysession</span></p></li></ul><ul><li><p><span>查看会话：tmux ls</span></p></li></ul><ul><li><p><span>进入会话：tmux attach -t mysession  或者 </span>tmux a -t mysession</p></li></ul><ul><li><p><span>从会话中临时退出（不关闭）：Ctrl+b 然后按 d</span></p></li></ul><ul><li><p><span>关闭会话：tmux kill-session -t mysession</span></p></li></ul><ul><li><p><span>关闭所有会话：tmux kill-server</span></p></li></ul><h3><span><strong>窗口（window）</strong></span></h3><ul><li><p><span>新建窗口：Ctrl+b 然后 c</span></p></li></ul><ul><li><p><span>切换下一个/上一个窗口：Ctrl+b 然后 n / p</span></p></li></ul><ul><li><p><span>按编号切换窗口：Ctrl+b 然后数字（如 0~9）</span></p></li></ul><ul><li><p><span>重命名窗口：Ctrl+b 然后 ,</span></p></li></ul><ul><li><p><span>关闭当前窗口：Ctrl+b 然后 &amp;</span></p></li></ul><h3><span><strong>面板（pane，分屏）</strong></span></h3><ul><li><p><span>左右分屏：Ctrl+b 然后 %</span></p></li></ul><ul><li><p><span>上下分屏：Ctrl+b 然后 \"</span></p></li></ul><ul><li><p><span>切换面板：Ctrl+b 然后方向键</span></p></li></ul><ul><li><p><span>交换面板位置：Ctrl+b 然后 o</span></p></li></ul><ul><li><p><span>调整面板大小：Ctrl+b 然后 Ctrl+方向键</span></p></li></ul><ul><li><p><span>关闭当前面板：Ctrl+b 然后 x</span></p></li></ul><ul><li><p><span>面板全屏/还原：Ctrl+b 然后 z</span></p></li></ul><h3><span><strong>复制与滚动</strong></span></h3><ul><li><p><span>进入复制模式（可滚动查看历史）：Ctrl+b 然后 [</span></p></li></ul><ul><li><p><span>在复制模式退出：q</span></p></li></ul><ul><li><p><span>粘贴缓冲区内容：Ctrl+b 然后 ]</span></p></li></ul><h3><span><strong>实用补充</strong></span></h3><ul><li><p><span>查看快捷键帮助：Ctrl+b 然后 ?</span></p></li></ul><ul><li><p><span>重载配置（改完 ~/.tmux.conf 后）：tmux source-file ~/.tmux.conf</span></p></li></ul>"
+}
