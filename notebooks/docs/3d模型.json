@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1786627104143",
+  "title": "3D模型",
+  "folderId": "folder-1785849397124",
+  "path": "网站收集",
+  "tags": [],
+  "createdAt": "2026-08-13T13:19:16.971Z",
+  "updatedAt": "2026-08-13T13:32:46.183Z",
+  "assets": [],
+  "html": "<h1><a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://www.mixamo.com/#/\">Mixamo</a> </h1><p>是由 <strong>Adobe</strong> 提供的一个基于网页的免费 3D 角色动画与自动骨骼绑定平台，主要面向游戏开发、影视制作、3D 动画、动效设计和插画等领域的创作者。</p><h3>核心功能</h3><ul><li><p><strong>自动骨骼绑定（Auto-Rigging）</strong></p><ul><li><p>你可以上传自定义的 3D 人物模型（如 FBX、OBJ 等格式）。</p></li><li><p>系统会自动根据你标记的关键接点（如手腕、肘部、膝盖、下巴等）生成人体骨骼和权重，无需手动绑定框架。</p></li></ul></li><li><p><strong>海量动作捕捉库（Motion Capture Animations）</strong></p><ul><li><p>提供数千种由专业动作演员录制的预设动画（如行走、跑步、格斗、舞蹈、日常互动等）。</p></li><li><p>所有动画均可无缝应用到平台内置角色或你上传的自定义模型上。</p></li></ul></li><li><p><strong>在线调节与预览</strong></p><ul><li><p>可以在线实时预览动画效果，并调整动作参数（例如步幅大小、动作速度、手臂摆幅等）。</p></li></ul></li><li><p><strong>多格式导出（Export &amp; Integration）</strong></p><ul><li><p>支持导出包含骨骼和动画的 <code>FBX</code> 或 <code>DAE</code> 文件，方便直接导入到 Blender、Unreal Engine、Unity、Maya、Cinema 4D 等主流 3D 软件和游戏引擎中。</p></li></ul></li><li><p><strong>内置 Ready-to-Use 角色库</strong></p><ul><li><p>自带丰富的高品质 3D 角色模型（从写实风、卡通风到科幻、幻想风格），均已贴图并绑定好，可直接使用。</p></li></ul></li></ul><h3>使用流程</h3><ol><li><p><strong>登录/注册</strong>：使用 Adobe 账号免费登录。</p></li><li><p><strong>选择/上传模型</strong>：挑选平台提供的免费角色，或上传自己的 3D 人物（建议使用 T-Pose 或 A-Pose 的模型）。</p></li><li><p><strong>选择动画</strong>：在 Animations 库中搜索并预览所需的动作。</p></li><li><p><strong>调整导出</strong>：配置帧率（FPS）、格式（如 FBX for Unity）及皮肤选项后下载使用。</p></li></ol>"
+}
