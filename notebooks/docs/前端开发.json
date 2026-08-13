@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1786624063535",
+  "title": "前端开发",
+  "folderId": "folder-1785849397124",
+  "path": "网站收集",
+  "tags": [],
+  "createdAt": "2026-08-13T12:28:04.133Z",
+  "updatedAt": "2026-08-13T13:32:46.183Z",
+  "assets": [],
+  "html": "<h2><a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://codepen.io/\">CodePen</a> </h2><p>是一个专为<strong>前端设计师和开发者</strong>打造的在线代码编辑器与社交开发平台。它可以让你无需在本地安装任何开发环境或配置命令行，直接在浏览器中编写、测试和部署前端代码。</p><h3>核心亮点与功能</h3><ul><li><p><strong>即时在线构建（CodePen 2.0）</strong>：</p><ul><li><p><strong>强大的编译器</strong>：内置 CodePen Compiler，支持自动解析和处理复杂的代码与依赖，无需手动配置。</p></li><li><p><strong>支持丰富的前端技术</strong>：天然集成 TypeScript、Sass、Vue、Tailwind、JSX、ESM 模块以及 Prettier 等主流工具和框架。</p></li><li><p><strong>毫秒级实时预览</strong>：你在左侧修改代码，右侧的预览画面几乎在停止打字的瞬间就会同步更新。</p></li></ul></li><li><p><strong>比传统 Pen 更强大的项目管理</strong>：</p><ul><li><p><strong>文件与目录结构</strong>：不仅仅是传统的“HTML/CSS/JS”三分屏，还支持添加多个文件和文件夹，构建完整的多页面网站。</p></li><li><p><strong>模板与资源托管</strong>：支持使用公共或自定义模板快速建站，并提供图片、字体等静态资源的托管服务。</p></li></ul></li><li><p><strong>一键部署与版本控制</strong>：</p><ul><li><p><strong>轻松上线</strong>：任何代码片段或项目都可以一键发布为在线网站，提供专属 Live URL。</p></li><li><p><strong>历史版本回滚</strong>：自动保存每一次改动，随时可以查看历史预览并进行版本回滚。</p></li></ul></li><li><p><strong>协作与社交社区</strong>：</p><ul><li><p><strong>实时/异步协作</strong>：支持邀请队员共同在线协同编辑代码。</p></li><li><p><strong>展示与灵感</strong>：你可以公开发布作品（Pen）展示技术，从社区的 <a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://codepen.io/\">Challenges</a>（挑战活动）和 <a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://codepen.io/\">Spark</a> 中获取灵感，也可以将作品设为私有或加密保护。</p></li></ul></li></ul>"
+}
