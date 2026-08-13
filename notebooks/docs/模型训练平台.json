@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1786627594701",
+  "title": "模型训练平台",
+  "folderId": "folder-1786429147192",
+  "path": "Notebooks/Deep Learning",
+  "tags": [],
+  "createdAt": "2026-08-13T13:27:37.243Z",
+  "updatedAt": "2026-08-13T13:32:46.183Z",
+  "assets": [],
+  "html": "<h2><strong> </strong><a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://www.customvision.ai/\"><strong>Custom Vision</strong></a></h2><h3><strong>网站的核心功能</strong></h3><p><a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://www.customvision.ai/\">Custom Vision</a> 是微软 Azure 人工智能（Azure AI Services）旗下的一款计算机视觉工具。它的最大特点是<strong>零/低代码化</strong>——即使你没有深厚的深度学习或算法背景，也能快速定制并训练出属于你自己的图像识别模型。<span> &nbsp;</span></p><p>主要流程分为 3 个核心步骤：</p><ol><li><p><strong>上传与标记图片（Upload Images）</strong></p><ul><li><p>上传你自己准备好的图像样本。</p></li><li><p>为图片打上标签/分类（如：区分“猫”与“狗”，或在工业图中框选出“瑕疵部件”）。</p></li></ul></li><li><p><strong>训练模型（Train）</strong></p><ul><li><p>点击训练按钮，微软后台会自动利用微调技术和机器学习算法学习这些图像的视觉特征。<span> &nbsp;</span></p></li></ul></li><li><p><strong>评估与部署（Evaluate）</strong></p><ul><li><p>模型训练完成后，系统会给出精确度（Precision）、召回率（Recall）等评估指标。</p></li><li><p>你可以通过简单的 <strong>REST API</strong> 直接调用该模型，或者导出模型部署到边缘设备（如 iOS、Android、嵌入式硬件等）上运行。</p></li></ul></li></ol><h3><strong>常见应用场景</strong></h3><ul><li><p><strong>图像分类（Image Classification）：</strong> 识别图片整体属于哪个类别（例如：区分不同种类的花卉、判定产品的型号等）。<span> &nbsp;</span></p></li><li><p><strong>目标检测（Object Detection）：</strong> 在图片中框选出特定物体的位置并命名（例如：检测电路板上的不良焊点、统计货架上的商品数量）。</p></li></ul><h3><strong>补充提示</strong></h3><ul><li><p><strong>使用前提：</strong> 点击页面中间的 <strong>“SIGN IN”</strong> 按钮登录后，通常需要绑定一个 Microsoft Azure 云服务账号来创建项目资源。</p></li><li><p><strong>产品计划：</strong> 微软已计划在未来对该独立服务进行整合升级（预计将于 2028 年正式停用该旧版服务），并将相关功能演进升级至 <strong>Azure Machine Learning</strong> 和 <strong>Azure AI Vision</strong> 平台中。如果你是新项目，建议后续直接体验微软最新的 Azure AI Vision 平台服务。</p></li></ul>"
+}
