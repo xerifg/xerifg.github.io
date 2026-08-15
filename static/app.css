@@ -4172,3 +4172,18 @@ body { background: #fff; }
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+.favorite-toggle.is-active {
+  color: #d99400;
+}
+
+.favorite-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.favorites-empty {
+  padding: 12px 0;
+}
