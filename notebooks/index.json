@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-14T01:42:33.834Z",
+  "updatedAt": "2026-08-15T15:03:39.733Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -232,7 +232,7 @@
         "AI",
         "github"
       ],
-      "updatedAt": "2026-08-14T01:42:33.834Z",
+      "updatedAt": "2026-08-15T15:03:39.733Z",
       "file": "notebooks/docs/优质github项目.json"
     },
     {
@@ -576,6 +576,15 @@
       "tags": [],
       "updatedAt": "2026-08-13T13:32:46.183Z",
       "file": "notebooks/docs/前端开发.json"
+    },
+    {
+      "id": "note-1786804626676",
+      "title": "实时人体姿态跟踪",
+      "folderId": "folder-1785737383606",
+      "path": "个人项目",
+      "tags": [],
+      "updatedAt": "2026-08-15T15:03:39.733Z",
+      "file": "notebooks/docs/实时人体姿态跟踪.json"
     }
   ]
 }
