@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "note-1786936744672",
+  "title": "Vision Banana",
+  "folderId": "folder-1785676968352",
+  "path": "Notebooks/自动驾驶/检测模型",
+  "tags": [],
+  "createdAt": "2026-08-17T03:26:40.632Z",
+  "updatedAt": "2026-08-17T04:02:15.221Z",
+  "assets": [
+    {
+      "id": "asset-1786937094142-tf443p",
+      "name": "image.png",
+      "fileName": "image-20260817032454-n0ebu.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 1193170,
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1786936744672/image-20260817032454-n0ebu.png",
+      "remoteUrl": "notebooks/assets/note-1786936744672/image-20260817032454-n0ebu.png",
+      "cached": true,
+      "published": true,
+      "localUrl": "notebooks/assets/note-1786936744672/image-20260817032454-n0ebu.png"
+    }
+  ],
+  "html": "<h1>简介</h1><p><a target=\"_blank\" rel=\"noreferrer\" href=\"https://vision-banana.github.io/\">项目地址</a></p><p>利用LLM的图像生成能力，完成2d图片的检测任务（检测，分割，深度估计等等），本质上模型的输出还是图像，把检测任务转换为了图像的生成任务，比如深度估计任务，模型会输出一个彩色深度图，最后根据颜色和距离的映射关系得到每个像素实际对应位置的深度。</p><p>作者认为，既然LLM可以进行图像生成，那就以为着模型已经学习到了图像代表的真实世界的物理关系，那让模型来完成图像领域的检测任务理论上应该也是可行的才对。</p><img src=\"notebooks/assets/note-1786936744672/image-20260817032454-n0ebu.png\" alt=\"image.png\" title=\"image.png\"><p></p>"
+}
