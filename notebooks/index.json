@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-15T15:03:39.733Z",
+  "updatedAt": "2026-08-17T04:02:15.221Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -585,6 +585,46 @@
       "tags": [],
       "updatedAt": "2026-08-15T15:03:39.733Z",
       "file": "notebooks/docs/实时人体姿态跟踪.json"
+    },
+    {
+      "id": "note-1786938681439",
+      "title": "Attention Residuals",
+      "folderId": "folder-1786429147192",
+      "path": "Notebooks/Deep Learning",
+      "tags": [
+        "AttnRes"
+      ],
+      "updatedAt": "2026-08-17T04:02:15.221Z",
+      "file": "notebooks/docs/attention-residuals.json"
+    },
+    {
+      "id": "note-1786936744672",
+      "title": "Vision Banana",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
+      "tags": [],
+      "updatedAt": "2026-08-17T04:02:15.221Z",
+      "file": "notebooks/docs/vision-banana.json"
+    },
+    {
+      "id": "note-1786936654921",
+      "title": "2d检测模型",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
+      "tags": [],
+      "updatedAt": "2026-08-17T04:02:15.221Z",
+      "file": "notebooks/docs/2d检测模型.json"
+    },
+    {
+      "id": "note-1786933817439",
+      "title": "CenterPoint模型",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
+      "tags": [
+        "CenterPoint"
+      ],
+      "updatedAt": "2026-08-17T04:02:15.221Z",
+      "file": "notebooks/docs/centerpoint模型.json"
     }
   ]
 }
