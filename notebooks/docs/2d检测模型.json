@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1786936654921",
+  "title": "2d检测模型",
+  "folderId": "folder-1785676968352",
+  "path": "Notebooks/自动驾驶/检测模型",
+  "tags": [],
+  "createdAt": "2026-08-17T03:18:51.192Z",
+  "updatedAt": "2026-08-17T04:02:15.221Z",
+  "assets": [],
+  "html": "<p>RCNN家族</p><p>SSD</p><p>YOLO</p><p>RetinaNet</p><p>CenterNet</p><p>CenterTrack</p>"
+}
