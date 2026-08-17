@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "id": "note-1786933817439",
+  "title": "CenterPoint模型",
+  "folderId": "folder-1785676968352",
+  "path": "Notebooks/自动驾驶/检测模型",
+  "tags": [
+    "CenterPoint"
+  ],
+  "createdAt": "2026-08-17T04:00:58.044Z",
+  "updatedAt": "2026-08-17T04:02:15.221Z",
+  "assets": [
+    {
+      "id": "asset-1786934068776-bmfk4t",
+      "name": "image.png",
+      "fileName": "image-20260817023428-ietul.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 161132,
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1786933817439/image-20260817023428-ietul.png",
+      "remoteUrl": "notebooks/assets/note-1786933817439/image-20260817023428-ietul.png",
+      "cached": true,
+      "published": true,
+      "localUrl": "notebooks/assets/note-1786933817439/image-20260817023428-ietul.png"
+    }
+  ],
+  "html": "<h1>概览</h1><p><a target=\"_blank\" rel=\"noreferrer\" href=\"https://arxiv.org/pdf/2006.11275\">论文</a>，<a target=\"_blank\" rel=\"noreferrer\" href=\"https://github.com/tianweiy/CenterPoint\">Github</a></p><p>CenterPoint 是 3D 目标检测领域的一个里程碑式的工作，它本质上是将 2D 检测中的 CenterNet 思想扩展到了 3D 点云处理中。传统基于 Anchor 的 3D 检测算法（如 SECOND、PointPillars）在处理 3D 边界框时，常常面临朝向角（Yaw）的二义性以及不同类别物体尺寸跨度过大带来的匹配难题。CenterPoint 彻底抛弃了 Anchor，<strong>将 3D 目标建模为鸟瞰图（BEV）上的一个中心点，</strong>整个网络架构采用了典型的两阶段（Two-Stage）设计，<strong>第一阶段：基于中心的proposal生成</strong> ，<strong>第二阶段：边界框微调与置信度打分。</strong></p><img src=\"notebooks/assets/note-1786933817439/image-20260817023428-ietul.png\" alt=\"image.png\" title=\"image.png\"><hr><p></p>"
+}
