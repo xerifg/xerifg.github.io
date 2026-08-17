@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-17T04:02:15.221Z",
+  "updatedAt": "2026-08-17T12:07:39.656Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -625,6 +625,15 @@
       ],
       "updatedAt": "2026-08-17T04:02:15.221Z",
       "file": "notebooks/docs/centerpoint模型.json"
+    },
+    {
+      "id": "note-1786967965890",
+      "title": "自动驾驶学习资料",
+      "folderId": "folder-1783672397764",
+      "path": "Notebooks/自动驾驶",
+      "tags": [],
+      "updatedAt": "2026-08-17T12:07:39.656Z",
+      "file": "notebooks/docs/自动驾驶学习资料.json"
     }
   ]
 }
