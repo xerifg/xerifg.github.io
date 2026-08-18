@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-18T03:02:21.551Z",
+  "updatedAt": "2026-08-18T07:03:42.235Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -636,6 +636,17 @@
       ],
       "updatedAt": "2026-08-18T03:02:21.551Z",
       "file": "notebooks/docs/自动驾驶学习资料.json"
+    },
+    {
+      "id": "note-1787025972224",
+      "title": "RTS平滑滤波",
+      "folderId": "folder-1785676866176",
+      "path": "Notebooks/滤波算法",
+      "tags": [
+        "RTS滤波"
+      ],
+      "updatedAt": "2026-08-18T07:03:42.235Z",
+      "file": "notebooks/docs/rts平滑滤波.json"
     }
   ]
 }
