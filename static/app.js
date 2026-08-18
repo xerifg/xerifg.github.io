@@ -117,7 +117,7 @@ const MathInline = Node.create({
     }), HTMLAttributes.tex || ""];
   },
   addNodeView() {
-    return ({ node }) => createMathNodeView(node, false);
+    return ({ node, getPos, editor }) => createMathNodeView(node, false, getPos, editor);
   }
 });
 
@@ -146,7 +146,7 @@ const MathBlock = Node.create({
     }), HTMLAttributes.tex || ""];
   },
   addNodeView() {
-    return ({ node }) => createMathNodeView(node, true);
+    return ({ node, getPos, editor }) => createMathNodeView(node, true, getPos, editor);
   }
 });
 
@@ -208,6 +208,13 @@ function createMermaidDiagramNodeView(node, getPos, editor) {
   };
 }
 
+function promptMathSource(initialValue) {
+  const tex = window.prompt("\u516c\u5f0f", initialValue || "");
+  if (tex === null) return null;
+  const value = normalizeMathSource(tex);
+  return value || null;
+}
+
 function MermaidDiagramView({ node, updateAttributes }) {
   const [editing, setEditing] = useState(false);
   return h("section", { className: `mermaid-diagram-card${editing ? " is-editing" : ""}` },
@@ -261,19 +268,36 @@ function MermaidPreview({ code, error, onRenderError, onRenderSuccess }) {
   );
 }
 
-function createMathNodeView(node, displayMode) {
+function createMathNodeView(node, displayMode, getPos, editor) {
   const dom = document.createElement(displayMode ? "div" : "span");
   dom.className = "math-node " + (displayMode ? "math-block" : "math-inline");
   dom.dataset.type = displayMode ? "math-block" : "math-inline";
   dom.dataset.tex = node.attrs.tex || "";
   renderMathElement(dom, displayMode);
+  const handleDoubleClick = (event) => {
+    const position = typeof getPos === "function" ? getPos() : null;
+    if (typeof position !== "number") return;
+    event.preventDefault();
+    event.stopPropagation();
+    const nextValue = promptMathSource(node.attrs.tex || "");
+    if (!nextValue || nextValue === node.attrs.tex) return;
+    editor.view.dispatch(editor.state.tr.setNodeMarkup(position, undefined, { ...node.attrs, tex: nextValue }));
+  };
+  dom.addEventListener("dblclick", handleDoubleClick);
   return {
     dom,
     update(updatedNode) {
       if (updatedNode.type.name !== node.type.name) return false;
+      node = updatedNode;
       dom.dataset.tex = updatedNode.attrs.tex || "";
       renderMathElement(dom, displayMode);
       return true;
+    },
+    stopEvent(event) {
+      return event.type === "dblclick";
+    },
+    destroy() {
+      dom.removeEventListener("dblclick", handleDoubleClick);
     }
   };
 }
@@ -416,6 +440,96 @@ async function copyTextToClipboard(text) {
   textarea.remove();
   if (!copied) throw new Error("copy failed");
 }
+
+function closestMathNode(node) {
+  const element = node instanceof window.Element ? node : node?.parentElement;
+  return element?.closest?.(".math-node") || null;
+}
+
+function mathNodeSource(element) {
+  return normalizeMathSource(element?.getAttribute?.("data-tex") || element?.querySelector?.("annotation")?.textContent || "");
+}
+
+function mathNodeToClipboardNode(element) {
+  const tex = mathNodeSource(element);
+  if (!tex) return document.createTextNode("");
+  const isBlock = element.getAttribute("data-type") === "math-block" || element.classList?.contains("math-block");
+  const node = document.createElement(isBlock ? "div" : "span");
+  node.setAttribute("data-type", isBlock ? "math-block" : "math-inline");
+  node.setAttribute("data-tex", tex);
+  node.textContent = `$$${tex}$$`;
+  return node;
+}
+
+function serializeFragmentHtml(fragment) {
+  const container = document.createElement("div");
+  container.append(fragment);
+  return container.innerHTML;
+}
+
+function replaceMathNodesWithDelimitedText(root) {
+  const selector = ".math-node, [data-type='math-inline'], [data-type='math-block']";
+  root.querySelectorAll(selector).forEach((element) => {
+    element.replaceWith(mathNodeToClipboardNode(element));
+  });
+  return root;
+}
+
+function sliceContainsMath(slice) {
+  let found = false;
+  slice.content.forEach((node) => {
+    node.descendants((child) => {
+      if (child.type.name === mathInlineType || child.type.name === mathBlockType) {
+        found = true;
+        return false;
+      }
+    });
+  });
+  return found;
+}
+
+function clipboardPlainTextFromRoot(root, fallback = "") {
+  if (!root) return fallback;
+  if (root instanceof DocumentFragment) {
+    const wrapper = document.createElement("div");
+    wrapper.append(root.cloneNode(true));
+    return wrapper.innerText || wrapper.textContent || fallback;
+  }
+  return root.innerText || root.textContent || fallback;
+}
+
+function copyEditorMathSelectionToClipboard(view, event) {
+  const { state } = view;
+  if (state.selection.empty || !event.clipboardData) return false;
+  const slice = state.selection.content();
+  if (!sliceContainsMath(slice)) return false;
+
+  event.preventDefault();
+  const { dom, text } = view.serializeForClipboard(slice);
+  replaceMathNodesWithDelimitedText(dom);
+  event.clipboardData.setData("text/html", dom.innerHTML);
+  event.clipboardData.setData("text/plain", clipboardPlainTextFromRoot(dom, text || ""));
+  return true;
+}
+
+function copyMathSelectionToClipboard(event, root) {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || !event.clipboardData || !root) return false;
+  const range = selection.getRangeAt(0).cloneRange();
+  const startMath = closestMathNode(range.startContainer);
+  if (startMath && root.contains(startMath)) range.setStartBefore(startMath);
+  const endMath = closestMathNode(range.endContainer);
+  if (endMath && root.contains(endMath)) range.setEndAfter(endMath);
+  const fragment = range.cloneContents();
+  if (!fragment.querySelector?.(".math-node, [data-type='math-inline'], [data-type='math-block']")) return false;
+  const transformed = replaceMathNodesWithDelimitedText(fragment);
+  const html = serializeFragmentHtml(transformed.cloneNode(true));
+  event.clipboardData.setData("text/html", html);
+  event.clipboardData.setData("text/plain", clipboardPlainTextFromRoot(transformed, ""));
+  event.preventDefault();
+  return true;
+}
+
 const Video = Node.create({
   name: "video",
   group: "block",
@@ -1911,9 +2025,14 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
 
   useEffect(() => {
     if (!editable && readerRef.current) {
-      enhanceReaderCodeBlocks(readerRef.current);
-      renderMathElements(readerRef.current);
+      const root = readerRef.current;
+      enhanceReaderCodeBlocks(root);
+      renderMathElements(root);
+      const handleCopy = (event) => copyMathSelectionToClipboard(event, root);
+      root.addEventListener("copy", handleCopy);
+      return () => root.removeEventListener("copy", handleCopy);
     }
+    return undefined;
   }, [editable, html]);
 
   useEffect(() => () => {
@@ -2659,6 +2778,9 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
             setInsertMenu(null);
             return false;
           },
+          copy(view, event) {
+            return copyEditorMathSelectionToClipboard(view, event);
+          },
           mouseup(view) {
             window.requestAnimationFrame(() => {
               setIsSelectingText(false);
@@ -2681,6 +2803,7 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
             event.preventDefault();
             setInsertMenu(null);
             editorRef.current?.chain().focus().insertContent(markdownTextToHtmlWithMath(text)).run();
+            ensureEditableParagraphSelection(editorRef.current);
             if (editorRef.current) onChange(editorRef.current.getHTML());
             return true;
           },
@@ -3133,9 +3256,7 @@ async function applyEditorCommand(editor, command, context = {}) {
 function insertFormula(editor) {
   const { from, to, empty } = editor.state.selection;
   const selectedText = empty ? "" : editor.state.doc.textBetween(from, to).trim();
-  const tex = window.prompt("\u516c\u5f0f", selectedText || "V_{in} = [x, y, z, r, x - v_x, y - v_y, z - v_z]");
-  if (tex === null) return;
-  const value = tex.trim();
+  const value = promptMathSource(selectedText || "V_{in} = [x, y, z, r, x - v_x, y - v_y, z - v_z]");
   if (!value) return;
   const node = empty
     ? { type: mathBlockType, attrs: { tex: value } }
@@ -3169,6 +3290,16 @@ function commandName(command) {
 
 function markdownTextHasMath(text) {
   return /(^|[^\\])\${1,2}[\s\S]+?\${1,2}/.test(String(text || ""));
+}
+
+function normalizeMathSource(text) {
+  const source = String(text || "").trim();
+  if (!source) return "";
+  const displayMatch = source.match(/^\$\$([\s\S]+?)\$\$$/);
+  if (displayMatch) return displayMatch[1].trim();
+  const inlineMatch = source.match(/^\$([^$\n]+?)\$$/);
+  if (inlineMatch) return inlineMatch[1].trim();
+  return source;
 }
 
 function markdownTextLooksStructured(text) {
@@ -3292,14 +3423,47 @@ function inlineMarkdownToHtmlWithMath(text) {
   const source = String(text || "");
   let cursor = 0;
   let html = "";
-  const inlineMath = /(^|[^\\])\$([^$\n]+?)\$/g;
-  let match;
-  while ((match = inlineMath.exec(source))) {
-    const markerIndex = match.index + match[1].length;
-    html += inlineMarkdownTextToHtml(source.slice(cursor, markerIndex));
-    html += mathHtml(match[2].trim(), false);
-    cursor = markerIndex + match[2].length + 2;
+
+  // 手动扫描，避免正则在 `$$...$$`（块公式）/ `$...$`（行内公式）边界上误判。
+  let i = 0;
+  while (i < source.length) {
+    if (source[i] !== "$") {
+      i += 1;
+      continue;
+    }
+
+    // 跳过转义的 \$，交给 inlineMarkdownTextToHtml 里的替换逻辑处理。
+    if (i > 0 && source[i - 1] === "\\") {
+      i += 1;
+      continue;
+    }
+
+    // 块公式：$$ ... $$
+    if (i + 1 < source.length && source[i + 1] === "$") {
+      const end = source.indexOf("$$", i + 2);
+      if (end === -1) break;
+      html += inlineMarkdownTextToHtml(source.slice(cursor, i));
+      const tex = source.slice(i + 2, end).trim();
+      html += mathHtml(tex, true);
+      cursor = end + 2;
+      i = cursor;
+      continue;
+    }
+
+    // 行内公式：$ ... $
+    const end = source.indexOf("$", i + 1);
+    if (end === -1) break;
+    const inside = source.slice(i + 1, end);
+    if (!inside || inside.includes("\n")) {
+      i += 1;
+      continue;
+    }
+    html += inlineMarkdownTextToHtml(source.slice(cursor, i));
+    html += mathHtml(inside.trim(), false);
+    cursor = end + 1;
+    i = cursor;
   }
+
   html += inlineMarkdownTextToHtml(source.slice(cursor));
   return html;
 }
@@ -3445,18 +3609,29 @@ function insertBlockWithEditableParagraph(editor, blockNode) {
     blockNode,
     { type: "paragraph" }
   ]).run();
+  ensureEditableParagraphSelection(editor);
 }
 
-function maybeReplaceGapCursorWithParagraph(editor, event) {
-  if (event.key !== "Enter" || !editor) return false;
+function ensureEditableParagraphSelection(editor) {
+  if (!editor) return false;
   const selection = editor.state.selection;
   const isGapCursor = selection.constructor?.name === "GapCursor";
   const isAtomNodeSelection = Boolean(selection.node?.isAtom);
   if (!isGapCursor && !isAtomNodeSelection) return false;
-  event.preventDefault();
   const position = selection.to;
+  const resolved = editor.state.doc.resolve(position);
+  if (resolved.nodeAfter?.type?.name === "paragraph") {
+    editor.chain().focus().setTextSelection(position + 1).run();
+    return true;
+  }
   editor.chain().focus().insertContentAt(position, { type: "paragraph" }).setTextSelection(position + 1).run();
   return true;
+}
+
+function maybeReplaceGapCursorWithParagraph(editor, event) {
+  if (event.key !== "Enter" || !editor) return false;
+  event.preventDefault();
+  return ensureEditableParagraphSelection(editor);
 }
 
 function normalizeAssetKind(kind, mimeType, name = "") {
