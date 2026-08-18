@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-17T12:07:39.656Z",
+  "updatedAt": "2026-08-18T03:02:21.551Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -623,7 +623,7 @@
       "tags": [
         "CenterPoint"
       ],
-      "updatedAt": "2026-08-17T04:02:15.221Z",
+      "updatedAt": "2026-08-18T03:02:21.551Z",
       "file": "notebooks/docs/centerpoint模型.json"
     },
     {
@@ -631,8 +631,10 @@
       "title": "自动驾驶学习资料",
       "folderId": "folder-1783672397764",
       "path": "Notebooks/自动驾驶",
-      "tags": [],
-      "updatedAt": "2026-08-17T12:07:39.656Z",
+      "tags": [
+        "自动驾驶"
+      ],
+      "updatedAt": "2026-08-18T03:02:21.551Z",
       "file": "notebooks/docs/自动驾驶学习资料.json"
     }
   ]
