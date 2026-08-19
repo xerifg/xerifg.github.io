@@ -5,6 +5,7 @@ import katex from "https://esm.sh/katex@0.16.22";
 import mermaid from "https://esm.sh/mermaid@11.12.0";
 import StarterKit from "https://esm.sh/@tiptap/starter-kit@2.11.7";
 import CodeBlock from "https://esm.sh/@tiptap/extension-code-block@2.11.7";
+import { TextSelection } from "https://esm.sh/@tiptap/pm@2.11.7/state";
 import Underline from "https://esm.sh/@tiptap/extension-underline@2.11.7";
 import Link from "https://esm.sh/@tiptap/extension-link@2.11.7";
 import Highlight from "https://esm.sh/@tiptap/extension-highlight@2.11.7";
@@ -302,6 +303,66 @@ function createMathNodeView(node, displayMode, getPos, editor) {
   };
 }
 
+const CODE_BLOCK_TAB_SIZE = 2;
+
+function applyCodeBlockTabIndentation(editor, shiftKey, tabSize = CODE_BLOCK_TAB_SIZE) {
+  if (!editor?.isActive("codeBlock")) return false;
+  const { state } = editor;
+  const { selection, schema } = state;
+  const { $from, empty } = selection;
+  if ($from.parent.type.name !== "codeBlock") return false;
+  if (!shiftKey) {
+    const indent = " ".repeat(tabSize);
+    if (empty) return editor.commands.insertContent(indent);
+    return editor.commands.command(({ tr }) => {
+      const { from, to } = selection;
+      const text = state.doc.textBetween(from, to, "\n", "\n");
+      const indentedText = text.split("\n").map((line) => indent + line).join("\n");
+      tr.replaceWith(from, to, schema.text(indentedText));
+      return true;
+    });
+  }
+  if (empty) {
+    return editor.commands.command(({ tr }) => {
+      const { pos } = $from;
+      const codeBlockStart = $from.start();
+      const lines = state.doc.textBetween(codeBlockStart, $from.end(), "\n", "\n").split("\n");
+      let currentLineIndex = 0;
+      let charCount = 0;
+      const relativeCursorPos = pos - codeBlockStart;
+      for (let index = 0; index < lines.length; index += 1) {
+        if (charCount + lines[index].length >= relativeCursorPos) {
+          currentLineIndex = index;
+          break;
+        }
+        charCount += lines[index].length + 1;
+      }
+      const leadingSpaces = lines[currentLineIndex].match(/^ */)?.[0] || "";
+      const spacesToRemove = Math.min(leadingSpaces.length, tabSize);
+      if (spacesToRemove === 0) return true;
+      let lineStartPos = codeBlockStart;
+      for (let index = 0; index < currentLineIndex; index += 1) {
+        lineStartPos += lines[index].length + 1;
+      }
+      tr.delete(lineStartPos, lineStartPos + spacesToRemove);
+      if (pos - lineStartPos <= spacesToRemove) {
+        tr.setSelection(TextSelection.create(tr.doc, lineStartPos));
+      }
+      return true;
+    });
+  }
+  return editor.commands.command(({ tr }) => {
+    const { from, to } = selection;
+    const text = state.doc.textBetween(from, to, "\n", "\n");
+    const reverseIndentText = text.split("\n").map((line) => {
+      const leadingSpaces = line.match(/^ */)?.[0] || "";
+      return line.slice(Math.min(leadingSpaces.length, tabSize));
+    }).join("\n");
+    tr.replaceWith(from, to, schema.text(reverseIndentText));
+    return true;
+  });
+}
+
 const NotebookCodeBlock = CodeBlock.extend({
   addAttributes() {
     return {
@@ -314,12 +375,29 @@ const NotebookCodeBlock = CodeBlock.extend({
     };
   },
   addNodeView() {
-    return ({ node }) => {
+    return ({ node, editor }) => {
       let currentNode = node;
+      let lineNumberFrame = 0;
       const { dom, contentDOM, syncLineNumbers } = createEnhancedCodeBlockElement({
         wrapped: Boolean(node.attrs.wrapped),
         getCodeText: () => currentNode.textContent
       });
+      const scheduleLineNumbers = () => {
+        if (editor.view.composing) return;
+        if (lineNumberFrame) window.cancelAnimationFrame(lineNumberFrame);
+        lineNumberFrame = window.requestAnimationFrame(() => {
+          lineNumberFrame = 0;
+          if (!editor.view.composing) syncLineNumbers();
+        });
+      };
+      const flushLineNumbers = () => {
+        if (lineNumberFrame) {
+          window.cancelAnimationFrame(lineNumberFrame);
+          lineNumberFrame = 0;
+        }
+        syncLineNumbers();
+      };
+      contentDOM.addEventListener("compositionend", flushLineNumbers);
       syncLineNumbers();
       return {
         dom,
@@ -328,12 +406,17 @@ const NotebookCodeBlock = CodeBlock.extend({
           if (updatedNode.type.name !== node.type.name) return false;
           currentNode = updatedNode;
           dom.classList.toggle("is-wrapped", Boolean(updatedNode.attrs.wrapped));
-          window.requestAnimationFrame(syncLineNumbers);
+          scheduleLineNumbers();
           return true;
         },
         ignoreMutation(mutation) {
+          if (editor.view.composing) return true;
           const target = mutation.target.nodeType === Node.ELEMENT_NODE ? mutation.target : mutation.target.parentElement;
           return target?.closest(".notebook-code-toolbar, .notebook-code-gutter") !== null;
+        },
+        destroy() {
+          contentDOM.removeEventListener("compositionend", flushLineNumbers);
+          if (lineNumberFrame) window.cancelAnimationFrame(lineNumberFrame);
         }
       };
     };
@@ -346,6 +429,7 @@ function createEnhancedCodeBlockElement(options = {}) {
   dom.classList.toggle("is-wrapped", Boolean(options.wrapped));
   const header = document.createElement("div");
   header.className = "notebook-code-header";
+  header.contentEditable = "false";
   const collapseButton = document.createElement("button");
   collapseButton.type = "button";
   collapseButton.className = "notebook-code-title notebook-code-toolbar";
@@ -370,6 +454,7 @@ function createEnhancedCodeBlockElement(options = {}) {
   body.className = "notebook-code-body";
   const gutter = document.createElement("div");
   gutter.className = "notebook-code-gutter";
+  gutter.contentEditable = "false";
   const contentDOM = document.createElement("code");
   contentDOM.className = "notebook-code-content";
   body.append(gutter, contentDOM);
@@ -2812,6 +2897,12 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
           },
           dblclick(view, event) {
             return maybeCreateParagraphBetweenBlocks(view, event);
+          },
+          compositionend(view) {
+            const current = editorRef.current || view.editor;
+            updateSideButton(current);
+            if (current) onChange(current.getHTML());
+            return false;
           }
         },
         handleKeyDown(view, event) {
@@ -2820,6 +2911,11 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
           if ((event.key === "Backspace" || event.key === "Delete") && tableLineKind) {
             event.preventDefault();
             applyTableCommand(editorRef.current, tableLineKind === "row" ? "delete-row" : "delete-column");
+            return true;
+          }
+          if (event.key === "Tab" && editorRef.current?.isActive("codeBlock")) {
+            event.preventDefault();
+            applyCodeBlockTabIndentation(editorRef.current, event.shiftKey);
             return true;
           }
           if (event.key === "Tab" && editorRef.current?.isActive("table")) {
@@ -2849,10 +2945,12 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
         }
       },
       onUpdate({ editor: current }) {
+        if (current.view.composing) return;
         updateSideButton(current);
         onChange(current.getHTML());
       },
       onSelectionUpdate({ editor: current }) {
+        if (current.view.composing) return;
         setInsertMenu(null);
         updateSideButton(current);
       },
