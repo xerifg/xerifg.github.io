@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-18T12:13:44.741Z",
+  "updatedAt": "2026-08-19T04:02:10.882Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -242,9 +242,9 @@
       "path": "AI",
       "tags": [
         "AI",
-        "skills"
+        "Skills"
       ],
-      "updatedAt": "2026-08-06T02:03:28.793Z",
+      "updatedAt": "2026-08-19T04:02:10.882Z",
       "file": "notebooks/docs/ai-skills.json"
     },
     {
@@ -621,9 +621,10 @@
       "folderId": "folder-1785676968352",
       "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
+        "自动驾驶",
         "CenterPoint"
       ],
-      "updatedAt": "2026-08-18T03:02:21.551Z",
+      "updatedAt": "2026-08-19T04:02:10.882Z",
       "file": "notebooks/docs/centerpoint模型.json"
     },
     {
