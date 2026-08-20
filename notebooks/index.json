@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-19T11:14:19.763Z",
+  "updatedAt": "2026-08-20T06:15:53.647Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -126,13 +126,13 @@
     {
       "id": "note-1783909429169",
       "title": "BEV模型技术路线",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "folderId": "folder-1783672397764",
+      "path": "Notebooks/自动驾驶",
       "tags": [
         "自动驾驶",
         "bev模型"
       ],
-      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "updatedAt": "2026-08-20T06:15:53.647Z",
       "file": "notebooks/docs/bev模型技术路线.json"
     },
     {
@@ -648,6 +648,26 @@
       ],
       "updatedAt": "2026-08-18T07:03:42.235Z",
       "file": "notebooks/docs/rts平滑滤波.json"
+    },
+    {
+      "id": "note-1787192363486",
+      "title": "BevFusion模型",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
+      "tags": [
+        "BevFusion"
+      ],
+      "updatedAt": "2026-08-20T06:15:53.647Z",
+      "file": "notebooks/docs/bevfusion模型.json"
+    },
+    {
+      "id": "note-1787191093652",
+      "title": "插件",
+      "folderId": "folder-1785981247369",
+      "path": "AI",
+      "tags": [],
+      "updatedAt": "2026-08-20T06:15:53.647Z",
+      "file": "notebooks/docs/插件.json"
     }
   ]
 }
