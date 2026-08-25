@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-25T04:47:55.601Z",
+  "updatedAt": "2026-08-25T07:01:14.784Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -657,7 +657,7 @@
       "tags": [
         "BevFusion"
       ],
-      "updatedAt": "2026-08-25T04:47:55.601Z",
+      "updatedAt": "2026-08-25T07:01:14.784Z",
       "file": "notebooks/docs/bevfusion模型.json"
     },
     {
