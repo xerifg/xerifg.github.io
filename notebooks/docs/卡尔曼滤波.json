@@ -4,9 +4,12 @@
   "title": "卡尔曼滤波",
   "folderId": "folder-1785676866176",
   "path": "Notebooks/滤波算法",
-  "tags": [],
-  "createdAt": "2026-08-26T10:09:44.592Z",
-  "updatedAt": "2026-08-26T10:10:00.767Z",
+  "tags": [
+    "滤波算法",
+    "卡尔曼滤波"
+  ],
+  "createdAt": "2026-08-26T12:52:50.044Z",
+  "updatedAt": "2026-08-26T12:53:10.178Z",
   "assets": [
     {
       "id": "asset-1787738979309-4bmlxk",
