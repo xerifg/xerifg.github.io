@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "note-1787732422399",
+  "title": "滤波算法学习资料",
+  "folderId": "folder-1785676866176",
+  "path": "Notebooks/滤波算法",
+  "tags": [
+    "滤波算法"
+  ],
+  "createdAt": "2026-08-26T08:23:05.484Z",
+  "updatedAt": "2026-08-26T08:23:22.187Z",
+  "assets": [],
+  "html": "<h2><a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python\">Kalman-and-Bayesian-Filters-in-Python</a> </h2><p>是由 Roger R. Labbe 开发的开源电子书项目。该项目旨在为读者提供一份关于卡尔曼滤波（Kalman Filter）与贝叶斯滤波（Bayesian Filter）的直观、易懂且注重实践的入门教材。</p><p><strong>项目核心特点</strong></p><ul><li><p><strong>基于 Jupyter Notebook：</strong> 全书通过 Notebook 编写，将理论文本、数学公式、Python 代码以及可视化图表无缝集成，支持交互式学习与代码修改。</p></li><li><p><strong>注重直觉与实践：</strong> 侧重于培养对算法原理的直观理解和实际应用能力，避开了繁琐、严苛的高等数学证明。</p></li><li><p><strong>包含完整练习与解答：</strong> 章节后附带练习题，且均提供完整的代码解答，适合独立学习者。</p></li><li><p><strong>开源免费：</strong> 采用 CC BY 4.0 许可协议，配套代码遵循 MIT 协议。</p></li></ul><p><strong>涉及的主要内容</strong></p><ul><li><p>g-h 滤波器与离散贝叶斯滤波（Discrete Bayes Filter）</p></li><li><p>一维与多维高斯分布及卡尔曼滤波器（Kalman Filters）</p></li><li><p>非线性滤波：扩展卡尔曼滤波（EKF）、无迹卡尔曼滤波（UKF）</p></li><li><p>粒子滤波（Particle Filters）</p></li><li><p>平滑器（Smoothing）与自适应滤波（Adaptive Filtering）</p></li><li><p>附录涵盖 H-infinity 滤波、集合卡尔曼滤波（Ensemble Kalman Filters）及最小二乘滤波等高级主题。</p></li></ul><p><strong>配套 Python 库</strong></p><p>作者同步开发了开源 Python 滤波库 <a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://github.com/rlabbe/filterpy\">FilterPy</a>，书中所有滤波器及辅助工具函数均在该库中进行了封装实现，方便在实际项目中直接调用（可直接通过 <code>pip install filterpy</code> 安装）。</p><p></p>"
+}
