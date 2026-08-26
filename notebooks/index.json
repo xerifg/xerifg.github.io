@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-26T10:10:00.767Z",
+  "updatedAt": "2026-08-26T12:53:10.178Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -264,8 +264,10 @@
       "title": "自适应卡尔曼滤波算法",
       "folderId": "folder-1785676866176",
       "path": "Notebooks/滤波算法",
-      "tags": [],
-      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "tags": [
+        "滤波算法"
+      ],
+      "updatedAt": "2026-08-26T12:53:10.178Z",
       "file": "notebooks/docs/自适应卡尔曼滤波算法.json"
     },
     {
@@ -282,8 +284,11 @@
       "title": "卡尔曼滤波",
       "folderId": "folder-1785676866176",
       "path": "Notebooks/滤波算法",
-      "tags": [],
-      "updatedAt": "2026-08-26T10:10:00.767Z",
+      "tags": [
+        "滤波算法",
+        "卡尔曼滤波"
+      ],
+      "updatedAt": "2026-08-26T12:53:10.178Z",
       "file": "notebooks/docs/卡尔曼滤波.json"
     },
     {
@@ -697,6 +702,28 @@
       "tags": [],
       "updatedAt": "2026-08-26T08:23:22.187Z",
       "file": "notebooks/docs/lss模型.json"
+    },
+    {
+      "id": "note-1787746753624",
+      "title": "g-h Filter",
+      "folderId": "folder-1785676866176",
+      "path": "Notebooks/滤波算法",
+      "tags": [
+        "滤波算法"
+      ],
+      "updatedAt": "2026-08-26T12:53:10.178Z",
+      "file": "notebooks/docs/g-h-filter.json"
+    },
+    {
+      "id": "note-1787747675537",
+      "title": "离散贝叶斯滤波",
+      "folderId": "folder-1785676866176",
+      "path": "Notebooks/滤波算法",
+      "tags": [
+        "滤波算法"
+      ],
+      "updatedAt": "2026-08-26T12:53:10.178Z",
+      "file": "notebooks/docs/离散贝叶斯滤波.json"
     }
   ]
 }
