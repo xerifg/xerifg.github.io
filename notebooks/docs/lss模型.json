@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1787659274566",
+  "title": "LSS模型",
+  "folderId": "folder-1785676968352",
+  "path": "Notebooks/自动驾驶/检测模型",
+  "tags": [],
+  "createdAt": "2026-08-25T12:01:32.977Z",
+  "updatedAt": "2026-08-26T08:23:22.187Z",
+  "assets": [],
+  "html": "<p>参考：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://zhuanlan.zhihu.com/p/567880155\">一文读懂BEV自底向上方法：LSS 和 BEVDepth - 知乎</a></p><p></p>"
+}
