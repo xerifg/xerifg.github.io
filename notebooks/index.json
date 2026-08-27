@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-27T11:24:00.190Z",
+  "updatedAt": "2026-08-27T12:51:17.722Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -699,8 +699,10 @@
       "title": "LSS模型",
       "folderId": "folder-1785676968352",
       "path": "Notebooks/自动驾驶/检测模型",
-      "tags": [],
-      "updatedAt": "2026-08-26T08:23:22.187Z",
+      "tags": [
+        "LSS"
+      ],
+      "updatedAt": "2026-08-27T12:51:17.722Z",
       "file": "notebooks/docs/lss模型.json"
     },
     {
@@ -724,6 +726,24 @@
       ],
       "updatedAt": "2026-08-26T12:53:10.178Z",
       "file": "notebooks/docs/离散贝叶斯滤波.json"
+    },
+    {
+      "id": "note-1787833111086",
+      "title": "BevFormer",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
+      "tags": [],
+      "updatedAt": "2026-08-27T12:51:17.722Z",
+      "file": "notebooks/docs/bevformer.json"
+    },
+    {
+      "id": "note-1787833139796",
+      "title": "SparseBEV",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
+      "tags": [],
+      "updatedAt": "2026-08-27T12:51:17.722Z",
+      "file": "notebooks/docs/sparsebev.json"
     }
   ]
 }
