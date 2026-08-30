@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-30T02:52:09.791Z",
+  "updatedAt": "2026-08-30T14:07:11.938Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -486,8 +486,10 @@
       "title": "微信",
       "folderId": "folder-1783482449804",
       "path": "Notebooks/工具",
-      "tags": [],
-      "updatedAt": "2026-08-11T14:17:00.385Z",
+      "tags": [
+        "微信"
+      ],
+      "updatedAt": "2026-08-30T14:07:11.938Z",
       "file": "notebooks/docs/微信.json"
     },
     {
