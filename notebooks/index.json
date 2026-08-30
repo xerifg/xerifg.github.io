@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-27T12:51:17.722Z",
+  "updatedAt": "2026-08-30T02:52:09.791Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -744,6 +744,17 @@
       "tags": [],
       "updatedAt": "2026-08-27T12:51:17.722Z",
       "file": "notebooks/docs/sparsebev.json"
+    },
+    {
+      "id": "note-1788058062947",
+      "title": "codex",
+      "folderId": "folder-1783482449804",
+      "path": "Notebooks/工具",
+      "tags": [
+        "codex"
+      ],
+      "updatedAt": "2026-08-30T02:52:09.791Z",
+      "file": "notebooks/docs/codex.json"
     }
   ]
 }
