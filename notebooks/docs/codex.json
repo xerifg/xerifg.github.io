@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "note-1788058062947",
+  "title": "codex",
+  "folderId": "folder-1783482449804",
+  "path": "Notebooks/工具",
+  "tags": [
+    "codex"
+  ],
+  "createdAt": "2026-08-30T02:50:35.755Z",
+  "updatedAt": "2026-08-30T02:52:09.791Z",
+  "assets": [],
+  "html": "<h2>默认走系统代理</h2><p>在codex的根目录下找到配置文件<code>config.toml</code>，打开配置文件找到<code>[features]</code>，并在下面追加如下字段</p><pre><code>[features]\nrespect_system_proxy = true</code></pre><p></p><p></p>"
+}
