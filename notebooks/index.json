@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-31T09:21:07.825Z",
+  "updatedAt": "2026-08-31T09:53:40.523Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -228,11 +228,11 @@
       "folderId": "folder-1785981247369",
       "path": "AI",
       "tags": [
-        "工具",
         "AI",
+        "工具",
         "github"
       ],
-      "updatedAt": "2026-08-24T11:37:04.603Z",
+      "updatedAt": "2026-08-31T09:53:40.523Z",
       "file": "notebooks/docs/优质github项目.json"
     },
     {
