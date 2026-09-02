@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-01T02:09:31.174Z",
+  "updatedAt": "2026-09-02T12:49:47.733Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -76,14 +76,14 @@
   "docs": [
     {
       "id": "note-1784688756600",
-      "title": "VoxelNet模型",
+      "title": "VoxelNet",
       "folderId": "folder-1785676968352",
       "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
         "模型",
         "VoxelNet"
       ],
-      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/voxelnet模型.json"
     },
     {
@@ -132,7 +132,7 @@
         "自动驾驶",
         "bev模型"
       ],
-      "updatedAt": "2026-08-20T06:15:53.647Z",
+      "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/bev模型技术路线.json"
     },
     {
@@ -199,19 +199,19 @@
     },
     {
       "id": "note-1785207464379",
-      "title": "PointPillars模型",
+      "title": "PointPillars",
       "folderId": "folder-1785676968352",
       "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
         "模型",
         "PointPillars"
       ],
-      "updatedAt": "2026-08-11T03:09:18.373Z",
+      "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/pointpillars模型.json"
     },
     {
       "id": "note-1785294364683",
-      "title": "SECOND检测模型",
+      "title": "SECOND",
       "folderId": "folder-1785676968352",
       "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
@@ -219,7 +219,7 @@
         "自动驾驶",
         "SECOND"
       ],
-      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/second检测模型.json"
     },
     {
@@ -624,14 +624,14 @@
     },
     {
       "id": "note-1786933817439",
-      "title": "CenterPoint模型",
+      "title": "CenterPoint",
       "folderId": "folder-1785676968352",
       "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
         "自动驾驶",
         "CenterPoint"
       ],
-      "updatedAt": "2026-08-19T04:02:10.882Z",
+      "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/centerpoint模型.json"
     },
     {
@@ -658,13 +658,13 @@
     },
     {
       "id": "note-1787192363486",
-      "title": "BevFusion模型",
+      "title": "BevFusion",
       "folderId": "folder-1785676968352",
       "path": "Notebooks/自动驾驶/检测模型",
       "tags": [
         "BevFusion"
       ],
-      "updatedAt": "2026-08-25T07:02:30.659Z",
+      "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/bevfusion模型.json"
     },
     {
@@ -689,11 +689,11 @@
     },
     {
       "id": "note-1787659557134",
-      "title": "BevDepth模型",
+      "title": "BevDepth",
       "folderId": "folder-1785676968352",
       "path": "Notebooks/自动驾驶/检测模型",
       "tags": [],
-      "updatedAt": "2026-08-26T08:23:22.187Z",
+      "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/bevdepth模型.json"
     },
     {
@@ -768,6 +768,35 @@
       ],
       "updatedAt": "2026-09-01T02:09:31.174Z",
       "file": "notebooks/docs/transformer模型.json"
+    },
+    {
+      "id": "note-1788317443023",
+      "title": "BEVDet4D",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
+      "tags": [],
+      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "file": "notebooks/docs/bevdet4d.json"
+    },
+    {
+      "id": "note-1788317424521",
+      "title": "BEVDet",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
+      "tags": [],
+      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "file": "notebooks/docs/bevdet.json"
+    },
+    {
+      "id": "note-1788317188382",
+      "title": "Sparse4D",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/检测模型",
+      "tags": [
+        "Sparse4D"
+      ],
+      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "file": "notebooks/docs/sparse4d.json"
     }
   ]
 }
