@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-02T12:49:47.733Z",
+  "updatedAt": "2026-09-03T13:24:24.283Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -795,7 +795,7 @@
       "tags": [
         "Sparse4D"
       ],
-      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "updatedAt": "2026-09-03T13:24:24.283Z",
       "file": "notebooks/docs/sparse4d.json"
     }
   ]
