@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-03T13:24:24.283Z",
+  "updatedAt": "2026-09-04T06:42:48.247Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -39,7 +39,7 @@
     },
     {
       "id": "folder-1785676968352",
-      "name": "检测模型",
+      "name": "3D检测模型",
       "parentId": "folder-1783672397764"
     },
     {
@@ -71,6 +71,11 @@
       "id": "folder-1786429236027",
       "name": "Machine Learning",
       "parentId": "folder-writing"
+    },
+    {
+      "id": "folder-1788504005278",
+      "name": "2D检测模型",
+      "parentId": "folder-1783672397764"
     }
   ],
   "docs": [
@@ -78,7 +83,7 @@
       "id": "note-1784688756600",
       "title": "VoxelNet",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [
         "模型",
         "VoxelNet"
@@ -90,7 +95,7 @@
       "id": "note-1784083273659",
       "title": "VIT模型",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [
         "模型",
         "ViT"
@@ -201,7 +206,7 @@
       "id": "note-1785207464379",
       "title": "PointPillars",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [
         "模型",
         "PointPillars"
@@ -213,7 +218,7 @@
       "id": "note-1785294364683",
       "title": "SECOND",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [
         "模型",
         "自动驾驶",
@@ -608,7 +613,7 @@
       "id": "note-1786936744672",
       "title": "Vision Banana",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [],
       "updatedAt": "2026-08-17T04:02:15.221Z",
       "file": "notebooks/docs/vision-banana.json"
@@ -616,17 +621,17 @@
     {
       "id": "note-1786936654921",
       "title": "2d检测模型",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "folderId": "folder-1788504005278",
+      "path": "Notebooks/自动驾驶/2D检测模型",
       "tags": [],
-      "updatedAt": "2026-08-17T04:02:15.221Z",
+      "updatedAt": "2026-09-04T06:42:48.247Z",
       "file": "notebooks/docs/2d检测模型.json"
     },
     {
       "id": "note-1786933817439",
       "title": "CenterPoint",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [
         "自动驾驶",
         "CenterPoint"
@@ -660,7 +665,7 @@
       "id": "note-1787192363486",
       "title": "BevFusion",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [
         "BevFusion"
       ],
@@ -691,7 +696,7 @@
       "id": "note-1787659557134",
       "title": "BevDepth",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [],
       "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/bevdepth模型.json"
@@ -700,7 +705,7 @@
       "id": "note-1787659274566",
       "title": "LSS模型",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [
         "LSS"
       ],
@@ -733,7 +738,7 @@
       "id": "note-1787833111086",
       "title": "BevFormer",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [],
       "updatedAt": "2026-08-27T12:51:17.722Z",
       "file": "notebooks/docs/bevformer.json"
@@ -742,7 +747,7 @@
       "id": "note-1787833139796",
       "title": "SparseBEV",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [],
       "updatedAt": "2026-08-27T12:51:17.722Z",
       "file": "notebooks/docs/sparsebev.json"
@@ -773,7 +778,7 @@
       "id": "note-1788317443023",
       "title": "BEVDet4D",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [],
       "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/bevdet4d.json"
@@ -782,7 +787,7 @@
       "id": "note-1788317424521",
       "title": "BEVDet",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [],
       "updatedAt": "2026-09-02T12:49:47.733Z",
       "file": "notebooks/docs/bevdet.json"
@@ -791,12 +796,21 @@
       "id": "note-1788317188382",
       "title": "Sparse4D",
       "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/检测模型",
+      "path": "Notebooks/自动驾驶/3D检测模型",
       "tags": [
         "Sparse4D"
       ],
-      "updatedAt": "2026-09-03T13:24:24.283Z",
+      "updatedAt": "2026-09-04T06:42:48.247Z",
       "file": "notebooks/docs/sparse4d.json"
+    },
+    {
+      "id": "note-1788488768635",
+      "title": "优化器",
+      "folderId": "folder-1786429147192",
+      "path": "Notebooks/Deep Learning",
+      "tags": [],
+      "updatedAt": "2026-09-04T06:42:48.247Z",
+      "file": "notebooks/docs/优化器.json"
     }
   ]
 }
