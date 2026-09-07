@@ -10,8 +10,8 @@
     "gemini",
     "chrome"
   ],
-  "createdAt": "2026-07-27T03:59:44.321Z",
-  "updatedAt": "2026-07-27T04:03:50.401Z",
+  "createdAt": "2026-09-05T08:49:23.335Z",
+  "updatedAt": "2026-09-07T13:04:51.902Z",
   "assets": [],
-  "html": "<h2><strong>开启gimini功能</strong></h2><ol><li><p>chrome语言改成英文</p></li><li><p>chrome里的账号地址改到美国</p></li><li><p>执行下面的命令</p></li></ol><pre><code># windows电脑\nirm https://raw.githubusercontent.com/appsail/Gemini-in-Chrome/main/install.ps1 | iex\n\n# mac 电脑\ncurl -fsSL https://raw.githubusercontent.com/appsail/Gemini-in-Chrome/main/install.sh | bash</code></pre><p></p><p></p>"
+  "html": "<h2><strong>开启gimini功能</strong></h2><ol><li><p>chrome语言改成英文</p></li><li><p>chrome里的账号地址改到美国</p></li><li><p>执行下面的命令</p></li></ol><pre><code># windows电脑\nirm https://raw.githubusercontent.com/appsail/Gemini-in-Chrome/main/install.ps1 | iex\n\n# mac 电脑\ncurl -fsSL https://raw.githubusercontent.com/appsail/Gemini-in-Chrome/main/install.sh | bash</code></pre><p>参考连接：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://www.bilibili.com/video/BV1cBFDz8EVw/?spm_id_from=333.337.search-card.all.click&amp;vd_source=8c065934da63850a7afd383a2017d263\">Gemini x Chrome联动，2分钟开启AI侧边栏（附安装指南）_哔哩哔哩_bilibili</a></p><p></p>"
 }
