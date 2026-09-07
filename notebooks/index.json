@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-04T09:22:40.700Z",
+  "updatedAt": "2026-09-07T13:04:51.902Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -23,18 +23,8 @@
       "parentId": "folder-writing"
     },
     {
-      "id": "folder-1783668421369",
-      "name": "自动标注",
-      "parentId": "folder-writing"
-    },
-    {
       "id": "folder-1785676511361",
       "name": "大模型",
-      "parentId": "folder-writing"
-    },
-    {
-      "id": "folder-1785676866176",
-      "name": "滤波算法",
       "parentId": "folder-writing"
     },
     {
@@ -75,6 +65,21 @@
     {
       "id": "folder-1788504005278",
       "name": "2D检测模型",
+      "parentId": "folder-1783672397764"
+    },
+    {
+      "id": "folder-1783668421369",
+      "name": "自动标注",
+      "parentId": "folder-1783672397764"
+    },
+    {
+      "id": "folder-1785676866176",
+      "name": "滤波算法",
+      "parentId": "folder-1783672397764"
+    },
+    {
+      "id": "folder-1788785681986",
+      "name": "点云",
       "parentId": "folder-1783672397764"
     }
   ],
@@ -168,7 +173,7 @@
       "id": "note-1783668556887",
       "title": "DetZero - 离线 3D 目标检测",
       "folderId": "folder-1783668421369",
-      "path": "Notebooks/自动标注",
+      "path": "Notebooks/自动驾驶/自动标注",
       "tags": [
         "自动标注",
         "DetZero"
@@ -199,7 +204,7 @@
         "gemini",
         "chrome"
       ],
-      "updatedAt": "2026-07-27T04:03:50.401Z",
+      "updatedAt": "2026-09-07T13:04:51.902Z",
       "file": "notebooks/docs/chrome.json"
     },
     {
@@ -249,7 +254,7 @@
         "AI",
         "Skills"
       ],
-      "updatedAt": "2026-09-04T09:22:40.700Z",
+      "updatedAt": "2026-09-07T13:04:51.902Z",
       "file": "notebooks/docs/ai-skills.json"
     },
     {
@@ -268,7 +273,7 @@
       "id": "note-1785677374296",
       "title": "自适应卡尔曼滤波算法",
       "folderId": "folder-1785676866176",
-      "path": "Notebooks/滤波算法",
+      "path": "Notebooks/自动驾驶/滤波算法",
       "tags": [
         "滤波算法"
       ],
@@ -288,7 +293,7 @@
       "id": "note-1785676869473",
       "title": "卡尔曼滤波",
       "folderId": "folder-1785676866176",
-      "path": "Notebooks/滤波算法",
+      "path": "Notebooks/自动驾驶/滤波算法",
       "tags": [
         "滤波算法",
         "卡尔曼滤波"
@@ -654,7 +659,7 @@
       "id": "note-1787025972224",
       "title": "RTS平滑滤波",
       "folderId": "folder-1785676866176",
-      "path": "Notebooks/滤波算法",
+      "path": "Notebooks/自动驾驶/滤波算法",
       "tags": [
         "RTS滤波"
       ],
@@ -685,7 +690,7 @@
       "id": "note-1787732422399",
       "title": "滤波算法学习资料",
       "folderId": "folder-1785676866176",
-      "path": "Notebooks/滤波算法",
+      "path": "Notebooks/自动驾驶/滤波算法",
       "tags": [
         "滤波算法"
       ],
@@ -716,7 +721,7 @@
       "id": "note-1787746753624",
       "title": "g-h Filter",
       "folderId": "folder-1785676866176",
-      "path": "Notebooks/滤波算法",
+      "path": "Notebooks/自动驾驶/滤波算法",
       "tags": [
         "滤波算法"
       ],
@@ -727,7 +732,7 @@
       "id": "note-1787747675537",
       "title": "离散贝叶斯滤波",
       "folderId": "folder-1785676866176",
-      "path": "Notebooks/滤波算法",
+      "path": "Notebooks/自动驾驶/滤波算法",
       "tags": [
         "滤波算法"
       ],
@@ -811,6 +816,29 @@
       "tags": [],
       "updatedAt": "2026-09-04T06:42:48.247Z",
       "file": "notebooks/docs/优化器.json"
+    },
+    {
+      "id": "note-1788785686521",
+      "title": "NDT配准",
+      "folderId": "folder-1788785681986",
+      "path": "Notebooks/自动驾驶/点云",
+      "tags": [
+        "点云",
+        "NDT"
+      ],
+      "updatedAt": "2026-09-07T13:04:51.902Z",
+      "file": "notebooks/docs/ndt配准.json"
+    },
+    {
+      "id": "note-1788595403242",
+      "title": "好用软件",
+      "folderId": "folder-1785849397124",
+      "path": "网站收集",
+      "tags": [
+        "软件"
+      ],
+      "updatedAt": "2026-09-07T13:04:51.902Z",
+      "file": "notebooks/docs/好用软件.json"
     }
   ]
 }
