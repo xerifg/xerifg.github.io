@@ -5122,14 +5122,15 @@ function renderModal(state, handleAction) {
             ? h("div", { className: "publish-tag-chip-list" },
               selectedTags.map((tag) => h("span", { className: "pill note-tag-pill publish-tag-chip", key: tag },
                 h("span", { className: "note-tag-label" }, tag),
-                h("span", { className: "note-tag-actions publish-tag-actions", "aria-hidden": "false" },
+                h("span", { className: "note-tag-actions", "aria-hidden": "false" },
                   h("button", {
                     type: "button",
-                    className: "note-tag-action note-tag-delete publish-tag-remove",
+                    className: "note-tag-action note-tag-delete",
                     title: `移除标签 ${tag}`,
                     "aria-label": `移除标签 ${tag}`,
-                    onClick: () => handleAction("publish-tag-remove", tag)
-                  }, h(X, { size: 12, strokeWidth: 2 }))
+                    onClick: () => handleAction("publish-tag-remove", tag),
+                    onPointerDown: (event) => event.stopPropagation()
+                  }, icon("trash", { size: 12, strokeWidth: 2 }))
                 )
               ))
             )
@@ -5142,6 +5143,7 @@ function renderModal(state, handleAction) {
           ),
           h("input", {
             "data-publish-tag-new": "",
+            "data-modal-initial-focus": "",
             placeholder: "例如 阅读",
             value: newTagInput,
             onChange: (event) => handleAction("publish-tag-input", event.target.value),
@@ -5218,7 +5220,9 @@ function ModalShell({ title, text, body, confirmText, action, handleAction, conf
   useEffect(() => {
     const previousFocus = document.activeElement;
     const modal = modalRef.current;
-    modal?.querySelector('[data-modal-initial-focus], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)')?.focus();
+    const initialFocus = modal?.querySelector("[data-modal-initial-focus]")
+      || modal?.querySelector("input:not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)");
+    initialFocus?.focus();
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
