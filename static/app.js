@@ -32,7 +32,7 @@ import { clearModalState } from "./library-ui-model.mjs";
 import { FAVORITES_INDEX_PATH, hasFavoriteChanges, normalizeFavorites, resolveFavoriteNotes, toggleFavorite } from "./favorites-model.mjs";
 import { blobToBase64 as blobToBase64FromDraftAsset, createDraftAssetStore, hasPendingDraftAssets, hydrateDraftAsset, restoreDraftAssetReferences } from "./draft-asset-store.mjs?v=20260805-indexeddb-draft-assets-v1";
 import { buildPublishTagSuggestions, normalizePublishTagInput, stablePublishTags } from "./publish-tag-model.mjs";
-import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260803-unified-diff-v1";
+import { assertPublishableHtml, assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260908-publish-blob-guard-v1";
 import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260812-ai-assistant-v2";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260815-favorites-row-v2";
 
@@ -1578,6 +1578,7 @@ function App() {
           normalizeHtml(item.html || blocksToHtml(item.blocks)),
           publishedAssets
         );
+        assertPublishableHtml(publishedHtml, item.title || "未命名文档");
         const publishedNote = {
           ...item,
           dirty: false,
@@ -2225,8 +2226,14 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
       ),
       h("div", { className: "tiptap-shell" },
         editable
-          ? h(TiptapEditor, {
-              key: note.id,
+          ? (!state.draftAssetsReady && hasPendingDraftAssets(note)
+            ? h("div", {
+                className: "reader tiptap-reader draft-assets-pending",
+                role: "status",
+                "aria-live": "polite"
+              }, "正在恢复本地附件…")
+            : h(TiptapEditor, {
+              key: `${note.id}:${note.publishedAt || "local"}`,
               note,
               onChange: (nextHtml) => updateNote(note.id, (item) => {
                 item.html = normalizeDraftHtml(nextHtml, item.html, item.assets);
@@ -2237,7 +2244,7 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
                 item.html = normalizeHtml(nextHtml);
               }),
               onImagePreview: openImagePreview
-            })
+            }))
           : h("div", {
               ref: readerRef,
               className: "reader tiptap-reader",
@@ -5537,8 +5544,11 @@ async function assetContentBase64(asset) {
 
 function replaceLocalAssetUrls(html, assets) {
   return assets.reduce((content, asset) => {
-    if (!asset.localUrl || !asset.remotePath) return content;
-    return content.split(asset.localUrl).join(asset.remotePath);
+    const remotePath = asset?.remotePath || asset?.remoteUrl || "";
+    if (!remotePath) return content;
+    return assetReferenceUrls(asset)
+      .filter((url) => url && url !== remotePath)
+      .reduce((next, url) => next.split(url).join(remotePath), content);
   }, html);
 }
 

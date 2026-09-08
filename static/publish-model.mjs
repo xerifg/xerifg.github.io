@@ -430,3 +430,21 @@ export function reconcilePublishedNotes(localNotes, publishedNotes) {
   const publishedById = new Map((publishedNotes || []).map((note) => [note.id, note]));
   return (localNotes || []).map((note) => publishedById.get(note.id) || note);
 }
+
+/** Temporary preview / draft refs that must never be written to GitHub. */
+export function findUnpublishableAssetRefs(html = "") {
+  const source = String(html || "");
+  const refs = [];
+  if (/\bblob:/i.test(source)) refs.push("blob:");
+  if (source.includes("draft-asset://")) refs.push("draft-asset://");
+  return refs;
+}
+
+export function assertPublishableHtml(html, title = "") {
+  const refs = findUnpublishableAssetRefs(html);
+  if (!refs.length) return;
+  const noteLabel = title ? `「${title}」` : "该笔记";
+  throw new Error(
+    `${noteLabel}仍包含临时附件地址（${refs.join("、")}），无法发表。请重新插入相关图片/附件后再试。`
+  );
+}
