@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-07T13:04:51.902Z",
+  "updatedAt": "2026-09-08T06:49:42.157Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -254,7 +254,7 @@
         "AI",
         "Skills"
       ],
-      "updatedAt": "2026-09-07T13:04:51.902Z",
+      "updatedAt": "2026-09-08T06:49:42.157Z",
       "file": "notebooks/docs/ai-skills.json"
     },
     {
@@ -805,7 +805,7 @@
       "tags": [
         "Sparse4D"
       ],
-      "updatedAt": "2026-09-04T06:42:48.247Z",
+      "updatedAt": "2026-09-08T06:49:42.157Z",
       "file": "notebooks/docs/sparse4d.json"
     },
     {
