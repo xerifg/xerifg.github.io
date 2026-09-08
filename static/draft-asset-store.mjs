@@ -72,6 +72,20 @@ export function restoreDraftAssetReferences(html, assets = []) {
   }, html || "");
 }
 
+export function hasPendingDraftAssets(note = {}) {
+  if (String(note.html || "").includes("draft-asset://")) return true;
+  return (note.assets || []).some((asset) => {
+    if (!asset) return false;
+    const localUrl = String(asset.localUrl || "");
+    const dataUrl = String(asset.dataUrl || "");
+    const hasLegacyPayload = Boolean(asset.content || dataUrl.startsWith("data:") || localUrl.startsWith("data:"));
+    if (asset.storage === "indexeddb") {
+      return hasLegacyPayload || !localUrl;
+    }
+    return hasLegacyPayload;
+  });
+}
+
 export function createDraftAssetStore(options = {}) {
   const indexedDb = options.indexedDB || globalThis.indexedDB;
   const urlApi = options.URL || globalThis.URL;

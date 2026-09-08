@@ -30,7 +30,8 @@ import { sortTableRows } from "./table-model.mjs";
 import { filterCommandItems } from "./command-palette.mjs";
 import { clearModalState } from "./library-ui-model.mjs";
 import { FAVORITES_INDEX_PATH, hasFavoriteChanges, normalizeFavorites, resolveFavoriteNotes, toggleFavorite } from "./favorites-model.mjs";
-import { blobToBase64 as blobToBase64FromDraftAsset, createDraftAssetStore, hydrateDraftAsset, restoreDraftAssetReferences } from "./draft-asset-store.mjs?v=20260805-indexeddb-draft-assets-v1";
+import { blobToBase64 as blobToBase64FromDraftAsset, createDraftAssetStore, hasPendingDraftAssets, hydrateDraftAsset, restoreDraftAssetReferences } from "./draft-asset-store.mjs?v=20260805-indexeddb-draft-assets-v1";
+import { buildPublishTagSuggestions, normalizePublishTagInput, stablePublishTags } from "./publish-tag-model.mjs";
 import { assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260803-unified-diff-v1";
 import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260812-ai-assistant-v2";
 import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260815-favorites-row-v2";
@@ -733,7 +734,7 @@ function App() {
   const [state, setState] = useState(() => {
     const migrated = migrate(loadLocalState() || seed);
     const uiPreferences = loadUiPreferences();
-    return { ...migrated, favorites: normalizeFavorites(migrated.favorites), ...resolveStartupState(migrated, uiPreferences), uiPreferences, draftAssetsReady: false };
+    return { ...migrated, favorites: normalizeFavorites(migrated.favorites), ...resolveStartupState(migrated, uiPreferences), uiPreferences, draftAssetsReady: !(migrated.notes || []).some(hasPendingDraftAssets) };
   });
   const [toast, setToast] = useState("");
   const [localPersistenceStatus, setLocalPersistenceStatus] = useState("saved");
@@ -1450,22 +1451,20 @@ function App() {
     if (!note) return;
     patchState((draft) => {
       draft.modal = "publish-tags";
-      draft.modalContext = { noteId: note.id };
+      draft.modalContext = {
+        noteId: note.id,
+        selectedTags: stablePublishTags(ensureDefaultTags(note.tags)),
+        publishTagInput: ""
+      };
       draft.openCreateMenu = null;
     });
   };
 
   const confirmPublishTags = () => {
     if (!note) return;
-    const selected = [];
-    document.querySelectorAll("[data-tag-row]").forEach((row) => {
-      const original = row.getAttribute("data-tag-row") || "";
-      if (row.querySelector("[data-tag-selected]")?.checked && original) selected.push(original);
-    });
-    const newTagInput = document.querySelector("[data-publish-tag-new]")?.value || "";
-    const newTag = normalizeTagName(newTagInput);
-    if (newTag) selected.push(newTag);
-    const nextTags = ensureDefaultTags(uniqueTags(selected));
+    const selected = stablePublishTags(state.modalContext?.selectedTags || ensureDefaultTags(note.tags));
+    const newTag = normalizePublishTagInput(state.modalContext?.publishTagInput || "");
+    const nextTags = stablePublishTags([...selected, newTag]);
     const noteId = state.modalContext?.noteId || note.id;
     const updatedNotes = state.notes.map((item) => {
       const tags = item.id === noteId ? nextTags : ensureDefaultTags(item.tags);
@@ -1487,7 +1486,7 @@ function App() {
 
   const preparePublish = (overrideSettings, skipTagModal = false) => {
     if (!note) return;
-    if (!state.draftAssetsReady) {
+    if (hasPendingDraftAssets(note) && !state.draftAssetsReady) {
       setToast("本地附件正在恢复，请稍候再发表");
       return;
     }
@@ -1717,6 +1716,29 @@ function App() {
     if (action === "confirm-auth") confirmAuth();
     if (action === "confirm-publish-tags") confirmPublishTags();
     if (action === "confirm-local-tag") confirmLocalTag();
+    if (action === "publish-tag-input") {
+      patchState((draft) => {
+        if (!draft.modalContext) return;
+        draft.modalContext.publishTagInput = targetFolderId || "";
+      });
+    }
+    if (action === "publish-tag-remove") {
+      patchState((draft) => {
+        const modalContext = draft.modalContext;
+        if (draft.modal !== "publish-tags" || !modalContext) return;
+        modalContext.selectedTags = stablePublishTags((modalContext.selectedTags || []).filter((tag) => tag !== targetFolderId));
+      });
+    }
+    if (action === "publish-tag-add") {
+      patchState((draft) => {
+        const modalContext = draft.modalContext;
+        if (draft.modal !== "publish-tags" || !modalContext) return;
+        const nextTag = normalizePublishTagInput(targetFolderId || "");
+        if (!nextTag) return;
+        modalContext.selectedTags = stablePublishTags([...(modalContext.selectedTags || []), nextTag]);
+        modalContext.publishTagInput = "";
+      });
+    }
     if (action === "create-note-tag") {
       if (state.mode !== "edit") {
         setToast("请先进入编辑模式再新建标签");
@@ -5085,25 +5107,68 @@ function renderModal(state, handleAction) {
 
   if (state.modal === "publish-tags") {
     const note = state.notes.find((item) => item.id === state.modalContext?.noteId) || currentNote(state);
-    const selectedTags = new Set(ensureDefaultTags(note?.tags));
+    const selectedTags = stablePublishTags(state.modalContext?.selectedTags || ensureDefaultTags(note?.tags));
+    const newTagInput = normalizePublishTagInput(state.modalContext?.publishTagInput || "");
     const tags = tagCatalog(state);
+    const suggestions = buildPublishTagSuggestions(tags, newTagInput, selectedTags, 4);
     return modalShell("选择发表标签", "选择当前笔记要公开的标签，也可以在发表前新增一个标签。",
       h("div", { className: "tag-publish-panel" },
-        h("div", { className: "field publish-tag-create" },
-          h("label", null, "新增标签"),
-          h("input", { "data-publish-tag-new": "", placeholder: "例如 阅读" })
+        h("div", { className: "field publish-tag-current" },
+          h("div", { className: "field-head" },
+            h("label", null, "当前文档已有标签"),
+            h("span", { className: "field-hint" }, selectedTags.length ? `${selectedTags.length} 个` : "无标签")
+          ),
+          selectedTags.length
+            ? h("div", { className: "publish-tag-chip-list" },
+              selectedTags.map((tag) => h("span", { className: "pill note-tag-pill publish-tag-chip", key: tag },
+                h("span", { className: "note-tag-label" }, tag),
+                h("span", { className: "note-tag-actions publish-tag-actions", "aria-hidden": "false" },
+                  h("button", {
+                    type: "button",
+                    className: "note-tag-action note-tag-delete publish-tag-remove",
+                    title: `移除标签 ${tag}`,
+                    "aria-label": `移除标签 ${tag}`,
+                    onClick: () => handleAction("publish-tag-remove", tag)
+                  }, h(X, { size: 12, strokeWidth: 2 }))
+                )
+              ))
+            )
+            : h("span", { className: "publish-tags-empty" }, "无标签")
         ),
-        h("details", { className: "tag-dropdown" },
-          h("summary", null, `选择标签（已选 ${selectedTags.size} 个）`),
-          h("div", { className: "tag-choice-list" },
-            tags.map((tag) => h("div", { className: "tag-choice", key: tag, "data-tag-row": tag },
-              h("label", { className: "tag-check" },
-                h("input", { type: "checkbox", "data-tag-selected": "", defaultChecked: selectedTags.has(tag) }),
-                h("span", null, "选择")
-              ),
-              h("span", { className: "tag-choice-name" }, tag)
-            ))
-          )
+        h("div", { className: "field publish-tag-create" },
+          h("div", { className: "field-head" },
+            h("label", null, "追加新标签"),
+            h("span", { className: "field-hint" }, "输入后会提示相似标签")
+          ),
+          h("input", {
+            "data-publish-tag-new": "",
+            placeholder: "例如 阅读",
+            value: newTagInput,
+            onChange: (event) => handleAction("publish-tag-input", event.target.value),
+            onKeyDown: (event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              const value = normalizePublishTagInput(event.currentTarget.value);
+              if (!value) return;
+              handleAction("publish-tag-add", value);
+            }
+          })
+        ),
+        h("div", { className: "publish-tag-suggestions" },
+          h("div", { className: "field-head" },
+            h("label", null, "相似标签提示"),
+            h("span", { className: "field-hint" }, suggestions.length ? "点击可直接加入" : "暂无相似标签")
+          ),
+          suggestions.length
+            ? h("div", { className: "publish-tag-suggestion-list" },
+              suggestions.map((tag) => h("button", {
+                type: "button",
+                className: "publish-tag-suggestion",
+                key: tag,
+                onClick: () => handleAction("publish-tag-add", tag)
+              }, tag))
+            )
+            : h("p", { className: "publish-tag-suggestion-empty" }, newTagInput ? "没有找到相似标签" : "输入标签后会显示相似项")
         )
       ),
       "继续发表审阅", "confirm-publish-tags", handleAction);
