@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1788921765412",
+  "title": "MOT系列模型",
+  "folderId": "folder-1783672397764",
+  "path": "Notebooks/自动驾驶",
+  "tags": [],
+  "createdAt": "2026-09-09T02:43:01.712Z",
+  "updatedAt": "2026-09-09T03:40:38.225Z",
+  "assets": [],
+  "html": "<p><a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://arxiv.org/pdf/2311.11722\">GCNet</a>、<a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://arxiv.org/pdf/2311.11722\">TransTrack</a> 和 <a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://arxiv.org/pdf/2311.11722\">TrackFormer</a> 基于 Track Query 传递跨帧目标；</p><p><a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://arxiv.org/pdf/2311.11722\">MOTR</a>、<a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://arxiv.org/pdf/2311.11722\">MOTRv3</a> 和 <a target=\"_blank\" rel=\"noopener\" class=\"ng-star-inserted\" href=\"https://arxiv.org/pdf/2311.11722\">MUTR3D</a> 进一步将其推进至完全端到端的 3D MOT。</p>"
+}
