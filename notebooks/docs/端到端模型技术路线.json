@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "id": "note-1789438587340",
+  "title": "端到端模型技术路线",
+  "folderId": "folder-1783672397764",
+  "path": "Notebooks/自动驾驶",
+  "tags": [
+    "端到端"
+  ],
+  "createdAt": "2026-09-15T02:20:27.436Z",
+  "updatedAt": "2026-09-15T04:02:15.547Z",
+  "assets": [],
+  "html": "<p>目前的自动驾驶的端到端架构主要为</p><table style=\"min-width: 480px;\"><colgroup><col style=\"min-width: 96px;\"><col style=\"min-width: 96px;\"><col style=\"min-width: 96px;\"><col style=\"min-width: 96px;\"><col style=\"min-width: 96px;\"></colgroup><tbody><tr><td colspan=\"1\" rowspan=\"1\" style=\"background-color: rgb(219, 231, 255); text-align: center;\"><p><strong>类别</strong></p></td><td colspan=\"1\" rowspan=\"1\" style=\"background-color: rgb(219, 231, 255); text-align: center;\"><p><strong>代表方案/模型</strong></p></td><td colspan=\"1\" rowspan=\"1\" style=\"background-color: rgb(219, 231, 255); text-align: center;\"><p><strong>核心优势</strong></p></td><td colspan=\"1\" rowspan=\"1\" style=\"background-color: rgb(219, 231, 255); text-align: center;\"><p><strong>主要瓶颈</strong></p></td><td colspan=\"1\" rowspan=\"1\" style=\"background-color: rgb(219, 231, 255); text-align: center;\"><p><strong>商业化落地状态</strong></p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p><strong>1. 分段式端到端</strong></p></td><td colspan=\"1\" rowspan=\"1\"><p>UniAD, VAD</p></td><td colspan=\"1\" rowspan=\"1\"><p>可解释性强、中途特征可视化</p></td><td colspan=\"1\" rowspan=\"1\"><p>存在模块间信息损失</p></td><td colspan=\"1\" rowspan=\"1\"><p>2024~2025 年规模化量产（过渡期主力）</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p><strong>2. 一段式端到端</strong></p></td><td colspan=\"1\" rowspan=\"1\"><p>Tesla FSD V12/V13</p></td><td colspan=\"1\" rowspan=\"1\"><p>拟人化程度高、延迟极低</p></td><td colspan=\"1\" rowspan=\"1\"><p>调试极其困难、依赖海量数据</p></td><td colspan=\"1\" rowspan=\"1\"><p>目前主流车企全面跟进落地</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p><strong>3. 世界-动作 / VLA</strong></p></td><td colspan=\"1\" rowspan=\"1\"><p>WA-JEPA, LINGO-2</p></td><td colspan=\"1\" rowspan=\"1\"><p>具备未来物理推演能力、泛化上限高</p></td><td colspan=\"1\" rowspan=\"1\"><p>车端算力要求大、训练成本极高</p></td><td colspan=\"1\" rowspan=\"1\"><p>2025~2026 年集中攻坚的前沿方向</p></td></tr></tbody></table><h2><strong>世界-动作 / VLA</strong>模型</h2><p>世界-动作模型或者VLA模型，本质上都是在看到了当前AI大模型的视频生成能力和视频理解能力很强，认为既然模型能生成很好的未来世界的演变视频，那模型就相当于对世界规律有了一定的理解能力，于是，就想把这种能力在自动驾驶里利用起来。</p>"
+}
