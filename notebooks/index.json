@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-13T08:48:33.238Z",
+  "updatedAt": "2026-09-15T04:02:15.547Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -80,6 +80,16 @@
     {
       "id": "folder-1788785681986",
       "name": "点云",
+      "parentId": "folder-1783672397764"
+    },
+    {
+      "id": "folder-1789438262579",
+      "name": "端到端模型",
+      "parentId": "folder-1783672397764"
+    },
+    {
+      "id": "folder-1789440059892",
+      "name": "世界模型",
       "parentId": "folder-1783672397764"
     }
   ],
@@ -859,6 +869,37 @@
       ],
       "updatedAt": "2026-09-13T08:48:33.238Z",
       "file": "notebooks/docs/lora-参数微调.json"
+    },
+    {
+      "id": "note-1789440065199",
+      "title": "V-JEPA",
+      "folderId": "folder-1789440059892",
+      "path": "Notebooks/自动驾驶/世界模型",
+      "tags": [
+        "V-JEPA"
+      ],
+      "updatedAt": "2026-09-15T04:02:15.547Z",
+      "file": "notebooks/docs/v-jepa.json"
+    },
+    {
+      "id": "note-1789438587340",
+      "title": "端到端模型技术路线",
+      "folderId": "folder-1783672397764",
+      "path": "Notebooks/自动驾驶",
+      "tags": [
+        "端到端"
+      ],
+      "updatedAt": "2026-09-15T04:02:15.547Z",
+      "file": "notebooks/docs/端到端模型技术路线.json"
+    },
+    {
+      "id": "note-1789438272464",
+      "title": "WA-JEPA 世界-动作模型",
+      "folderId": "folder-1789438262579",
+      "path": "Notebooks/自动驾驶/端到端模型",
+      "tags": [],
+      "updatedAt": "2026-09-15T04:02:15.547Z",
+      "file": "notebooks/docs/wa-jepa-世界-动作模型.json"
     }
   ]
 }
