@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "note-1789438272464",
+  "title": "WA-JEPA 世界-动作模型",
+  "folderId": "folder-1789438262579",
+  "path": "Notebooks/自动驾驶/端到端模型",
+  "tags": [],
+  "createdAt": "2026-09-15T02:24:01.389Z",
+  "updatedAt": "2026-09-15T04:02:15.547Z",
+  "assets": [],
+  "html": "<p>WA-JEPA 是一个专为自动驾驶规划设计的“世界-动作模型”（World-Action Model）。它改造了 Meta 提出的视觉预训练大模型框架 V-JEPA，使其既能预测未来的世界（环境状态），又能预测自车动作（驾驶轨迹）。<a target=\"_blank\" rel=\"noreferrer\" href=\"https://arxiv.org/abs/2608.20974\">论文</a></p><hr><p></p>"
+}
