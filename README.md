@@ -12,7 +12,7 @@
 - 浏览器本地草稿自动保存，未发布内容不会丢失。
 - 发布保持选择性与 GitHub-backed：审阅后只提交勾选的文档、目录和标签索引，未选改动继续保留为本地草稿。
 - 附件先缓存在本地或浏览器中，发布后上传到 `notebooks/assets/{noteId}/` 并替换为仓库相对路径。
-- 发布前验证 GitHub token，并处理文档路径去重、删除文档同步和 GitHub 写入冲突重试。
+- 发布前验证自定义账号会话，由 Cloudflare 后端保管 GitHub Token，并处理文档路径去重、删除文档同步和 GitHub 写入冲突重试。
 
 ## 实现路线
 
@@ -72,7 +72,7 @@ Folder: / (root)
 
 1. 打开笔记本首页。
 2. 点击编辑入口进入编辑模式。
-3. 首次编辑或发布时输入 GitHub 账号和有仓库写入权限的 token。
+3. 按 [云端部署说明](cloud/README.md) 配置自定义账号；首次编辑或发布时登录笔记系统。GitHub Token 由后端保管，浏览器不再填写。
 4. 内容会先保存到浏览器本地草稿。
 5. 点击发布后，应用会先对比本地草稿与 GitHub 已发表内容，并列出新增、修改、删除以及目录和标签变更。
 6. 审阅弹窗默认选中所有检测到的变更；可以取消选择不希望发表的项目。未选内容会继续保留为本地草稿。
@@ -130,7 +130,7 @@ http://127.0.0.1:8000/
 PORT=8000
 ```
 
-编辑和发布仍由浏览器直接使用 GitHub token 调用 GitHub Contents API，不经过 `server.py`。
+编辑草稿仍在浏览器本地保存；发布经 Cloudflare 后端调用 GitHub Contents API，不经过 `server.py`。登录使用自定义账号，详情见 [云端配置](cloud/README.md)。本地地址测试云端接口时须将 Worker 的 `FRONTEND_ORIGIN` 设置为对应的本地来源；正式使用时改回线上站点。
 
 ## 测试
 
@@ -159,6 +159,8 @@ git push origin main
 ```text
 https://xerifg.github.io/
 ```
+
+云端 AI 问答、知识 Wiki 和图谱的部署与验收说明见 [cloud/README.md](cloud/README.md)。无需购买服务器；模型 API 可单独付费。
 
 ## License
 

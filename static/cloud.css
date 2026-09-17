@@ -1,0 +1,76 @@
+.app-shell[data-view="wiki"] { grid-template-columns: 56px minmax(0, 1fr); }
+.app-shell[data-view="wiki"] .content { display: block; grid-column: 2 / -1; }
+.cloud-wiki { max-width: 1440px; margin: auto; padding: 28px 36px; height: 100%; overflow: auto; }
+.cloud-wiki h1 { font-size: 26px; margin: 0 0 8px; }
+.cloud-wiki header > p, .cloud-hint, .cloud-empty p, .cloud-message > small { color: var(--muted); font-size: 13px; line-height: 1.7; }
+.cloud-assistant { display: flex; flex-direction: column; min-height: 0; height: 100%; gap: 12px; color: var(--text); }
+.assistant-page > .cloud-assistant { flex: 1; }
+.assistant-page:has(> .cloud-assistant) { background: var(--surface-page); }
+.cloud-connection { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); padding: 10px 0; font-size: 12px; }
+.cloud-connection > span { margin-right: auto; }
+.cloud-connection p { flex-basis: 100%; margin: 0; }
+.cloud-ready::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: #22a06b; }
+.cloud-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.cloud-assistant button, .cloud-wiki button, .cloud-assistant select, .cloud-wiki select { font: inherit; font-size: 12px; border: 1px solid var(--line); background: var(--panel, transparent); color: inherit; border-radius: 7px; padding: 7px 10px; cursor: pointer; max-width: 100%; }
+.cloud-assistant button:hover, .cloud-wiki button:hover, .cloud-wiki button[aria-pressed="true"] { background: color-mix(in srgb, currentColor 7%, transparent); }
+.cloud-assistant button:disabled, .cloud-wiki button:disabled { opacity: .5; cursor: default; }
+.cloud-assistant :focus-visible, .cloud-wiki :focus-visible { outline: 2px solid #5b7fdf; outline-offset: 3px; }
+.cloud-hint { margin: 0; }
+.cloud-messages { flex: 1; overflow: auto; min-height: 130px; overscroll-behavior: contain; }
+.cloud-message { margin: 12px 0; border-bottom: 1px solid var(--line); padding: 12px 2px 18px; overflow-wrap: anywhere; }
+.cloud-message.user { border: 0; padding: 14px 18px; border-radius: 12px; background: color-mix(in srgb, currentColor 5%, transparent); }
+.cloud-empty { padding: 36px 16px; text-align: center; }
+.cloud-empty h2, .cloud-empty h3 { font-weight: 550; font-size: 19px; }
+.cloud-composer { display: flex; gap: 8px; align-items: flex-end; padding-top: 10px; border-top: 1px solid var(--line); }
+.cloud-composer textarea, .cloud-wiki input, .cloud-wiki-editor { border: 1px solid var(--line); background: var(--panel, transparent); color: inherit; font: inherit; border-radius: 8px; padding: 12px; min-width: 0; }
+.cloud-composer textarea { flex: 1; resize: vertical; font-size: 14px; }
+.cloud-composer button[type="submit"] { background: #4263b7; color: white; white-space: nowrap; }
+.cloud-error { color: #ce5353; font-size: 13px; line-height: 1.7; }
+.cloud-sources { margin-top: 14px; font-size: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.cloud-sources summary, .cloud-comparison summary, .cloud-revisions summary { cursor: pointer; padding: 5px 0; color: var(--muted); }
+.cloud-sources p { line-height: 1.7; white-space: pre-wrap; max-height: 200px; overflow: auto; padding: 10px; background: color-mix(in srgb, currentColor 4%, transparent); }
+.cloud-markdown { line-height: 1.85; font-size: 14px; }
+.cloud-markdown p { margin: 8px 0; white-space: pre-wrap; }
+.cloud-markdown h2, .cloud-markdown h3 { font-size: 18px; margin-top: 24px; }
+.cloud-markdown h4 { font-size: 15px; }
+.cloud-markdown pre, .cloud-revisions pre { overflow: auto; padding: 14px; border-radius: 8px; background: color-mix(in srgb, currentColor 5%, transparent); font-size: 12px; }
+.cloud-markdown .cloud-citation, .cloud-markdown .cloud-wikilink { display: inline; padding: 0 3px; color: #6586d3; border: 0; background: none; }
+.cloud-markdown .cloud-citation { vertical-align: super; font-size: 11px; }
+.cloud-markdown code { font-family: ui-monospace, monospace; font-size: .9em; }
+.cloud-table, .cloud-math { overflow-x: auto; }
+.cloud-table table { border-collapse: collapse; width: 100%; }
+.cloud-table th, .cloud-table td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; }
+.cloud-wiki-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 28px; margin-top: 18px; }
+.cloud-wiki-list { display: flex; flex-direction: column; align-self: start; gap: 5px; max-height: calc(100vh - 270px); overflow: auto; padding: 2px; }
+.cloud-wiki-list input { width: 100%; margin-bottom: 12px; }
+.cloud-wiki-list button { text-align: left; border-color: transparent; line-height: 1.6; }
+.cloud-wiki-list button[aria-current="page"] { background: color-mix(in srgb, #6586d3 13%, transparent); color: #6586d3; }
+.cloud-wiki-main { min-width: 0; }
+.cloud-wiki-page { border: 1px solid var(--line); border-radius: 12px; padding: 26px; }
+.cloud-wiki-page > h2 { margin: 0 0 18px; font-size: 24px; }
+.cloud-wiki-editor { width: 100%; min-height: 380px; resize: vertical; font-family: ui-monospace, monospace; line-height: 1.8; }
+.cloud-notice { border-left: 3px solid #bd9340; padding: 10px 14px; font-size: 13px; line-height: 1.7; background: color-mix(in srgb, #bd9340 8%, transparent); }
+.cloud-compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.cloud-comparison, .cloud-revisions { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--line); }
+.cloud-graph { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 24px; }
+.cloud-graph .cloud-toolbar > span { margin-right: auto; font-size: 12px; color: var(--muted); }
+.cloud-graph-scroll { overflow: auto; max-height: 540px; }
+.cloud-graph svg { display: block; min-height: 340px; }
+.cloud-edge { stroke: var(--line); stroke-width: 1.5; }
+.cloud-graph g { cursor: pointer; }
+.cloud-graph circle { fill: #6586d3; stroke: var(--panel, white); stroke-width: 3; }
+.cloud-graph circle.entity { fill: #9b7cc5; }
+.cloud-graph g.is-active circle { fill: #e0aa4b; }
+.cloud-graph text { fill: currentColor; font: 12px sans-serif; }
+.document-auxiliary .cloud-toolbar select { width: 100%; }
+.document-auxiliary .cloud-composer { flex-wrap: wrap; }
+.document-auxiliary .cloud-composer textarea { flex-basis: 100%; }
+@media (max-width: 800px) {
+  .cloud-wiki { padding: 20px 16px; }
+  .cloud-wiki-layout { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .cloud-wiki-list { max-height: 200px; }
+  .cloud-wiki-page { padding: 18px; }
+  .cloud-compare-grid { grid-template-columns: minmax(0, 1fr); }
+  .cloud-composer { flex-wrap: wrap; }
+  .cloud-composer textarea { flex-basis: 100%; }
+}

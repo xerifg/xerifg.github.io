@@ -1,0 +1,91 @@
+name: Knowledge Cloud
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Run deployment and sync, or only sync published notes
+        type: choice
+        options: [deploy-and-sync, deploy, sync]
+        default: deploy-and-sync
+      allow_empty:
+        description: Explicitly allow clearing an empty published library
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - 'notebooks/index.json'
+      - 'notebooks/docs/**'
+      - 'cloud/**'
+      - '.github/workflows/knowledge-cloud.yml'
+
+permissions:
+  contents: write
+  pages: write
+
+# Never interrupt a staged generation. The next run always reads the latest main.
+concurrency:
+  group: notebook-cloud
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event.repository.private == false && (github.event_name == 'workflow_dispatch' || vars.CLOUD_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CHAT_API_KEY: ${{ secrets.CHAT_API_KEY }}
+      EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
+      RERANK_API_KEY: ${{ secrets.RERANK_API_KEY }}
+      OWNER_USERNAME: ${{ secrets.OWNER_USERNAME }}
+      OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
+      GITHUB_PUBLISH_TOKEN: ${{ secrets.NOTEBOOK_GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CHAT_BASE_URL: ${{ vars.CHAT_BASE_URL }}
+      CHAT_MODEL: ${{ vars.CHAT_MODEL }}
+      EMBEDDING_BASE_URL: ${{ vars.EMBEDDING_BASE_URL }}
+      EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL }}
+      RERANK_BASE_URL: ${{ vars.RERANK_BASE_URL }}
+      RERANK_MODEL: ${{ vars.RERANK_MODEL }}
+      FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
+      GITHUB_OWNER: ${{ github.repository_owner }}
+      NOTEBOOK_REPO: ${{ github.event.repository.name }}
+      ALLOW_EMPTY: ${{ inputs.allow_empty }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Validate before touching cloud data
+        run: |
+          echo "NOTEBOOK_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          node --test cloud/tests/*.test.mjs
+          python -m unittest discover -s cloud/tests -p 'test_*.py'
+          python cloud/build/sync.py --dry-run
+      - name: Resolve free-tier resources and initialize schema
+        run: python cloud/build/setup.py
+      - name: Deploy API and store secrets
+        if: inputs.operation != 'sync'
+        run: python cloud/build/deploy.py
+      - name: Compile published notes and Wiki
+        if: inputs.operation != 'deploy'
+        run: |
+          if [ "$ALLOW_EMPTY" = "true" ]; then
+            python cloud/build/sync.py --allow-empty
+          else
+            python cloud/build/sync.py
+          fi
+      - name: Publish static endpoint and Wiki snapshot through Pages
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"

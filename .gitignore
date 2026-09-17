@@ -25,3 +25,9 @@ dev/package-lock.json
 
 docs/
 tests/
+!cloud/tests/
+!cloud/tests/**
+cloud/node_modules/
+cloud/.wrangler/
+cloud/wrangler.generated.json
+__pycache__/

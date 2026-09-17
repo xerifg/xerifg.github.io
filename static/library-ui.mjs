@@ -9,6 +9,7 @@ const icons = {
   home: Home,
   notes: NotebookTabs,
   assistant: Sparkles,
+  wiki: BookOpenText,
   favorites: Star,
   tags: Tag,
   settings: Settings,
@@ -33,7 +34,7 @@ export function icon(name, props = {}) {
 }
 
 export function PrimaryRail({ view, onNavigate }) {
-  const items = [["home", "首页"], ["library", "笔记"], ["assistant", "AI 助手"], ["tags", "标签"], ["settings", "设置"]];
+  const items = [["home", "首页"], ["library", "笔记"], ["assistant", "AI 助手"], ["wiki", "知识 Wiki"], ["tags", "标签"], ["settings", "设置"]];
   return h("nav", { className: "primary-rail", "aria-label": "主导航" },
     h("div", { className: "rail-brand", "aria-label": "知识库" }, icon("library")),
     h("div", { className: "rail-items" },
@@ -300,7 +301,13 @@ function readingSettings(preferences, onChangePreferences) {
 
 function assistantSettings(assistant, onChangeAssistant) {
   const update = (field, value) => onChangeAssistant({ ...assistant, [field]: value });
-  return [settingsGroup("DeepSeek", [
+  return [settingsGroup("云端知识库", [
+    settingRow("服务地址", "填写部署成功后的 Workers HTTPS 地址，启用混合检索、Wiki 与图谱。模型密钥保存在云端。", h("input", {
+      type: "url", value: assistant.backendUrl || "", placeholder: "https://personal-notebook-ai.你的子域.workers.dev",
+      "aria-label": "云端知识库地址", onChange: (event) => update("backendUrl", event.target.value)
+    })),
+    settingRow("首次连接", "部署步骤和所需账号配置。", h("a", { href: "https://github.com/xerifg/xerifg.github.io/blob/main/cloud/README.md", target: "_blank", rel: "noopener noreferrer" }, "查看部署指南"))
+  ]), settingsGroup("浏览器直连（未配置云端时使用）", [
     settingRow("API Key", "仅用于从浏览器直接请求 DeepSeek。默认仅在本次页面会话保留；勾选记住后会保存到此浏览器。", h("input", {
       type: "password",
       value: assistant.apiKey || "",
@@ -410,23 +417,16 @@ function TagOrderList({ tags = [], onReorderTags = () => {}, onDeleteTag = () =>
   );
 }
 
-function githubSettings(settings, onChangeGitHubSettings) {
-  const input = (name, label, type = "text") => h("input", {
-    type,
-    value: settings[name] || "",
-    "aria-label": label,
-    autoComplete: name === "token" ? "off" : undefined,
-    onChange: (event) => onChangeGitHubSettings({ [name]: event.target.value })
-  });
-  return [settingsGroup("仓库", [
-    settingRow("所有者", "GitHub 用户或组织。", input("owner", "GitHub 所有者")),
-    settingRow("仓库", "发布笔记和索引的目标仓库。", input("repo", "GitHub 仓库")),
-    settingRow("分支", "当前发布流程固定使用 main。", h("input", { value: settings.branch || "main", readOnly: true, "aria-label": "GitHub 分支" })),
-    settingRow("访问令牌", "令牌只在此密码输入框中编辑。", input("token", "GitHub Token", "password"))
+function githubSettings(settings, authenticated, onLogin, onLogout) {
+  return [settingsGroup("账号与发布", [
+    settingRow("笔记账号", authenticated ? `已登录：${settings.account}` : "使用自定义账号登录后，即可编辑和发布。", h("button", { type: "button", onClick: authenticated ? onLogout : onLogin }, authenticated ? "退出登录" : "账号登录")),
+    settingRow("发布仓库", "由云端配置决定；登录后显示实际发布目标。", h("span", { className: "settings-value" }, authenticated ? `${settings.owner}/${settings.repo}` : "登录后查看")),
+    settingRow("分支", "笔记继续发布到 GitHub 的 main 分支。", h("span", { className: "settings-value" }, "main")),
+    settingRow("发布凭据", "GitHub Token 保存在云端，浏览器无需填写或保存。", h("span", { className: "settings-value" }, "服务端保管"))
   ])];
 }
 
-export function SettingsPage({ category, preferences, github, tags, assistant, onChangePreferences, onChangeAssistant, onReorderTags, onDeleteTag, onChangeGitHubSettings }) {
+export function SettingsPage({ category, preferences, github, tags, assistant, onChangePreferences, onChangeAssistant, onReorderTags, onDeleteTag, authenticated, onLogin, onLogout }) {
   const meta = Object.fromEntries(settingCategories);
   let groups;
   if (category === "general") groups = generalSettings(preferences, onChangePreferences);
@@ -434,7 +434,7 @@ export function SettingsPage({ category, preferences, github, tags, assistant, o
   else if (category === "appearance") groups = appearanceSettings(preferences, onChangePreferences);
   else if (category === "reading") groups = readingSettings(preferences, onChangePreferences);
   else if (category === "tags") groups = tagOrderSettings(tags, onReorderTags, onDeleteTag);
-  else if (category === "github") groups = githubSettings(github, onChangeGitHubSettings);
+  else if (category === "github") groups = githubSettings(github, authenticated, onLogin, onLogout);
   else if (category === "sync") groups = [settingsGroup("本地数据", [settingRow("草稿与同步", "笔记草稿保存在此浏览器；发表继续使用现有 GitHub 同步流程。", h("span", { className: "settings-value" }, "浏览器本地"))])];
   else if (category === "shortcuts") groups = [settingsGroup("键盘", [settingRow("编辑器快捷键", "编辑器保留系统和 Tiptap 的原生快捷键。", h("span", { className: "settings-value" }, "系统默认"))])];
   else groups = [settingsGroup("个人知识库", [settingRow("Notebook Library", "本地优先、选择性发表到 GitHub 的个人知识库。", h("span", { className: "settings-value" }, "v1"))])];

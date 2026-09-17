@@ -33,8 +33,11 @@ import { FAVORITES_INDEX_PATH, hasFavoriteChanges, normalizeFavorites, resolveFa
 import { blobToBase64 as blobToBase64FromDraftAsset, createDraftAssetStore, hasPendingDraftAssets, hydrateDraftAsset, restoreDraftAssetReferences } from "./draft-asset-store.mjs?v=20260805-indexeddb-draft-assets-v1";
 import { buildPublishTagSuggestions, normalizePublishTagInput, stablePublishTags } from "./publish-tag-model.mjs";
 import { assertPublishableHtml, assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260908-publish-blob-guard-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260812-ai-assistant-v2";
-import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260815-favorites-row-v2";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260917-account-v1";
+import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260917-account-v1";
+import { CloudAssistant, CloudWiki } from "./cloud-ui.mjs?v=20260917-account-v1";
+
+import { cloudClient } from "./cloud-client.mjs?v=20260917-account-v1";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -747,6 +750,7 @@ function App() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
   const [assistantSettings, setAssistantSettings] = useState(loadAssistantSettings);
+  const authBusy = useRef(false);
   const commandPaletteTriggerRef = useRef(null);
   const closeCommandPalette = () => {
     setCommandPaletteOpen(false);
@@ -866,7 +870,7 @@ function App() {
     setAssistantSettings((current) => {
       const next = normalizeAssistantSettings({ ...current, ...nextSettings });
       try {
-        if (next.rememberKey && next.apiKey) localStorage.setItem(assistantSettingsStorageKey, JSON.stringify(next));
+        if (next.backendUrl || (next.rememberKey && next.apiKey)) localStorage.setItem(assistantSettingsStorageKey, JSON.stringify({ ...next, apiKey: next.rememberKey ? next.apiKey : "" }));
         else localStorage.removeItem(assistantSettingsStorageKey);
       } catch (error) {
         console.warn("AI settings persistence failed", error);
@@ -875,6 +879,14 @@ function App() {
       return next;
     });
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("./static/cloud-config.json", { cache: "no-store" }).then((r) => r.ok ? r.json() : {}).then((config) => {
+      if (alive && config.backendUrl && !loadAssistantSettings().backendUrl) updateAssistantSettings({ backendUrl: config.backendUrl });
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [updateAssistantSettings]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = state.uiPreferences.theme;
@@ -935,6 +947,31 @@ function App() {
       return next;
     });
   }, []);
+  useEffect(() => {
+    const client = cloudClient(assistantSettings.backendUrl);
+    let alive = true;
+    let sequence = 0;
+    const refreshAccount = async () => {
+      const current = ++sequence;
+      const apply = (account) => {
+        if (!alive || current !== sequence) return;
+        patchState((draft) => {
+          draft.authenticated = Boolean(account);
+          draft.settings.token = "";
+          if (account) draft.settings = { ...draft.settings, ...account.repository, backendUrl: client.base, account: account.username, token: "" };
+          else draft.mode = "read";
+        });
+      };
+      if (!client.base || !client.token()) { apply(null); return; }
+      try { apply(await client.request("/api/account")); } catch { apply(null); }
+    };
+    const changed = (event) => { if (event.detail.base === client.base) refreshAccount(); };
+    const openLogin = () => patchState((draft) => { draft.modal = "auth"; draft.pendingAuthAction = ""; draft.modalContext = null; });
+    refreshAccount();
+    window.addEventListener("notebook-cloud-session", changed);
+    window.addEventListener("notebook-cloud-login", openLogin);
+    return () => { alive = false; window.removeEventListener("notebook-cloud-session", changed); window.removeEventListener("notebook-cloud-login", openLogin); };
+  }, [assistantSettings.backendUrl, patchState]);
   const toggleFavoriteNote = (noteId) => {
     patchState((draft) => {
       draft.favorites = toggleFavorite(draft.favorites, noteId, now());
@@ -966,15 +1003,6 @@ function App() {
     window.addEventListener("pointerup", finishResize);
     window.addEventListener("pointercancel", finishResize);
   }, [state.uiPreferences, updateUiPreferences]);
-  const updateGitHubSettings = useCallback((nextSettings) => {
-    patchState((draft) => {
-      draft.settings = {
-        ...draft.settings,
-        ...nextSettings,
-        branch: "main"
-      };
-    });
-  }, [patchState]);
   const deleteTag = (tag) => {
     const result = applyLocalTagMutation(state.notes, {
       mode: "delete",
@@ -1007,18 +1035,20 @@ function App() {
     return () => window.removeEventListener("pointerdown", closeCreateMenu, true);
   }, [state.openCreateMenu, patchState]);
 
-  const hasEditSession = state.authenticated || state.mode === "edit";
+  const hasEditSession = state.authenticated;
   const requireEditPermission = (pendingAuthAction = "edit") => {
-    if (state.authenticated || (pendingAuthAction === "edit" && state.mode === "edit")) return true;
+    if (state.authenticated) return true;
     patchState((draft) => {
       draft.pendingAuthAction = pendingAuthAction;
+      draft.modalContext = null;
       draft.modal = "auth";
       draft.openCreateMenu = null;
     });
     setToast("没有编辑权限，请先打开编辑权限");
     return false;
   };
-  const selectNote = (noteId) => {
+  const selectNote = (noteId, headingIndex) => {
+    if (!state.notes.some((item) => item.id === noteId)) { setToast("该引用来自旧版知识库，笔记可能已删除。请查看引用中的原文快照。"); return; }
     setIsDocumentSwitching(true);
     patchState((draft) => {
       draft.activeId = noteId;
@@ -1029,6 +1059,14 @@ function App() {
     });
     setIsContextSidebarOpen(false);
     window.setTimeout(() => setIsDocumentSwitching(false), 180);
+    if (Number.isInteger(headingIndex) && headingIndex >= 0) {
+      let tries = 0;
+      const locate = () => {
+        if (document.querySelector(`[data-note-id="${cssEscape(noteId)}"]`)) scrollToDocumentHeading(noteId, headingIndex);
+        else if (++tries < 30) window.setTimeout(locate, 50);
+      };
+      window.setTimeout(locate, 80);
+    }
   };
 
   const treeDragDisabled = Boolean(state.query.trim());
@@ -1357,32 +1395,36 @@ function App() {
     });
     setToast("本地草稿已删除");
   };
-  const confirmAuth = () => {
+  const confirmAuth = async () => {
+    if (authBusy.current) return;
     const account = document.querySelector("[data-auth='account']")?.value.trim();
-    const password = document.querySelector("[data-auth='password']")?.value.trim();
-    if (!account || !password) {
-      setToast("请输入账号和密码");
-      return;
-    }
-    const authSettings = {
-      ...state.settings,
-      account,
-      owner: state.settings.owner || account,
-      repo: state.settings.repo || inferRepo(),
-      branch: "main",
-      token: password
-    };
+    const passwordInput = document.querySelector("[data-auth='password']");
+    const password = passwordInput?.value;
+    if (!account || !password) { setToast("请输入账号和密码"); return; }
+    const client = cloudClient(assistantSettings.backendUrl);
+    if (!client.base) { setToast("请先在 AI 设置中配置云端地址"); return; }
     const action = state.pendingAuthAction;
-    patchState((draft) => {
-      draft.settings = authSettings;
-      draft.authenticated = true;
-      draft.pendingAuthAction = "";
-      draft.modal = null;
-      if (action === "edit") draft.mode = "edit";
-    });
-    setToast("验证已通过");
-    if (action === "publish") {
-      preparePublish(authSettings);
+    authBusy.current = true;
+    patchState((draft) => { draft.modalContext = { busy: true }; });
+    try {
+      await client.login(account, password);
+      const profile = await client.request("/api/account");
+      const authSettings = { ...state.settings, ...profile.repository, backendUrl: client.base, account: profile.username, token: "" };
+      patchState((draft) => {
+        draft.settings = authSettings;
+        draft.authenticated = true;
+        draft.pendingAuthAction = "";
+        draft.modal = null;
+        draft.modalContext = null;
+        if (action === "edit") draft.mode = "edit";
+      });
+      setToast("已登录笔记系统");
+      if (action === "publish") preparePublish(authSettings);
+    } catch (error) {
+      patchState((draft) => { if (draft.modal === "auth") draft.modalContext = { error: error.message }; });
+    } finally {
+      if (passwordInput) passwordInput.value = "";
+      authBusy.current = false;
     }
   };
 
@@ -1481,7 +1523,7 @@ function App() {
       draft.modalContext = null;
       draft.openCreateMenu = null;
     });
-    openPublishReview({ ...state.settings, branch: "main" }, localState);
+    openPublishReview({ ...state.settings, backendUrl: assistantSettings.backendUrl, branch: "main" }, localState);
   };
 
   const preparePublish = (overrideSettings, skipTagModal = false) => {
@@ -1490,12 +1532,12 @@ function App() {
       setToast("本地附件正在恢复，请稍候再发表");
       return;
     }
-    const settings = { ...(overrideSettings || state.settings), branch: "main" };
+    const settings = { ...(overrideSettings || state.settings), backendUrl: assistantSettings.backendUrl, branch: "main" };
     if (!overrideSettings && !state.authenticated) {
       requireEditPermission("publish");
       return;
     }
-    if (!settings.token || !settings.owner || !settings.repo) {
+    if (!cloudClient(assistantSettings.backendUrl).token() || !settings.owner || !settings.repo) {
       patchState((draft) => {
         draft.pendingAuthAction = "publish";
         draft.modal = "auth";
@@ -1542,7 +1584,7 @@ function App() {
         draft.syncStatus = "error";
         draft.message = error.message || "读取 GitHub 已发表内容失败";
       });
-      setToast(error.message || "读取 GitHub 已发表内容失败，请检查 token 和仓库权限");
+      setToast(error.message || "读取 GitHub 已发表内容失败，请检查云端发布凭据和仓库权限");
     }
   };
 
@@ -1631,7 +1673,7 @@ function App() {
         draft.syncStatus = "error";
         draft.message = error.message || "发表失败";
       });
-      setToast(error.message || "发表失败，请检查 token 和仓库权限");
+      setToast(error.message || "发表失败，请检查云端发布凭据和仓库权限");
     }
   };
   const handleAction = (action, targetFolderId) => {
@@ -1715,6 +1757,7 @@ function App() {
     if (action === "confirm-rename-folder") renameFolder();
     if (action === "confirm-rename-note") renameNote();
     if (action === "confirm-auth") confirmAuth();
+    if (action === "configure-cloud") patchState((draft) => { draft.modal = null; draft.view = "settings"; draft.settingsCategory = "assistant"; });
     if (action === "confirm-publish-tags") confirmPublishTags();
     if (action === "confirm-local-tag") confirmLocalTag();
     if (action === "publish-tag-input") {
@@ -1860,6 +1903,11 @@ function App() {
   };
 
   const renderActiveView = () => {
+    if (state.view === "wiki") {
+      return h(CloudWiki, { assistantSettings, onOpenNote: selectNote, onOpenAssistantSettings: () => {
+        patchState((draft) => { draft.view = "settings"; draft.settingsCategory = "assistant"; });
+      } });
+    }
     if (state.view === "assistant") {
       return h(AssistantPage, { notes: state.notes, folders: state.folders, assistantSettings, onOpenNote: selectNote, onOpenAssistantSettings: () => {
         patchState((draft) => { draft.view = "settings"; draft.settingsCategory = "assistant"; });
@@ -1888,7 +1936,9 @@ function App() {
         onChangeAssistant: updateAssistantSettings,
         onReorderTags: (tagOrder) => updateUiPreferences({ tagOrder }),
         onDeleteTag: deleteTag,
-        onChangeGitHubSettings: updateGitHubSettings
+        authenticated: state.authenticated,
+        onLogin: () => window.dispatchEvent(new Event("notebook-cloud-login")),
+        onLogout: () => cloudClient(assistantSettings.backendUrl).logout().catch((error) => setToast(error.message))
       });
     }
     if (state.view !== "library") {
@@ -1904,7 +1954,7 @@ function App() {
               key: `${note.id}-${state.mode}`,
               note,
               state,
-              editable: state.mode === "edit",
+              editable: state.mode === "edit" && state.authenticated,
               updateNote,
               handleAction,
               onStartDirectoryResize,
@@ -1966,7 +2016,7 @@ function App() {
           : renderActiveView()
       )
     ),
-    renderModal(state, handleAction),
+    renderModal(state, handleAction, assistantSettings),
     toast ? h("div", { className: "toast", role: "status", "aria-live": "polite", "aria-atomic": "true" }, toast) : null,
     commandPaletteOpen ? h("div", { className: "command-palette-backdrop", onMouseDown: closeCommandPalette },
       h("div", { className: "command-palette", role: "dialog", "aria-modal": "true", "aria-label": "命令面板", onMouseDown: (event) => event.stopPropagation(), onKeyDown: (event) => {
@@ -2309,7 +2359,7 @@ function DocumentAuxiliary({ activeView, onSelectView, showOutline, noteId, outl
       ),
       activeView === "outline" && showOutline
         ? h(DocumentOutline, { noteId, outline, onStartDirectoryResize })
-        : h(NotebookAssistant, { notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings })
+        : h(NotebookAssistant, { notes, folders, noteId, onOpenNote, assistantSettings, onOpenAssistantSettings })
     )
   );
 }
@@ -2379,7 +2429,11 @@ function DocumentOutline({ noteId, outline, onStartDirectoryResize }) {
   );
 }
 
-function NotebookAssistant({ notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings, variant = "panel" }) {
+function NotebookAssistant(props) {
+  return props.assistantSettings.backendUrl ? h(CloudAssistant, props) : h(LocalNotebookAssistant, props);
+}
+
+function LocalNotebookAssistant({ notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings, variant = "panel" }) {
   const [messages, setMessages] = useState(loadAssistantChat);
   const [question, setQuestion] = useState("");
   const [isAsking, setIsAsking] = useState(false);
@@ -2555,6 +2609,7 @@ function markdownInline(text, keyPrefix) {
 
 function normalizeAssistantSettings(value = {}) {
   return {
+    backendUrl: typeof value.backendUrl === "string" ? value.backendUrl.trim().replace(/\/$/, "") : "",
     apiKey: typeof value.apiKey === "string" ? value.apiKey.trim() : "",
     rememberKey: value.rememberKey === true,
     model: typeof value.model === "string" && value.model.trim() ? value.model.trim() : "deepseek-chat"
@@ -5071,7 +5126,7 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
     )
   );
 }
-function renderModal(state, handleAction) {
+function renderModal(state, handleAction, assistantSettings) {
   if (!state.modal) return null;
   if (state.modal === "name-folder") {
     return modalShell("新文件夹", "文件夹会创建在选中的目录层级下。",
@@ -5211,17 +5266,20 @@ function renderModal(state, handleAction) {
     return h(PublishReviewSheet, { state, handleAction, returnFocusSelector: publishTriggerSelector });
   }
   if (state.modal === "auth") {
-    return modalShell("编辑验证", "验证通过后，文档会发表到当前笔记本 GitHub 仓库的 main 分支。",
+    const configured = Boolean(cloudClient(assistantSettings.backendUrl).base);
+    return modalShell("登录笔记系统", configured ? "使用自定义账号登录，编辑发布、AI 问答和 Wiki 共用此次登录。" : "请先在 AI 设置中配置云端地址，并完成云端账号部署。",
       h(React.Fragment, null,
-        h("div", { className: "field" }, h("label", null, "账号"), h("input", { "data-auth": "account", defaultValue: state.settings.account || state.settings.owner, placeholder: "账号" })),
-        h("div", { className: "field" }, h("label", null, "密码"), h("input", { "data-auth": "password", defaultValue: state.settings.token, type: "password", placeholder: "密码" }))
+        h("div", { className: "field" }, h("label", { htmlFor: "notebook-username" }, "账号"), h("input", { id: "notebook-username", "data-auth": "account", defaultValue: state.settings.account || "", autoComplete: "username", maxLength: 80, disabled: !configured || state.modalContext?.busy, placeholder: "自定义账号" })),
+        h("div", { className: "field" }, h("label", { htmlFor: "notebook-password" }, "密码"), h("input", { id: "notebook-password", "data-auth": "password", type: "password", autoComplete: "current-password", maxLength: 256, disabled: !configured || state.modalContext?.busy, placeholder: "笔记系统密码", onKeyDown: (event) => { if (event.key === "Enter") { event.preventDefault(); handleAction("confirm-auth"); } } })),
+        state.modalContext?.error ? h("p", { role: "alert" }, state.modalContext.error) : null,
+        !configured ? h("button", { type: "button", onClick: () => handleAction("configure-cloud") }, "打开 AI 设置") : null
       ),
-      "验证", "confirm-auth", handleAction);
+      state.modalContext?.busy ? "正在登录…" : "登录", "confirm-auth", handleAction, { confirmDisabled: !configured || state.modalContext?.busy });
   }
   return null;
 }
 
-function ModalShell({ title, text, body, confirmText, action, handleAction, confirmClassName = "primary-btn" }) {
+function ModalShell({ title, text, body, confirmText, action, handleAction, confirmClassName = "primary-btn", confirmDisabled = false }) {
   const modalRef = useRef(null);
   const titleId = `modal-title-${action}`;
   useEffect(() => {
@@ -5277,7 +5335,7 @@ function ModalShell({ title, text, body, confirmText, action, handleAction, conf
       h("div", { className: "form" }, body),
       h("div", { className: "modal-actions" },
         h("button", { type: "button", className: "ghost-btn", onClick: () => handleAction("close-modal") }, "取消"),
-        h("button", { type: "button", className: confirmClassName, onClick: () => handleAction(action) }, confirmText)
+        h("button", { type: "button", className: confirmClassName, disabled: confirmDisabled, onClick: () => handleAction(action) }, confirmText)
       )
     )
   );
@@ -5344,6 +5402,7 @@ async function putGitHubBase64File(settings, path, content, message) {
 }
 
 async function putGitHubBase64FileAttempt(settings, path, content, message, retried) {
+  if (content.length > Math.ceil(5 * 1024 * 1024 / 3) * 4) throw new Error("云端发布单个文件不能超过 5 MB，请压缩附件后重试");
   const sha = await getGitHubSha(settings, path);
   const body = {
     message,
@@ -5351,9 +5410,8 @@ async function putGitHubBase64FileAttempt(settings, path, content, message, retr
     content
   };
   if (sha) body.sha = sha;
-  const response = await fetch(githubContentUrl(settings, path), {
+  const response = await githubRequest(settings, path, {
     method: "PUT",
-    headers: githubHeaders(settings.token),
     cache: "no-store",
     body: JSON.stringify(body)
   });
@@ -5420,8 +5478,7 @@ async function loadPublishedDocumentFallback(summary) {
 }
 
 async function getGitHubJsonFile(settings, path) {
-  const response = await fetch(`${githubContentUrl(settings, path)}?ref=${encodeURIComponent(settings.branch)}&v=${Date.now()}`, {
-    headers: githubHeaders(settings.token),
+  const response = await githubRequest(settings, path, {
     cache: "no-store"
   });
   if (response.status === 404) return null;
@@ -5447,9 +5504,8 @@ async function deleteStalePublishedDocs(settings, remoteLibrary, nextNotes) {
 async function deleteGitHubFile(settings, path, message) {
   const sha = await getGitHubSha(settings, path);
   if (!sha) return null;
-  const response = await fetch(githubContentUrl(settings, path), {
+  const response = await githubRequest(settings, path, {
     method: "DELETE",
-    headers: githubHeaders(settings.token),
     cache: "no-store",
     body: JSON.stringify({ message, branch: settings.branch, sha })
   });
@@ -5460,9 +5516,8 @@ async function deleteGitHubFile(settings, path, message) {
     if (response.status === 409 || /sha|does not match/i.test(messageText)) {
       const latestSha = await getGitHubSha(settings, path);
       if (!latestSha) return null;
-      const retry = await fetch(githubContentUrl(settings, path), {
+      const retry = await githubRequest(settings, path, {
         method: "DELETE",
-        headers: githubHeaders(settings.token),
         cache: "no-store",
         body: JSON.stringify({ message, branch: settings.branch, sha: latestSha })
       });
@@ -5553,8 +5608,7 @@ function replaceLocalAssetUrls(html, assets) {
 }
 
 async function getGitHubSha(settings, path) {
-  const response = await fetch(`${githubContentUrl(settings, path)}?ref=${encodeURIComponent(settings.branch)}&v=${Date.now()}`, {
-    headers: githubHeaders(settings.token),
+  const response = await githubRequest(settings, path, {
     cache: "no-store"
   });
   if (response.status === 404) return "";
@@ -5565,18 +5619,12 @@ async function getGitHubSha(settings, path) {
   const data = await response.json();
   return data.sha || "";
 }
-function githubContentUrl(settings, path) {
-  const safePath = trimSlash(path).split("/").map(encodeURIComponent).join("/");
-  return `https://api.github.com/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}/contents/${safePath}`;
-}
-
-function githubHeaders(token) {
-  return {
-    Accept: "application/vnd.github+json",
-    Authorization: `Bearer ${token}`,
-    "X-GitHub-Api-Version": "2022-11-28",
-    "Content-Type": "application/json"
-  };
+async function githubRequest(settings, path, options = {}) {
+  const client = cloudClient(settings.backendUrl);
+  if (!client.base) throw new Error("请先配置云端地址");
+  if (!client.token()) throw new Error("请先登录笔记系统");
+  const data = options.body ? JSON.parse(options.body) : undefined;
+  return client.request(`/api/repository?path=${encodeURIComponent(trimSlash(path))}`, { method: options.method || "GET", data, raw: true });
 }
 
 async function safeJson(response) {
@@ -5661,8 +5709,10 @@ function migrate(data) {
     account: merged.settings?.account || merged.settings?.owner || seed.settings.account,
     owner: merged.settings?.owner || seed.settings.owner,
     repo: merged.settings?.repo || seed.settings.repo,
-    branch: "main"
+    branch: "main",
+    token: ""
   };
+  merged.mode = "read";
   merged.modal = null;
   merged.openCreateMenu = null;
   merged.collapsedFolders = merged.collapsedFolders && typeof merged.collapsedFolders === "object" && !Array.isArray(merged.collapsedFolders)

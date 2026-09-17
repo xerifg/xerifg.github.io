@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "personal-notebook-ai",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  "d1_databases": [{
+    "binding": "DB", "database_name": "notebook-knowledge",
+    "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+  }],
+  "vectorize": [{ "binding": "VECTORS", "index_name": "notebook-chunks" }],
+  "vars": {
+    "FRONTEND_ORIGIN": "https://xerifg.github.io",
+    "GITHUB_OWNER": "xerifg",
+    "NOTEBOOK_REPO": "xerifg.github.io",
+    "CHAT_BASE_URL": "https://api.deepseek.com/v1",
+    "CHAT_MODEL": "deepseek-chat",
+    "EMBEDDING_BASE_URL": "https://api.siliconflow.cn/v1",
+    "EMBEDDING_MODEL": "Qwen/Qwen3-Embedding-0.6B",
+    "RERANK_BASE_URL": "https://api.siliconflow.cn/v1",
+    "RERANK_MODEL": "Qwen/Qwen3-Reranker-0.6B",
+    "DAILY_QUESTION_LIMIT": "100"
+  }
+}

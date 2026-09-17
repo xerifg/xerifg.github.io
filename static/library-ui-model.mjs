@@ -53,6 +53,7 @@ export function notebookStateForPersistence(state = {}) {
   } = state;
   return {
     ...notebookState,
+    settings: { ...notebookState.settings, token: "" },
     notes: (notebookState.notes || []).map((note) => {
       const indexedAssets = (note.assets || []).filter((asset) => asset?.storage === "indexeddb" && asset?.assetId && asset?.localUrl);
       const html = indexedAssets.reduce(
@@ -124,7 +125,7 @@ export function resizeDirectoryWidth(currentWidth, startX, currentX, direction, 
 export function resolveStartupState(state = {}, preferences = DEFAULT_UI_PREFERENCES) {
   if (preferences.rememberLastLocation) {
     return {
-      view: ["home", "library", "tags", "settings"].includes(state.view) ? state.view : "home",
+      view: ["home", "library", "assistant", "wiki", "tags", "settings"].includes(state.view) ? state.view : "home",
       activeId: state.activeId || "",
       selectedTag: state.selectedTag || ""
     };
@@ -382,7 +383,7 @@ export function enterTagView(state, tag, options = {}) {
 }
 
 export function navigatePrimaryView(state, requestedView) {
-  const view = ["home", "library", "assistant", "tags", "settings"].includes(requestedView)
+  const view = ["home", "library", "assistant", "wiki", "tags", "settings"].includes(requestedView)
     ? requestedView
     : "home";
   return {
