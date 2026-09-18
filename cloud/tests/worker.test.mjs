@@ -99,6 +99,7 @@ test('publishing only accesses notebook paths in the configured repo and main br
   assert.equal((await f.call(path,{content:'e30=',sha:'a'.repeat(40),message:'Publish',branch:'evil',repo:'other'},'PUT')).status,200);
   assert.match(calls[1].url,/repos\/owner\/notes\/contents\/notebooks\/docs/);
   assert.equal(calls[1].options.headers.Authorization,'Bearer server-only-token');
+  assert.equal(calls[1].options.redirect,'manual');
   assert.deepEqual(JSON.parse(calls[1].options.body),{message:'Publish',branch:'main',sha:'a'.repeat(40),content:'e30='});
   assert.equal((await f.call(path,{sha:'a'.repeat(40),message:'Delete'},'DELETE')).status,200);
   assert.equal((await f.call(path,{content:'invalid"json'},'PUT')).status,400);
@@ -112,6 +113,7 @@ test('publishing preserves missing files and conflicts, hides upstream credentia
   const path='/api/repository?path=notebooks/index.json';
   assert.equal((await f.call(path,{content:'e30='},'PUT')).status,409);
   status=404; assert.equal((await f.call(path)).status,404);
+  status=302; assert.equal((await f.call(path)).status,502);
   status=401; const response=await f.call(path); assert.equal(response.status,502);
   assert.doesNotMatch(await response.text(),/secret-upstream-detail|server-only-token/);
   f.sqlite.close();

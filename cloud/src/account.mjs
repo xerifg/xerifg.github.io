@@ -63,7 +63,8 @@ export async function repositoryRoute(request, env, url, bodyJSON) {
       ...(input.sha ? { sha: input.sha } : {}), ...(request.method === "PUT" ? { content: input.content } : {}) };
   }
   const target = `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.NOTEBOOK_REPO}/contents/${segments.map(encodeURIComponent).join("/")}${request.method === "GET" ? "?ref=main" : ""}`;
-  const response = await fetch(target, { method: request.method, redirect: "error", signal: AbortSignal.timeout(30000),
+  // Workers supports manual redirects; reject non-OK responses below without forwarding credentials.
+  const response = await fetch(target, { method: request.method, redirect: "manual", signal: AbortSignal.timeout(30000),
     headers: { Authorization: `Bearer ${env.GITHUB_PUBLISH_TOKEN}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "personal-notebook", "Content-Type": "application/json" },
     ...(payload ? { body: JSON.stringify(payload) } : {}) });
   if (!response.ok) {
