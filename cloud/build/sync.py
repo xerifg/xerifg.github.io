@@ -36,9 +36,21 @@ def request_json(url, data=None, headers=None, method=None, attempts=3):
                 raise RuntimeError("Cloud provider rejected operation (see account configuration)")
             return result
         except HTTPError as error:
-            # Do not print provider bodies: they may echo credentials or private request text.
             if error.code not in (408, 429, 500, 502, 503, 504) or attempt + 1 == attempts:
-                raise RuntimeError(f"Remote request failed with HTTP {error.code}") from None
+                detail = ""
+                # Vectorize receives IDs and vectors only; never log model/D1 response bodies.
+                if url.startswith("https://api.cloudflare.com/client/v4/accounts/") and "/vectorize/" in url:
+                    try:
+                        errors = json.loads(error.read()).get("errors", [])
+                        detail = " " + encoded([{k: item.get(k) for k in ("code", "message")} for item in errors])
+                        for value in actual_headers.values():
+                            for secret in (value, value.removeprefix("Bearer ")):
+                                if secret:
+                                    detail = detail.replace(secret, "[redacted]")
+                        detail = detail[:800]
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                raise RuntimeError(f"Remote request failed with HTTP {error.code}{detail}") from None
             time.sleep(2 ** attempt * 3)
     raise RuntimeError("Remote request failed")
 
