@@ -309,7 +309,11 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
     let response;
     try { response = await route(request, env, ctx); }
-    catch (error) { response = json({ error: error.status ? error.message : "云端服务暂不可用，请稍后重试" }, error.status || 503); }
+    catch (error) {
+      // Keep unexpected failure locations in live logs without messages, payloads or credentials.
+      if (!error.status) console.error("Unhandled worker error", error.name, String(error.stack || "").split("\n").slice(1).join("\n"));
+      response = json({ error: error.status ? error.message : "云端服务暂不可用，请稍后重试" }, error.status || 503);
+    }
     const result = new Response(response.body, response);
     Object.entries(headers).forEach(([key, value]) => result.headers.set(key, value));
     return result;
