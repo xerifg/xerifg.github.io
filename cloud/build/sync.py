@@ -123,7 +123,14 @@ def cached_json(cloud, key, generate):
     cached = cloud.sql("SELECT data FROM extraction_cache WHERE id=?", [key])
     if cached:
         return json.loads(cached[0]["data"])
-    value = generate()
+    # Retry invalid model output, not transport errors; each retry uses the same call budget.
+    for attempt in range(3):
+        try:
+            value = generate()
+            break
+        except ValueError:
+            if attempt == 2:
+                raise
     cloud.sql("INSERT OR REPLACE INTO extraction_cache(id,data) VALUES (?,?)", [key, encoded(value)])
     return value
 

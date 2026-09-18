@@ -4,7 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'build'))
 import sync
@@ -135,6 +135,19 @@ class BuildTests(unittest.TestCase):
             self.assertEqual(page['content'], '事实[1]。[[related|关联]]、自己、未知、ghost。')
             sync.build_pages(cloud, models, topics, chunks)
             self.assertEqual(chat.call_count, 2, 'validated results must be reused from cache')
+
+    def test_invalid_generated_json_retries_are_bounded_and_only_cache_valid_results(self):
+        cloud = MemoryCloud()
+        generate = Mock(side_effect=[json.JSONDecodeError('Extra data', '{}{}', 2), ValueError('Invalid citations'), {'content':'事实[1]'}])
+        self.assertEqual(sync.cached_json(cloud, 'valid', generate), {'content':'事实[1]'})
+        self.assertEqual(generate.call_count, 3)
+        sync.cached_json(cloud, 'valid', generate)
+        self.assertEqual(generate.call_count, 3)
+        invalid = Mock(side_effect=ValueError('Invalid citations'))
+        with self.assertRaises(ValueError):
+            sync.cached_json(cloud, 'invalid', invalid)
+        self.assertEqual(invalid.call_count, 3)
+        self.assertEqual(cloud.sql('SELECT * FROM extraction_cache WHERE id=?', ['invalid']), [])
 
 
 if __name__ == '__main__':
