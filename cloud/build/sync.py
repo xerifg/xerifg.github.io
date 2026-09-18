@@ -266,8 +266,8 @@ def embeddings(cloud, models, chunks):
 
 def cleanup_generation(cloud, generation):
     ids = [r["id"] for r in cloud.sql("SELECT id FROM chunks WHERE generation=?", [generation])]
-    for offset in range(0, len(ids), 500):
-        mutation = cloud.vectors("delete_by_ids", {"ids": ids[offset:offset + 500]})
+    for offset in range(0, len(ids), 100):
+        mutation = cloud.vectors("delete_by_ids", {"ids": ids[offset:offset + 100]})
         cloud.wait_mutation(mutation["mutationId"])
     for table in ("chunk_search", "chunks", "documents", "wiki_pages"):
         cloud.sql(f"DELETE FROM {table} WHERE generation=?", [generation])

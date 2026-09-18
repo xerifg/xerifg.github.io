@@ -58,6 +58,16 @@ class Models:
 
 
 class BuildTests(unittest.TestCase):
+    def test_cleanup_respects_vector_delete_limit(self):
+        cloud = Mock()
+        cloud.sql.return_value = [{'id': str(i)} for i in range(251)]
+        cloud.vectors.return_value = {'mutationId': 'done'}
+        sync.cleanup_generation(cloud, 'failed-generation')
+        batches = [call.args[1]['ids'] for call in cloud.vectors.call_args_list]
+        self.assertEqual([len(batch) for batch in batches], [100, 100, 51])
+        self.assertEqual([item for batch in batches for item in batch], [str(i) for i in range(251)])
+        self.assertEqual(cloud.wait_mutation.call_count, 3)
+
     def library(self, root, html='<h1>特征融合</h1><p>保留原文证据。</p>'):
         (root / 'notebooks/docs').mkdir(parents=True, exist_ok=True)
         note = {'id': 'n1', 'title': '融合', 'html': html, 'folderId': 'child'}
