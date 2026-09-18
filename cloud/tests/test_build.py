@@ -158,6 +158,31 @@ class BuildTests(unittest.TestCase):
             self.assertEqual(result, {'content':'complete'})
             self.assertEqual(call.call_count, 2)
 
+    def test_vector_readiness_waits_for_mutation_and_checks_every_small_batch(self):
+        cloud = object.__new__(sync.Cloud)
+        ids = [f'g.{i}' for i in range(64)]
+        calls = []; info_count = 0; query_count = 0
+        def vectors(operation, data=None, method='POST'):
+            nonlocal info_count, query_count
+            calls.append((operation, data))
+            if operation == 'info':
+                info_count += 1
+                return {'processedUpToMutation':'done' if info_count > 1 else 'previous'}
+            if operation == 'get_by_ids':
+                self.assertGreater(info_count, 1)
+                self.assertLessEqual(len(data['ids']), 20)
+                return [{'id':id} for id in data['ids']]
+            self.assertEqual(operation, 'query')
+            self.assertEqual(data['namespace'], 'g')
+            query_count += 1
+            return {'matches':[] if query_count == 1 else [{'id':ids[0]}]}
+        with patch.object(cloud, 'vectors', side_effect=vectors), patch.object(sync.time, 'sleep') as sleep:
+            cloud.wait_vectors(ids, 'g', {'values':[0.1]*1024}, 'done')
+        self.assertEqual(calls[0][0], 'info')
+        self.assertEqual({id for operation, data in calls if operation == 'get_by_ids' for id in data['ids']}, set(ids))
+        self.assertEqual(query_count, 2)
+        self.assertEqual(sleep.call_count, 2)
+
 
 if __name__ == '__main__':
     unittest.main()

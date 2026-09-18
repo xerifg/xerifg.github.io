@@ -74,12 +74,17 @@ class Cloud:
     def wait_vectors(self, ids, namespace, probe, mutation):
         # get_by_ids alone is insufficient: also verify visibility in the query index.
         for _ in range(36):
-            present = self.vectors("get_by_ids", {"ids": ids})
             info = self.vectors("info", method="GET")
-            if isinstance(present, list) and len(present) == len(ids) and info.get("processedUpToMutation") == mutation:
-                found = self.vectors("query", {"vector": probe["values"], "namespace": namespace, "topK": 1})
-                if found.get("matches"):
-                    return
+            if info.get("processedUpToMutation") == mutation:
+                present_ids = set()
+                for offset in range(0, len(ids), 20):
+                    present = self.vectors("get_by_ids", {"ids": ids[offset:offset + 20]})
+                    if isinstance(present, list):
+                        present_ids.update(vector["id"] for vector in present)
+                if set(ids).issubset(present_ids):
+                    found = self.vectors("query", {"vector": probe["values"], "namespace": namespace, "topK": 1})
+                    if found.get("matches"):
+                        return
             time.sleep(5)
         raise RuntimeError("Vector index is not ready; previous generation remains active")
 
