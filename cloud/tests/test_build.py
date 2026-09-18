@@ -149,6 +149,15 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(invalid.call_count, 3)
         self.assertEqual(cloud.sql('SELECT * FROM extraction_cache WHERE id=?', ['invalid']), [])
 
+    def test_truncated_model_json_is_retried_even_if_it_parses(self):
+        cloud = MemoryCloud(); models = sync.Models()
+        responses = [{'choices':[{'finish_reason':reason,'message':{'content':json.dumps({'content':content})}}]}
+                     for reason, content in [('length','partial'), ('stop','complete')]]
+        with patch.object(models, 'call', side_effect=responses) as call:
+            result = sync.cached_json(cloud, 'page', lambda: models.chat('Return JSON', {}))
+            self.assertEqual(result, {'content':'complete'})
+            self.assertEqual(call.call_count, 2)
+
 
 if __name__ == '__main__':
     unittest.main()

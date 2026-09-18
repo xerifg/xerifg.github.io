@@ -108,11 +108,11 @@ class Models:
         return request_json(base + "/" + path, data, {"Authorization": "Bearer " + os.environ[kind + "_API_KEY"]}, attempts=1)
 
     def chat(self, system, data):
-        result = self.call("CHAT", "chat/completions", {"model": self.chat_model, "temperature": 0.1, "max_tokens": 4000,
+        result = self.call("CHAT", "chat/completions", {"model": self.chat_model, "temperature": 0.1, "max_tokens": 8000,
             "response_format": {"type": "json_object"}, "messages": [{"role": "system", "content": system}, {"role": "user", "content": encoded(data)}]})
         choice = result["choices"][0]
         if choice.get("finish_reason") == "length":
-            raise RuntimeError("Model output truncated; increase budget or reduce extraction batch")
+            raise ValueError("Model output truncated; refusing incomplete knowledge content")
         content = choice["message"]["content"].strip()
         if content.startswith("```"):
             content = content.split("\n", 1)[1].rsplit("```", 1)[0]
