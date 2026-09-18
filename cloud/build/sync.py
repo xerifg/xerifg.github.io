@@ -202,9 +202,10 @@ def build_pages(cloud, models, topics, chunks):
             citations = [int(n) for n in re.findall(r"\[(\d+)\]", content)]
             if not citations or any(n < 1 or n > len(refs) for n in citations):
                 raise ValueError("Wiki page contains missing or invalid citations")
+            # A hallucinated navigation target must not invent an edge or block valid cited text.
+            content = re.sub(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]",
+                             lambda match: match[0] if match[1] in related else (match[2] or match[1]), content)
             links = sorted(set(re.findall(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]", content)))
-            if any(link not in related for link in links):
-                raise ValueError("Wiki page contains an unsupported link")
             return {"content": content, "links": links}
 
         generated = cached_json(cloud, key, generate)

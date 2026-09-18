@@ -123,6 +123,19 @@ class BuildTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 sync.build_pages(cloud, models, topics, chunks)
 
+    def test_unknown_wiki_links_keep_text_without_inventing_graph_edges(self):
+        cloud = MemoryCloud(); models = Models()
+        chunks = [{'id':'x','title':'原文','heading':'标题','text':'证据'}]
+        topics = {slug:{'slug':slug,'title':slug,'type':'concept','refs':['x'],'aliases':[]} for slug in ['topic','related']}
+        content = '事实[1]。[[related|关联]]、[[topic|自己]]、[[missing|未知]]、[[ghost]]。'
+        with patch.object(models, 'chat', return_value={'content':content,'links':['missing']}) as chat:
+            pages = sync.build_pages(cloud, models, topics, chunks)
+            page = next(page for page in pages if page['slug'] == 'topic')
+            self.assertEqual(page['links'], ['related'])
+            self.assertEqual(page['content'], '事实[1]。[[related|关联]]、自己、未知、ghost。')
+            sync.build_pages(cloud, models, topics, chunks)
+            self.assertEqual(chat.call_count, 2, 'validated results must be reused from cache')
+
 
 if __name__ == '__main__':
     unittest.main()
