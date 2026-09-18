@@ -48,7 +48,7 @@ export function KnowledgeMarkdown({ text = "", sources = [], onSource = () => {}
   const inline = (text) => String(text).split(/(\[\[[^\]]+\]\]|\[\d+\]|\*\*[^*]+\*\*|`[^`]+`|\$[^$\n]+\$)/g).map((part, i) => {
     if (/^\[\[/.test(part)) { const [slug, title] = part.slice(2, -2).split("|"); return button(title || slug, () => onWiki(slug), { key: i, className: "cloud-wikilink" }); }
     if (/^\[\d+\]$/.test(part)) { const s = sources[Number(part.slice(1, -1)) - 1]; return s ? button(part, () => onSource(s), { key: i, className: "cloud-citation", title: s.title }) : part; }
-    if (part.startsWith("**")) return h("strong", { key: i }, part.slice(2, -2));
+    if (part.startsWith("**")) return h("strong", { key: i }, inline(part.slice(2, -2)));
     if (part.startsWith("`")) return h("code", { key: i }, part.slice(1, -1));
     if (part.startsWith("$") && part.endsWith("$")) return h("span", { key: i, dangerouslySetInnerHTML: { __html: katex.renderToString(part.slice(1, -1), { throwOnError: false, trust: false, maxExpand: 500 }) } });
     return part;
