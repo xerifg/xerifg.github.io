@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-15T04:02:15.547Z",
+  "updatedAt": "2026-09-18T12:07:31.756Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -900,6 +900,15 @@
       "tags": [],
       "updatedAt": "2026-09-15T04:02:15.547Z",
       "file": "notebooks/docs/wa-jepa-世界-动作模型.json"
+    },
+    {
+      "id": "note-1789732287440",
+      "title": "上线验证（临时）",
+      "folderId": null,
+      "path": "",
+      "tags": [],
+      "updatedAt": "2026-09-18T12:07:31.756Z",
+      "file": "notebooks/docs/上线验证-临时.json"
     }
   ]
 }
