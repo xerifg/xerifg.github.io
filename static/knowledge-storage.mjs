@@ -116,6 +116,7 @@ function markdownFromHtml(html, filenames) {
     const inner = () => [...node.childNodes].map(walk).join("");
     const tag = node.nodeName.toLowerCase();
     const type = node.getAttribute?.("data-type");
+    if (type === "whiteboard") return `\n\n\`\`\`whiteboard\n${node.getAttribute("data-whiteboard") || "{}"}\n\`\`\`\n\n`;
     if (type === "math-inline") return `$${node.getAttribute("data-tex") || node.textContent}$`;
     if (type === "math-block") return `\n\n$$\n${node.getAttribute("data-tex") || node.textContent}\n$$\n\n`;
     if (type === "mermaid-diagram") return `\n\n\`\`\`mermaid\n${node.getAttribute("data-mermaid-code") || node.textContent}\n\`\`\`\n\n`;

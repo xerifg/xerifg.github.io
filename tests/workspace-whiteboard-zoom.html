@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>白板滚轮缩放回归</title>
+<link rel="stylesheet" href="../static/whiteboard.css">
+<h1>白板滚轮缩放回归</h1>
+<button id="run">运行缩放测试</button>
+<pre id="results"></pre>
+<script type="module">
+import {openWhiteboard} from '../static/whiteboard-ui.mjs?v=20260919-whiteboard-v8';
+const frame=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+document.querySelector('#run').onclick=async()=>{
+  const results=document.querySelector('#results');results.textContent='';
+  const check=(ok,name)=>{results.textContent+=`${ok?'PASS':'FAIL'} ${name}\n`;};
+  const close=openWhiteboard({board:{nodes:[{id:'text',type:'text',text:'缩放测试',x:0,y:0,width:260,height:160}],edges:[]}});
+  try {
+    await frame();
+    const stage=document.querySelector('.wb-stage'), world=document.querySelector('.wb-world');
+    const rect=stage.getBoundingClientRect();
+    const clientX=Math.round(rect.left+rect.width*.35), clientY=Math.round(rect.top+rect.height*.4);
+    const x=clientX-rect.left, y=clientY-rect.top;
+    const view=()=>new DOMMatrix(getComputedStyle(world).transform);
+    const wheel=(deltaY,options={})=>{
+      const event=new WheelEvent('wheel',{bubbles:true,cancelable:true,ctrlKey:true,deltaY,clientX,clientY,...options});
+      stage.dispatchEvent(event);return event.defaultPrevented;
+    };
+    const start=view();
+    check(wheel(120),'阻止浏览器默认缩放');await frame();
+    const down=view();
+    check(down.a/start.a>.89&&down.a/start.a<.95,'普通滚轮单次缩小约 10%');
+    check(Math.abs((x-start.e)/start.a-(x-down.e)/down.a)<.01&&Math.abs((y-start.f)/start.a-(y-down.f)/down.a)<.01,'鼠标下的画布位置保持稳定');
+    wheel(-120);await frame();
+    check(Math.abs(view().a-start.a)<.00001,'反向滚动恢复原比例');
+    let before=view();wheel(2);await frame();
+    check(view().a<before.a&&view().a/before.a>.99,'触控板微小输入保留细调');
+    before=view();wheel(-10000);await frame();
+    check(view().a/before.a>1&&view().a/before.a<1.11,'异常大输入不会跳变');
+    for(const [mode,delta] of [[1,3],[2,1]]){
+      before=view();wheel(delta,{deltaMode:mode});await frame();
+      check(view().a/before.a>.89&&view().a/before.a<.98,`兼容 ${mode===1?'行':'页'} 单位的滚轮输入`);
+    }
+    before=view();for(let i=0;i<5;i++)wheel(-40);await frame();
+    check(view().a/before.a>1.2&&view().a/before.a<1.23,'同一帧连续滚动不会丢失输入');
+    before=view();wheel(20,{ctrlKey:false,deltaX:10});await frame();
+    check(view().a===before.a&&Math.abs(view().e-before.e+10)<.01&&Math.abs(view().f-before.f+20)<.01,'普通滚轮仍然平移');
+    before=view();wheel(-50,{ctrlKey:false,metaKey:true});await frame();
+    check(view().a>before.a&&view().a/before.a<1.06,'Command 滚轮同样平缓');
+    for(let i=0;i<100;i++)wheel(-120);await frame();check(view().a===3,'保留 300% 放大上限');
+    for(let i=0;i<100;i++)wheel(120);await frame();check(view().a===.1,'保留 10% 缩小下限');
+  } catch(error){check(false,error.message);}
+  finally{close();}
+};
+</script>
+</html>

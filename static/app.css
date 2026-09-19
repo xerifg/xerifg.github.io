@@ -901,15 +901,51 @@ button.document-save-status[data-state="error"] { cursor: pointer; text-decorati
 .tiptap-reader img {
   display: block;
   max-width: 100%;
+  height: auto;
   border-radius: 8px;
-  cursor: zoom-in;
-  transition: box-shadow .18s ease, transform .18s ease;
 }
 
-.feishu-editor img:hover,
-.tiptap-reader img:hover {
-  box-shadow: 0 12px 34px rgba(15, 23, 42, .16);
-  transform: translateY(-1px);
+.tiptap-reader img {
+  cursor: zoom-in;
+}
+
+.feishu-editor .note-image {
+  position: relative;
+  max-width: 100%;
+  margin: 12px 0;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.feishu-editor .note-image.is-selected {
+  outline: 2px solid #3370ff;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.feishu-editor .note-image-handle {
+  display: none;
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  min-width: 0;
+  padding: 0;
+  border: 2px solid #3370ff;
+  border-radius: 3px;
+  background: #fff;
+  touch-action: none;
+  z-index: 1;
+}
+
+.feishu-editor .note-image.is-selected .note-image-handle { display: block; }
+.feishu-editor .note-image-handle[data-corner="nw"] { top: -7px; left: -7px; cursor: nwse-resize; }
+.feishu-editor .note-image-handle[data-corner="ne"] { top: -7px; right: -7px; cursor: nesw-resize; }
+.feishu-editor .note-image-handle[data-corner="sw"] { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.feishu-editor .note-image-handle[data-corner="se"] { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.feishu-editor .note-image.is-resizing { user-select: none; }
+.feishu-editor .note-image-handle:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 3px;
 }
 
 .image-preview-backdrop {

@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>正文图片尺寸测试</title>
+<link rel="stylesheet" href="../static/app.css">
+<style>
+  body { display:block; overflow:auto; padding:32px; background:#f4f6fa; }
+  main { max-width:680px; background:white; padding:24px; }
+  #editor .feishu-editor { min-height:0; padding:16px; }
+  #saved { white-space:pre-wrap; overflow-wrap:anywhere; }
+  #results { white-space:pre-wrap; }
+</style>
+<main>
+  <h1>正文图片尺寸测试</h1>
+  <p>仅使用此测试页的样例图片。单击图片后拖动四角。</p>
+  <button id="run">运行回归检查</button>
+  <button id="restore">重新载入已保存正文</button>
+  <button id="undo">撤销</button>
+  <button id="redo">重做</button>
+  <button id="narrow">切换窄正文</button>
+  <div id="editor"></div>
+  <p id="outside">点击这里取消选中</p>
+  <div id="results" role="status"></div>
+  <h2>保存的正文</h2><pre id="saved"></pre>
+  <h2>阅读效果</h2><div id="reader" class="tiptap-reader"></div>
+</main>
+<script type="module">
+  import { Editor } from "https://esm.sh/@tiptap/core@2.11.7";
+  import StarterKit from "https://esm.sh/@tiptap/starter-kit@2.11.7";
+  import Table from "https://esm.sh/@tiptap/extension-table@2.11.7";
+  import TableRow from "https://esm.sh/@tiptap/extension-table-row@2.11.7";
+  import TableCell from "https://esm.sh/@tiptap/extension-table-cell@2.11.7";
+  import TableHeader from "https://esm.sh/@tiptap/extension-table-header@2.11.7";
+  import { NodeSelection } from "https://esm.sh/@tiptap/pm@2.11.7/state";
+  import { NoteImage } from "../static/note-image.mjs";
+  const src = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="480" height="240"><rect width="480" height="240" rx="8" fill="#dbeafe"/><circle cx="110" cy="120" r="68" fill="#3370ff"/><text x="210" y="135" font-size="32" fill="#18345a">图片示例</text></svg>');
+  const initial = `<p>图片前的正文</p><img src="${src}" alt="缩放测试图片"><p>图片后的正文</p>`;
+  const key = "notebook-image-resize-fixture";
+  const show = () => {
+    const html = editor.getHTML();
+    localStorage.setItem(key, html);
+    document.querySelector("#saved").textContent = html;
+    document.querySelector("#reader").innerHTML = html;
+  };
+  const editor = new Editor({
+    element: document.querySelector("#editor"),
+    extensions: [StarterKit, NoteImage.configure({ allowBase64:true }), Table, TableRow, TableHeader, TableCell],
+    content: localStorage.getItem(key) || initial,
+    editorProps: { attributes: { class:"feishu-editor ProseMirror" } },
+    onUpdate: show
+  });
+  show();
+  document.querySelector("#restore").onclick = () => editor.commands.setContent(localStorage.getItem(key));
+  document.querySelector("#undo").onclick = () => editor.commands.undo();
+  document.querySelector("#redo").onclick = () => editor.commands.redo();
+  document.querySelector("#narrow").onclick = () => {
+    const host = document.querySelector("#editor");
+    host.style.width = host.style.width ? "" : "240px";
+  };
+  document.querySelector("#run").onclick = async () => {
+    const results = [];
+    const check = (condition, name) => {
+      results.push(`${condition ? "PASS" : "FAIL"} ${name}`);
+      document.querySelector("#results").textContent = results.join("\n");
+      if (!condition) throw new Error(name);
+    };
+    try {
+      document.querySelector("#editor").style.width = "";
+      editor.commands.setContent(initial);
+      await editor.view.dom.querySelector("img").decode();
+      check(!editor.view.dom.querySelector(".is-selected"), "初始化不选中图片");
+      let position;
+      editor.state.doc.descendants((node, pos) => { if (node.type.name === "image") position = pos; });
+      const before = editor.getHTML();
+      editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, position)));
+      check(editor.view.dom.querySelectorAll(".is-selected .note-image-handle").length === 4, "选中显示四角控制点");
+      check(editor.getHTML() === before, "选中不修改正文");
+      const handle = editor.view.dom.querySelector('[data-corner="se"]');
+      handle.dispatchEvent(new KeyboardEvent("keydown", { key:"ArrowLeft", bubbles:true }));
+      check(editor.state.doc.nodeAt(position).attrs.width === 470, "缩小改变图片宽度");
+      handle.dispatchEvent(new KeyboardEvent("keydown", { key:"ArrowRight", bubbles:true }));
+      check(editor.state.doc.nodeAt(position).attrs.width === 480, "放大改变图片宽度");
+      check(editor.commands.undo() && editor.state.doc.nodeAt(position).attrs.width === 470, "一次撤销恢复上次尺寸");
+      check(editor.commands.redo() && editor.state.doc.nodeAt(position).attrs.width === 480, "重做恢复缩放");
+      const saved = editor.getHTML();
+      check(saved.includes('width="480"') && !saved.includes("note-image"), "正文只保存图片尺寸，不保存控制点");
+      editor.commands.setContent(saved);
+      check(editor.view.dom.querySelector("img").getBoundingClientRect().width === 480, "重新解析正文保留尺寸");
+      check(editor.view.dom.querySelector("img").getBoundingClientRect().height === 240, "保持原图比例");
+      check(document.querySelector("#reader img").getBoundingClientRect().width === 480, "阅读模式使用保存尺寸");
+      editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, position)));
+      document.dispatchEvent(new KeyboardEvent("keydown", { key:"Escape", bubbles:true }));
+      check(!editor.view.dom.querySelector(".is-selected"), "Esc取消选中");
+      editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, position)));
+      document.querySelector("#outside").dispatchEvent(new PointerEvent("pointerdown", { bubbles:true }));
+      check(!editor.view.dom.querySelector(".is-selected"), "点击外部取消选中");
+      editor.commands.setContent(`<img src="${src}">`);
+      editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, 0)));
+      document.dispatchEvent(new KeyboardEvent("keydown", { key:"Escape", bubbles:true }));
+      check(!(editor.state.selection instanceof NodeSelection), "仅含图片的笔记也能取消节点选中");
+      editor.commands.setContent(`<p></p><img src="${src}" style="width:320px"><p></p>`);
+      check(editor.getHTML().includes('width="320"'), "兼容粘贴的像素宽度");
+      editor.commands.setContent(`<p></p><img src="${src}" width="-50"><p></p>`);
+      check(!editor.getHTML().includes('width="'), "无效宽度回退原图");
+      editor.commands.setContent(initial + initial);
+      const images = [];
+      editor.state.doc.descendants((node, pos) => { if (node.type.name === "image") images.push(pos); });
+      editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, images[0])));
+      editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, images[1])));
+      check(editor.view.dom.querySelectorAll(".is-selected").length === 1, "多图仅选中一张");
+      editor.commands.setContent(`<table><tbody><tr><td><p>表格图片</p><img src="${src}" width="480"><p></p></td><td><p>另一列</p></td></tr></tbody></table><p></p>`);
+      const tableImage = editor.view.dom.querySelector("img");
+      check(tableImage.getBoundingClientRect().width <= tableImage.closest("td").clientWidth, "表格内图片不超出单元格");
+      editor.commands.setContent(initial);
+      show();
+      results.push("全部回归检查通过；可继续手动拖动、撤销、刷新测试。");
+      document.querySelector("#results").textContent = results.join("\n");
+    } catch (error) {
+      document.querySelector("#results").textContent += `\n${error.stack}`;
+    }
+  };
+</script>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>白板双击交互回归</title>
+<link rel="stylesheet" href="../static/whiteboard.css?v=20260919-whiteboard-v8">
+<style>body{font:15px system-ui;padding:24px}pre{white-space:pre-wrap}</style>
+<h1>白板双击交互回归</h1>
+<p>双击“原始文本”应在原卡片内输入且保持两张卡片；双击空白画布应新增卡片并就地输入。还需验证换行、粘贴、Esc、失焦保存、拖动、连线与只读查看。</p>
+<button id="edit">打开编辑白板</button>
+<button id="read">打开只读白板</button>
+<pre id="result">尚未运行</pre>
+<pre id="checks"></pre>
+<script type="module">
+import {openWhiteboard} from '../static/whiteboard-ui.mjs?v=20260919-whiteboard-v8';
+import {normalizeBoard} from '../static/whiteboard-model.mjs';
+let board=normalizeBoard({id:'double-click-regression',title:'双击交互回归',nodes:[
+  {id:'first',type:'text',text:'原始文本',x:0,y:0,width:260,height:160},
+  {id:'second',type:'text',text:'第二张卡片',x:420,y:100,width:260,height:160}
+],edges:[]});
+const result=document.querySelector('#result');
+let readOnly=false;
+function open(read){readOnly=read;openWhiteboard({board,readOnly:read,onChange:next=>{board=next;result.textContent=JSON.stringify(board,null,2);}});}
+document.querySelector('#edit').onclick=()=>open(false);
+document.querySelector('#read').onclick=()=>open(true);
+document.addEventListener('focusout',event=>{
+  if(!event.target.matches('.wb-inline-text'))return;
+  const id=event.target.closest('[data-node-id]').dataset.nodeId, value=event.target.value;
+  const saved=board.nodes.find(n=>n.id===id)?.text===value;
+  document.querySelector('#checks').textContent+=`${saved?'PASS':'FAIL'} 卡片内输入失焦后内容已保存\n`;
+},true);
+document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape'||event.isComposing||event.keyCode===229||!event.target.matches('.wb-inline-text'))return;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const correct=!!document.querySelector('.wb-dialog')&&!document.querySelector('.wb-inline-text');
+    document.querySelector('#checks').textContent+=`${correct?'PASS':'FAIL'} Esc 只结束卡片编辑\n`;
+  }));
+},true);
+document.addEventListener('pointerup',()=>{
+  const preview=document.querySelector('.wb-connection-guide');if(!preview)return;
+  const port=document.querySelector('.wb-port.is-target');
+  const nodeId=port?.closest('[data-node-id]').dataset.nodeId, side=port?.dataset.port;
+  const path=preview.getAttribute('d'), count=board.edges.length;
+  const visiblePorts=[...document.querySelectorAll('.wb-port')].every(p=>{
+    const expected=p.classList.contains('is-source')||!!p.closest('.is-connect-near');
+    return (getComputedStyle(p).display!=='none')===expected;
+  });
+  const highlighted=port&&getComputedStyle(port).boxShadow!=='none';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const edge=board.edges.at(-1), line=edge&&document.querySelector(`[data-edge-id="${edge.id}"] .wb-edge-line`);
+    const correct=visiblePorts&&(port ? highlighted&&board.edges.length===count+1&&edge.to===nodeId&&edge.toSide===side&&line?.getAttribute('d')===path : board.edges.length===count)&&!document.querySelector('.wb-port.is-target');
+    document.querySelector('#checks').textContent+=`${correct?'PASS':'FAIL'} 仅显示附近目标锚点，连线预览与保存一致：${nodeId||'空白'} / ${side||'不连接'}\n`;
+  }));
+},true);
+document.addEventListener('dblclick',event=>{
+  const stage=event.target.closest('.wb-stage');if(!stage)return;
+  const card=[...stage.querySelectorAll('.wb-node')].find(node=>{const r=node.getBoundingClientRect();return event.clientX>=r.left&&event.clientX<=r.right&&event.clientY>=r.top&&event.clientY<=r.bottom;});
+  const count=board.nodes.length;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const focus=document.activeElement;
+    const expectedCount=count+(card||readOnly?0:1);
+    const correct=board.nodes.length===expectedCount&&(readOnly ? !document.querySelector('.wb-inline-text') : focus.matches('.wb-inline-text')&&(!card||focus.closest('[data-node-id]')===card));
+    document.querySelector('#checks').textContent+=`${correct?'PASS':'FAIL'} ${readOnly?'只读':card?'卡片':'空白'}双击：${count} → ${board.nodes.length} 张卡片；焦点 ${focus.tagName}\n`;
+    document.querySelector('.wb-dialog')?.setAttribute('data-regression-result',correct?'PASS':'FAIL');
+  }));
+},true);
+</script>
+</html>

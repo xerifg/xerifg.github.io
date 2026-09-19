@@ -1,0 +1,55 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>白板存储验收</title>
+<link rel="stylesheet" href="../static/app.css"><link rel="stylesheet" href="../static/whiteboard.css">
+<style>body{display:block;padding:24px;overflow:auto}#editor{max-width:700px}#result{white-space:pre-wrap}</style>
+<body><h1>独立白板存储验收</h1><button id="run">运行白板验收</button><pre id="result">尚未运行</pre><div id="editor"></div>
+<script type="importmap">{"imports":{"react":"https://esm.sh/react@18.3.1"}}</script>
+<script type="module">
+import { Editor } from 'https://esm.sh/@tiptap/core@2.11.7';
+import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.11.7';
+import { WhiteboardNode } from '../static/note-whiteboard.mjs';
+import { normalizeBoard } from '../static/whiteboard-model.mjs';
+import { downloadNotebook, restorePortableNotes, saveSnapshot } from '../static/knowledge-storage.mjs';
+import { validateBackup, noteLinks } from '../static/knowledge-model.mjs';
+const editor=new Editor({element:document.querySelector('#editor'),extensions:[StarterKit,WhiteboardNode],content:'<p>测试正文</p>'});
+document.querySelector('#run').onclick=async()=>{
+ const output=document.querySelector('#result'); output.textContent='';
+ const check=(condition,message)=>{output.textContent+=`${condition?'PASS':'FAIL'} ${message}\n`;if(!condition)throw Error(message)};
+ const savedURL=URL.createObjectURL,savedClick=HTMLAnchorElement.prototype.click;
+ let captured;
+ try {
+  const image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+  const board=normalizeBoard({id:'acceptance-board',title:'架构白板',nodes:[{id:'text',type:'text',text:'<script>不执行<\/script>',x:0,y:0,width:260,height:160},{id:'image',type:'image',src:image,x:300,y:0,width:120,height:120},{id:'ref',type:'note',noteId:'target',title:'关联笔记',x:0,y:250,width:260,height:160}],edges:[{id:'edge',from:'text',to:'ref',label:'参考'}]});
+  editor.commands.setContent({type:'doc',content:[{type:'whiteboard',attrs:{board}},{type:'paragraph'}]});
+  const html=editor.getHTML();
+  check(html.includes('data-whiteboard=')&&html.includes('<svg'),'正文含可编辑数据和预览');
+  check(!html.includes('<script>'),'卡片文本不会执行HTML');
+  check(noteLinks(html).includes('target'),'白板笔记引用进入关联关系');
+  editor.commands.setContent(html);
+  check(JSON.stringify(editor.state.doc.firstChild.attrs.board)===JSON.stringify(board),'重新解析保留卡片、坐标和连线');
+  const template=document.createElement('template');template.innerHTML=html;
+  check(template.content.querySelectorAll('img[src]').length===1,'白板图片可由现有附件系统发现');
+  const state={folders:[],notes:[{id:'whiteboard-fixture',title:'白板测试',tags:[],assets:[],html}]};
+  const stored=new Map(); const store={put:async(id,blob)=>stored.set(id,blob),get:async id=>stored.get(id),createObjectUrl:async id=>`blob:restored-${id}`};
+  URL.createObjectURL=blob=>{captured=blob;return 'blob:fixture';}; HTMLAnchorElement.prototype.click=function(){};
+  await downloadNotebook(state,store,'backup');
+  const backup=validateBackup(JSON.parse(await captured.text()));
+  check(backup.notes[0].assets.length===1,'完整备份包含白板图片附件');
+  const restored=await restorePortableNotes(backup.notes,store); editor.commands.setContent(restored[0].html);
+  const restoredBoard=editor.state.doc.firstChild.attrs.board;
+  check(restoredBoard.nodes.find(n=>n.id==='image').src.startsWith('blob:restored-'),'恢复同步更新白板图片数据');
+  check(editor.view.dom.querySelector('img').getAttribute('src')===restoredBoard.nodes.find(n=>n.id==='image').src,'恢复后的预览与可编辑数据使用相同图片');
+  check(restoredBoard.edges[0].label==='参考'&&restoredBoard.nodes.length===3,'恢复保留完整布局与连线');
+  await saveSnapshot(state.notes[0],store,true);
+  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('personal-notebook-history-v1',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  const version=await new Promise((resolve,reject)=>{const r=db.transaction('versions').objectStore('versions').get('whiteboard-fixture');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  check(version.items[0].note.html.includes('data-whiteboard=')&&version.items[0].note.assets.length===1,'历史版本保留白板与附件');db.close();
+  await downloadNotebook(state,store,'markdown');
+  const bytes=new Uint8Array(await captured.arrayBuffer()),view=new DataView(bytes.buffer),decode=new TextDecoder();const files=new Map();let offset=0;
+  while(view.getUint32(offset,true)===0x04034b50){const size=view.getUint32(offset+18,true),length=view.getUint16(offset+26,true),name=decode.decode(bytes.slice(offset+30,offset+30+length)),start=offset+30+length;files.set(name,bytes.slice(start,start+size));offset=start+size;}
+  const markdown=decode.decode(files.get('白板测试--whiteboard-fixture.md'));
+  check(markdown.includes('```whiteboard')&&markdown.includes('assets/whiteboard-fixture/'),'Markdown导出保留白板源数据及附件相对路径');
+  check(files.has('notebook-backup.json'),'导出包包含可完整恢复的备份');
+  output.textContent+='全部检查通过';editor.commands.setContent(html);
+ }catch(error){output.textContent+='FAIL: '+error.stack;}finally{URL.createObjectURL=savedURL;HTMLAnchorElement.prototype.click=savedClick;}
+};
+</script></body></html>

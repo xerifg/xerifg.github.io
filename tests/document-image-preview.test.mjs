@@ -25,13 +25,13 @@ assert.match(
 assert.match(
   appSource,
   /onImagePreview: openImagePreview/,
-  "editing mode should pass the shared image preview handler into TiptapEditor"
+  "reference reader should retain the shared image preview handler"
 );
 
-assert.match(
+assert.doesNotMatch(
   appSource,
   /handleClick\(view, position, event\)[\s\S]*?onImagePreview\?\.\(event\)/,
-  "TiptapEditor should intercept image clicks for preview without mutating document content"
+  "editing mode should select images instead of opening the preview"
 );
 
 assert.match(

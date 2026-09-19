@@ -11,7 +11,8 @@ import Link from "https://esm.sh/@tiptap/extension-link@2.11.7";
 import Highlight from "https://esm.sh/@tiptap/extension-highlight@2.11.7";
 import TextStyle from "https://esm.sh/@tiptap/extension-text-style@2.11.7";
 import Color from "https://esm.sh/@tiptap/extension-color@2.11.7";
-import Image from "https://esm.sh/@tiptap/extension-image@2.11.7";
+import { NoteImage } from "./note-image.mjs?v=20260919-image-resize-v1";
+import { WhiteboardNode, enhanceWhiteboards } from "./note-whiteboard.mjs?v=20260919-whiteboard-v8";
 import Placeholder from "https://esm.sh/@tiptap/extension-placeholder@2.11.7";
 import Table from "https://esm.sh/@tiptap/extension-table@2.11.7";
 import TableRow from "https://esm.sh/@tiptap/extension-table-row@2.11.7";
@@ -41,7 +42,7 @@ import { cloudClient } from "./cloud-client.mjs?v=20260917-account-v1";
 
 import { noteHref, linkedNoteId, textFromNote, normalizeProperties, openWorkspaceNote, closeWorkspaceNote, dailyTitle, templateContent, mergeBackup } from "./knowledge-model.mjs";
 import { WorkspaceSidebar, NoteTabs, QuickOpen, RelationsPane, NoteProperties, CreateNoteDialog } from "./knowledge-ui.mjs";
-import { HistoryDialog, BackupDialog, saveSnapshot, downloadNotebook, restorePortableNotes } from "./knowledge-storage.mjs";
+import { HistoryDialog, BackupDialog, saveSnapshot, downloadNotebook, restorePortableNotes } from "./knowledge-storage.mjs?v=20260919-whiteboard-v8";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -2254,8 +2255,9 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
         else { link.classList.add("is-missing"); link.title = "目标已删除或尚未发布"; }
       });
       const handleCopy = (event) => copyMathSelectionToClipboard(event, root);
+      const clearWhiteboards = enhanceWhiteboards(root, { notes: state.notes, onOpenNote });
       root.addEventListener("copy", handleCopy);
-      return () => root.removeEventListener("copy", handleCopy);
+      return () => { root.removeEventListener("copy", handleCopy); clearWhiteboards(); };
     }
     return undefined;
   }, [editable, html, state.notes]);
@@ -2356,15 +2358,15 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
               key: `${note.id}:${note.publishedAt || "local"}`,
               note,
               notes: state.notes,
-              onChange: (nextHtml) => updateNote(note.id, (item) => {
-                item.html = normalizeDraftHtml(nextHtml, item.html, item.assets);
+              onOpenNote,
+              onChange: (nextHtml, { allowAssetRemoval = false } = {}) => updateNote(note.id, (item) => {
+                item.html = allowAssetRemoval ? normalizeHtml(nextHtml) : normalizeDraftHtml(nextHtml, item.html, item.assets);
               }),
               onAssetInserted: (asset, nextHtml) => updateNote(note.id, (item) => {
                 const assets = Array.isArray(item.assets) ? item.assets : [];
                 item.assets = [...assets.filter((candidate) => candidate.id !== asset.id), asset];
                 item.html = normalizeHtml(nextHtml);
-              }),
-              onImagePreview: openImagePreview
+              })
             }))
           : h("div", {
               ref: readerRef,
@@ -2412,6 +2414,7 @@ function ReferenceReader({ note, notes, onOpenNote, onImagePreview }) {
       link.removeAttribute("target");
       if (target) { link.textContent = target.title; link.title = textFromNote(target.html).slice(0, 240); }
     });
+    return enhanceWhiteboards(root, { notes, onOpenNote });
   }, [note, notes]);
   return h("div", { ref, className: "reader tiptap-reader", onClick: event => {
     const link = event.target.closest('a[href^="#note/"]');
@@ -2929,7 +2932,7 @@ function cssEscape(value) {
   return String(value).replace(/["\\]/g, "\\$&");
 }
 
-function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onImagePreview }) {
+function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onOpenNote }) {
   const shellRef = useRef(null);
   const hostRef = useRef(null);
   const editorRef = useRef(null);
@@ -2942,7 +2945,7 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onImagePrev
   const [linkQuery, setLinkQuery] = useState(null);
   const linkRangeRef = useRef(null);
   const linkPickerRef = useRef(null);
-  const callbacksRef = useRef({ onChange, onAssetInserted }); callbacksRef.current = { onChange, onAssetInserted };
+  const callbacksRef = useRef({ onChange, onAssetInserted, notes, onOpenNote }); callbacksRef.current = { onChange, onAssetInserted, notes, onOpenNote };
   const emittedHtmlRef = useRef(note.html);
   const insertNoteLink = target => {
     const range = linkRangeRef.current;
@@ -3033,7 +3036,13 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onImagePrev
         TextStyle,
         Color.configure({ types: ["textStyle"] }),
         Highlight.configure({ multicolor: true }),
-        Image.configure({ allowBase64: true }),
+        NoteImage.configure({ allowBase64: true }),
+        WhiteboardNode.configure({
+          getNotes: () => callbacksRef.current.notes,
+          onImage: file => cacheNotebookAsset(note, file, "image"),
+          onAssetInserted: (asset, html) => callbacksRef.current.onAssetInserted?.(asset, html),
+          onOpenNote: id => callbacksRef.current.onOpenNote?.(id)
+        }),
         Video,
         FileAttachment,
         Table.configure({ resizable: true, cellMinWidth: 96, lastColumnResizable: false }),
@@ -3049,10 +3058,6 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onImagePrev
           return sanitizeHtml(restoreMarkdownMathInHtml(html));
         },
         attributes: { class: "feishu-editor ProseMirror" },
-        handleClick(view, position, event) {
-          if (event.target?.closest?.("img")) return Boolean(onImagePreview?.(event));
-          return false;
-        },
         handleDOMEvents: {
           mousedown(view, event) {
             if (event.button !== 0) return false;
@@ -3103,6 +3108,16 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onImagePrev
           }
         },
         handleKeyDown(view, event) {
+          if (event.key === "Enter" && !event.isComposing && view.state.selection.empty) {
+            const { $from, from } = view.state.selection;
+            const command = $from.parent.textBetween(0, $from.parentOffset, " ").match(/(?:^|\s)(\/白板)$/);
+            if (command && !editorRef.current?.isActive("codeBlock")) {
+              event.preventDefault();
+              editorRef.current.chain().focus().deleteRange({ from: from - command[1].length, to: from }).insertWhiteboard().run();
+              setInsertMenu(null);
+              return true;
+            }
+          }
           if (linkRangeRef.current && !event.isComposing) {
             if (event.key === "Escape") { setLinkQuery(null); linkRangeRef.current = null; return true; }
             if (event.key === "ArrowDown") { linkPickerRef.current?.querySelector("button")?.focus(); return true; }
@@ -3146,11 +3161,11 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onImagePrev
           return false;
         }
       },
-      onUpdate({ editor: current }) {
+      onUpdate({ editor: current, transaction }) {
         if (current.view.composing) return;
         updateSideButton(current);
         emittedHtmlRef.current = current.getHTML();
-        callbacksRef.current.onChange(emittedHtmlRef.current);
+        callbacksRef.current.onChange(emittedHtmlRef.current, { allowAssetRemoval: transaction.getMeta("whiteboard-change") === true });
         const { $from, from, empty } = current.state.selection;
         const match = empty && !current.isActive("codeBlock") && !current.isActive("code") && $from.parent.textBetween(0, $from.parentOffset, " ").match(/\[\[([^\[\]\n]*)$/);
         linkRangeRef.current = match ? { from: from - match[0].length, to: from } : null;
@@ -3298,7 +3313,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
   const [, forceUpdate] = useState(0);
 
   const updatePosition = useCallback(() => {
-    if (hidden || !editor || editor.state.selection.empty || !shellRef.current) {
+    if (hidden || !editor || editor.state.selection.empty || ["image", "whiteboard"].includes(editor.state.selection.node?.type.name) || !shellRef.current) {
       setPosition(null);
       setColorPanelOpen(false);
       setStyleMenuOpen(false);
@@ -3342,7 +3357,7 @@ function FeishuBubbleToolbar({ editor, shellRef, hidden }) {
     };
   }, [editor]);
 
-  if (hidden || !editor || editor.state.selection.empty || tableSelectionInfo(editor) || !position) return null;
+  if (hidden || !editor || editor.state.selection.empty || ["image", "whiteboard"].includes(editor.state.selection.node?.type.name) || tableSelectionInfo(editor) || !position) return null;
   const iconNode = (Icon, size = 17) => h(Icon, { size, strokeWidth: 1.9, "aria-hidden": "true" });
   const activeBlockStyle = (() => {
     if (editor.isActive("heading", { level: 1 })) return "h1";
@@ -3498,6 +3513,7 @@ function FeishuInsertMenu({ position, run, onTableHoverStart, onTableHoverEnd })
         { icon: FileUp, label: "文件附件", command: "file", color: "#64748b" },
         { icon: TableIcon, label: "表格", command: "table", color: "#00b578", arrow: true },
         { icon: GitBranch, label: "Mermaid 流程图", command: "mermaidDiagram", color: "#3370ff" },
+        { icon: GitBranch, label: "白板", command: "whiteboard", color: "#7c5ce7" },
         { icon: Sigma, label: "\u516c\u5f0f", command: "mathBlock", color: "#6b7280" }
       ]
     }
@@ -3523,6 +3539,7 @@ function FeishuInsertMenu({ position, run, onTableHoverStart, onTableHoverEnd })
 
 async function applyEditorCommand(editor, command, context = {}) {
   const chain = editor.chain().focus();
+  if (command === "whiteboard") return chain.insertWhiteboard().run();
   if (command === "paragraph") chain.setParagraph().run();
   if (command === "h1") chain.toggleHeading({ level: 1 }).run();
   if (command === "h2") chain.toggleHeading({ level: 2 }).run();

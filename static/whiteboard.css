@@ -1,0 +1,90 @@
+.whiteboard-block { margin:20px 0; border:1px solid #dce2eb; border-radius:12px; overflow:hidden; background:#fff; line-height:1.5; }
+.whiteboard-block.is-selected { outline:2px solid #3370ff; outline-offset:2px; }
+.wb-block-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border-bottom:1px solid #edf0f5; font-size:14px; }
+.wb-block-header strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wb-block-header button,.wb-block-actions button { flex-shrink:0; padding:5px 10px; border-radius:6px; background:#f2f5fa; color:#52637a; font-size:12px; cursor:pointer; }
+.wb-preview { position:relative; height:300px; background:#f8faff; cursor:pointer; }
+.wb-preview svg { width:100%; height:100%; padding:12px; }
+.wb-preview foreignObject { overflow:hidden; }
+.wb-preview .wb-card { font-size:16px; }
+.wb-empty-preview { position:absolute; inset:0; display:grid; place-items:center; color:#8190a5; font-size:14px; pointer-events:none; }
+.wb-block-actions { display:none; gap:8px; padding:10px 16px; border-top:1px solid #edf0f5; }
+.whiteboard-block.is-selected .wb-block-actions { display:flex; }
+.wb-card { box-sizing:border-box; width:100%; height:100%; padding:18px; border:1px solid #cad4e2; border-radius:10px; color:#26364d; line-height:1.65; overflow:hidden; font-family:inherit; }
+.wb-card p { margin:0 !important; white-space:pre-wrap; overflow-wrap:anywhere; }
+.wb-dialog textarea.wb-inline-text,.wb-dialog textarea.wb-inline-text:focus { display:block; width:100%; height:100%; margin:0; padding:0; border:0; border-radius:0; outline:none; background:transparent; color:inherit; font:inherit; line-height:inherit; resize:none; cursor:text; user-select:text; overflow-wrap:anywhere; }
+.wb-card a { color:#2563eb; font-weight:600; }
+.wb-card-note p { margin-top:10px !important; color:#718096; font-size:13px; }
+.wb-card-note small { display:block; margin-top:12px; color:#3370ff; }
+.wb-card-image { padding:0; background:#fff !important; }
+.wb-card-image img { width:100%; height:100% !important; object-fit:contain; border-radius:0 !important; margin:0 !important; }
+.wb-card-group { background:color-mix(in srgb,currentColor 5%,transparent); border:2px dashed #adc1df; opacity:.65; border-radius:12px; }
+.wb-backdrop { position:fixed; inset:0; z-index:160; padding:20px; background:rgba(21,32,50,.48); display:flex; }
+.wb-dialog { display:flex; flex-direction:column; width:100%; height:100%; background:#fff; border:1px solid #d9e0eb; border-radius:16px; box-shadow:0 24px 90px #14254240; overflow:hidden; color:#26364d; font-size:14px; }
+.wb-dialog button { border:1px solid transparent; border-radius:7px; background:transparent; padding:7px 11px; font:inherit; color:inherit; cursor:pointer; white-space:nowrap; }
+.wb-dialog button:hover { background:#eef3fa; }
+.wb-dialog button:disabled { opacity:.4; cursor:default; }
+.wb-dialog button:focus-visible,.whiteboard-block button:focus-visible { outline:2px solid #3370ff; outline-offset:2px; }
+.wb-dialog input,.wb-dialog textarea { box-sizing:border-box; min-width:0; border:1px solid #dce2ec; border-radius:7px; padding:8px 10px; background:#fff; color:#26364d; font:inherit; }
+.wb-dialog input:focus,.wb-dialog textarea:focus { outline:2px solid #bfd3ff; border-color:#3370ff; }
+.wb-header { display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid #e5eaf2; min-height:62px; }
+.wb-title { width:280px; font-weight:600 !important; border-color:transparent !important; }
+.wb-title:hover { border-color:#dce2ec !important; }
+.wb-status { margin-left:auto; color:#8390a3; font-size:12px; }
+.wb-body { display:flex; flex:1; min-height:0; position:relative; }
+.wb-tools { display:flex; flex-direction:column; gap:7px; width:88px; flex-shrink:0; border-right:1px solid #e5eaf2; padding:16px 8px; background:#fff; z-index:3; }
+.wb-tools button { padding:10px 3px; font-size:13px; }
+.wb-tools button[aria-pressed=true] { background:#eaf1ff; color:#2863dc; }
+.wb-stage { position:relative; flex:1; min-width:0; overflow:hidden; background-color:#f8faff; background-image:radial-gradient(#d6dfec 1px,transparent 1px); outline:none; touch-action:none; user-select:none; }
+.wb-stage.is-pan { cursor:grab; }
+.wb-stage.is-pan:active { cursor:grabbing; }
+.wb-world { position:absolute; top:0; left:0; width:0; height:0; transform-origin:0 0; }
+.wb-node { position:absolute; cursor:move; }
+.wb-node-group { z-index:0; }
+.wb-node:not(.wb-node-group) { z-index:2; }
+.wb-node.is-selected > .wb-card { outline:2px solid #3370ff; outline-offset:2px; }
+.wb-edges { position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none; z-index:1; }
+.wb-edge-line { stroke:#7c8ba3; stroke-width:2; fill:none; }
+.wb-edge-hit { stroke:transparent; stroke-width:18; fill:none; pointer-events:stroke; cursor:pointer; }
+.wb-edges text { fill:#536780; font-size:13px; paint-order:stroke; stroke:#f8faff; stroke-width:5px; pointer-events:all; cursor:pointer; }
+.wb-edges .is-selected .wb-edge-line { stroke:#3370ff; stroke-width:3; }
+.wb-dialog .wb-port { display:none; position:absolute; width:12px; height:12px; padding:0; border:2px solid #3370ff; border-radius:50%; background:white; cursor:crosshair; }
+.wb-node:hover .wb-port,.wb-node.is-selected .wb-port { display:block; }
+.wb-stage.is-connecting .wb-port { display:none; }
+.wb-stage.is-connecting .is-connect-near .wb-port,.wb-stage.is-connecting .wb-port.is-source { display:block; }
+.wb-stage.is-connecting,.wb-stage.is-connecting .wb-node { cursor:crosshair; }
+.wb-node.is-connect-target > .wb-card { outline:2px solid #3370ff; outline-offset:2px; }
+.wb-dialog .wb-port.is-source { background:#3370ff; }
+.wb-dialog .wb-port.is-target { background:#3370ff; border-color:#fff; box-shadow:0 0 0 2px #3370ff,0 0 0 6px #3370ff30; transform:scale(1.4); }
+.wb-connect-hint { position:absolute; bottom:16px; left:16px; padding:8px 12px; border:1px solid #c5d7ff; border-radius:8px; background:#fff; color:#245bcb; font-size:13px; pointer-events:none; z-index:5; }
+.wb-port-top { left:calc(50% - 6px); top:-6px; }
+.wb-port-bottom { left:calc(50% - 6px); bottom:-6px; }
+.wb-port-left { top:calc(50% - 6px); left:-6px; }
+.wb-port-right { top:calc(50% - 6px); right:-6px; }
+.wb-dialog .wb-resize { position:absolute; bottom:-5px; right:-5px; width:12px; height:12px; padding:0; border:2px solid #3370ff; border-radius:2px; background:#fff; cursor:nwse-resize; }
+.wb-selection-box { position:absolute; border:1px solid #3370ff; background:#3370ff16; pointer-events:none; z-index:4; }
+.wb-empty { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); text-align:center; color:#8796ac; pointer-events:none; width:80%; }
+.wb-empty strong { color:#52637d; font-size:22px; font-weight:500; }
+.wb-empty p { margin-top:12px; }
+.wb-inspector { width:248px; flex-shrink:0; border-left:1px solid #e5eaf2; background:white; padding:20px 16px; display:flex; flex-direction:column; align-items:stretch; gap:16px; overflow:auto; z-index:3; }
+.wb-inspector-heading { display:flex; align-items:center; justify-content:space-between; }
+.wb-inspector label { display:flex; flex-direction:column; gap:8px; font-size:12px; color:#718096; }
+.wb-inspector textarea { width:100%; height:180px; resize:vertical; line-height:1.7; font-size:14px; }
+.wb-inspector .wb-check { flex-direction:row; align-items:center; }
+.wb-note-result { text-align:left; white-space:normal !important; border:1px solid #e5eaf2 !important; }
+.wb-colors { display:flex; flex-wrap:wrap; gap:8px; }
+.wb-colors button { width:26px; height:26px; padding:0; border:1px solid #ced8e6; border-radius:50%; }
+.wb-colors button[aria-pressed=true] { outline:2px solid #3370ff; outline-offset:2px; }
+.wb-delete { color:#d44b56 !important; }
+.wb-footer { padding:9px 18px; display:flex; align-items:center; justify-content:space-between; gap:16px; color:#8796ac; border-top:1px solid #e5eaf2; font-size:12px; }
+.wb-footer > div { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+@media(max-width:800px) {
+  .wb-backdrop { padding:0; }
+  .wb-dialog { border-radius:0; }
+  .wb-header { padding:8px; gap:5px; flex-wrap:wrap; }
+  .wb-title { width:170px; }
+  .wb-tools { width:65px; padding:10px 4px; }
+  .wb-inspector { width:210px; }
+  .wb-footer > span { display:none; }
+  .wb-footer { justify-content:flex-end; }
+}

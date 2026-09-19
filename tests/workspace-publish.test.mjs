@@ -10,3 +10,9 @@ assert.ok(details.some(item=>item.label==='笔记属性'));
 assert.ok(details.some(item=>item.label==='每日笔记日期'));
 assert.equal(buildPublishChangeSet({notes:[{...note,properties:{}}],folders:[]},remote).changes.length,0,'Absent legacy properties are equivalent to empty values');
 console.log('Workspace publish metadata tests passed');
+
+const imageNote = {...note, html:'<p>正文</p><img src="notebooks/assets/example.png" width="480"><p>正文</p>'};
+const resizedNote = {...imageNote, html:imageNote.html.replace('width="480"', 'width="340"')};
+const imageChanges = buildPublishChangeSet({notes:[resizedNote],folders:[]},{notes:[imageNote],folders:[]});
+assert.equal(imageChanges.changes.length,1,'An image-width-only edit must be publishable');
+assert.equal(buildPublishChangeSet({notes:[resizedNote],folders:[]},{notes:[resizedNote],folders:[]}).changes.length,0,'Matching image sizes must not create a draft');
