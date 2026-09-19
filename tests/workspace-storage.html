@@ -2,7 +2,7 @@
 <body><h1>独立备份验收</h1><button id="run">运行备份验收</button><pre id="result">尚未运行</pre>
 <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.3.1"}}</script>
 <script type="module">
-import { downloadNotebook, restorePortableNotes } from '../static/knowledge-storage.mjs';
+import { downloadNotebook, restorePortableNotes } from '../static/knowledge-storage.mjs?v=20260919-history-assets-v1';
 import { validateBackup } from '../static/knowledge-model.mjs';
 const check=(condition,message)=>{if(!condition)throw Error(message)};
 document.querySelector('#run').onclick=async()=>{

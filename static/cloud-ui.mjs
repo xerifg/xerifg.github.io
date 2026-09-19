@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "https://esm.sh/reac
 import katex from "https://esm.sh/katex@0.16.22";
 import { cloudClient } from "./cloud-client.mjs?v=20260917-account-v1";
 
+import { Graph } from "./cloud-graph.mjs?v=20260919-wiki-graph-v2";
+
 const h = React.createElement;
 const button = (label, onClick, extra = {}) => h("button", { type: "button", onClick, ...extra }, label);
 
@@ -135,22 +137,6 @@ export function CloudAssistant({ notes = [], folders = [], noteId, assistantSett
     error ? h("p", { role: "alert", className: "cloud-error" }, error) : null,
     h("form", { onSubmit: submit, className: "cloud-composer" }, h("textarea", { value: question, maxLength: 2000, rows: 3, "aria-label": "向知识库提问", placeholder: "向你的笔记提问…", disabled: busy, onChange: (e) => setQuestion(e.target.value), onKeyDown: (e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(e); } } }),
       busy ? button("停止回答", () => controller.current?.abort()) : h("button", { type: "submit", disabled: !question.trim() || !cloud.status?.generation }, "发送问题")));
-}
-
-function Graph({ data, selected, onSelect }) {
-  const [zoom, setZoom] = useState(1);
-  const positions = useMemo(() => {
-    const around = data.nodes.filter((n) => n.slug !== selected);
-    return new Map(data.nodes.map((n) => {
-      const i = around.indexOf(n); const angle = i * Math.PI * 2 / Math.max(1, around.length);
-      const radius = n.slug === selected || data.nodes.length === 1 ? 0 : 220 + (i % 2) * 65;
-      return [n.slug, { x: 400 + Math.cos(angle) * radius, y: 340 + Math.sin(angle) * radius }];
-    }));
-  }, [data, selected]);
-  return h("div", { className: "cloud-graph" }, h("div", { className: "cloud-toolbar" }, h("span", null, `${data.nodes.length} / ${data.total} 个条目 · 连线表示 Wiki 引用`), button("缩小", () => setZoom((z) => Math.max(.6, z - .2))), button("放大", () => setZoom((z) => Math.min(2, z + .2)))),
-    h("div", { className: "cloud-graph-scroll" }, h("svg", { viewBox: "0 0 800 680", style: { width: `${zoom * 100}%`, height: 440 * zoom, minWidth: 500 * zoom }, role: "group", "aria-label": "Wiki 知识图谱" },
-      data.edges.map((e, i) => { const a = positions.get(e.source), b = positions.get(e.target); return h("line", { key: i, x1: a.x, y1: a.y, x2: b.x, y2: b.y, className: "cloud-edge" }); }),
-      data.nodes.map((n) => { const p = positions.get(n.slug); return h("g", { key: n.slug, transform: `translate(${p.x} ${p.y})`, role: "button", tabIndex: 0, "aria-label": n.title, className: n.slug === selected ? "is-active" : "", onClick: () => onSelect(n.slug), onKeyDown: (e) => { if (["Enter", " "].includes(e.key)) { e.preventDefault(); onSelect(n.slug); } } }, h("title", null, n.title), h("circle", { r: n.slug === selected ? 12 : 8, className: n.type }), h("text", { y: 26, textAnchor: "middle" }, n.title.length > 19 ? n.title.slice(0, 18) + "…" : n.title)); }))));
 }
 
 export function CloudWiki({ assistantSettings, onOpenNote, onOpenAssistantSettings }) {

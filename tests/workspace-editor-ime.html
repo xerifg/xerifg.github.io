@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>中文输入光标回归检查</title>
+<link rel="stylesheet" href="../static/app.css">
+<link rel="stylesheet" href="../static/workspace.css">
+<style>body{display:block;overflow:auto;padding:24px} .paper-scroll{height:480px;overflow:auto} #results{white-space:pre-wrap} .feishu-editor{min-height:200px}</style>
+<button id="run">运行中文输入检查</button>
+<pre id="results" role="status"></pre>
+<div class="paper-scroll"><div id="app"></div></div>
+<script type="importmap">{"imports":{"react":"https://esm.sh/react@18.3.1"}}</script>
+<script type="module">
+import React, {useState} from 'https://esm.sh/react@18.3.1';
+import {createRoot} from 'https://esm.sh/react-dom@18.3.1/client';
+import {TiptapEditor, fixtureEditor, normalizeDraftHtml} from '../static/editor-under-test.mjs';
+const h=React.createElement, wait=()=>new Promise(resolve=>setTimeout(resolve,60));
+let saved='', reset;
+function App(){
+  const [note,setNote]=useState({id:'ime',html:'<p>前文后文</p>',assets:[]});
+  reset=html=>setNote(n=>({...n,id:n.id+'x',html}));
+  return h(TiptapEditor,{note,notes:[note,{id:'target',title:'中文笔记'}],onChange:html=>{
+    saved=html;setNote(n=>({...n,html:normalizeDraftHtml(html,n.html,n.assets)}));
+  }});
+}
+createRoot(document.querySelector('#app')).render(h(App));
+const results=document.querySelector('#results');
+function check(ok,label){results.textContent+=`${ok?'PASS':'FAIL'} ${label}\n`;}
+// Replay browser composition events and DOM edits against the real editor component.
+async function compose(text,flushBeforeEnd=true){
+  const editor=fixtureEditor, dom=editor.view.dom;
+  dom.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));
+  const selection=window.getSelection(), range=selection.getRangeAt(0);
+  const node=range.startContainer, offset=range.startOffset;
+  node.insertData(offset,text);
+  range.setStart(node,offset+text.length);range.collapse(true);
+  selection.removeAllRanges();selection.addRange(range);
+  dom.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertCompositionText',data:text,isComposing:true}));
+  if(flushBeforeEnd)await wait();
+  dom.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:text}));
+  await wait();
+}
+document.querySelector('#run').onclick=async()=>{
+  results.textContent='';
+  try {
+    for(const [label,html,pos,text,early] of [
+      ['段落中间输入中文','<p>前文后文</p>',3,'中文',true],
+      ['中文标点','<p>前文后文</p>',3,'，。！？',true],
+      ['组合结束后才提交 DOM','<p>前文后文</p>',3,'输入',false],
+      ['列表中输入','<ul><li><p>前文后文</p></li></ul>',5,'中文',true],
+      ['表格中输入','<table><tbody><tr><td><p>前文后文</p></td></tr></tbody></table>',6,'中文，',true],
+      ['代码块中输入','<pre><code>前文后文</code></pre>',3,'中文',true]
+    ]) {
+      reset(html);await wait();
+      const editor=fixtureEditor;
+      editor.commands.focus();editor.commands.setTextSelection(pos);await wait();
+      let replacements=0;
+      editor.on('transaction',({transaction})=>{
+        if(transaction.steps.some(step=>step.from===0&&step.to===transaction.before.content.size))replacements++;
+      });
+      await compose(text,early);
+      check(editor.state.doc.textContent===`前文${text}后文`&&saved.includes(text),`${label}：正文和草稿一致`);
+      check(editor.state.selection.from===pos+text.length,`${label}：光标停在输入文字后`);
+      check(replacements===0,`${label}：没有重新载入整篇正文`);
+      await compose('继续');
+      check(editor.state.doc.textContent===`前文${text}继续后文`,`${label}：连续输入不跳位`);
+      const final=editor.getHTML();
+      check(editor.commands.undo()&&editor.getHTML()!==final,`${label}：可以撤销输入`);
+      check(editor.commands.redo()&&editor.getHTML()===final,`${label}：可以重做输入`);
+    }
+    reset('<p>前文后文</p>');await wait();
+    const editor=fixtureEditor;
+    editor.commands.focus();editor.commands.setTextSelection(3);
+    editor.commands.insertContent('[[');await wait();
+    const before=editor.getHTML();
+    // Check our shortcut handler in isolation: synthetic keydown has no native IME
+    // to consume Enter before the default ProseMirror paragraph shortcut.
+    const handled=editor.view.props.handleKeyDown(editor.view,new KeyboardEvent('keydown',{key:'Enter',keyCode:229}));
+    await wait();
+    check(!handled&&editor.getHTML()===before,'输入法确认键不会误插入引用笔记');
+    await compose('中文');
+    check(document.querySelector('.note-link-picker')?.textContent.includes('中文笔记'),'中文输入完成后引用候选正常更新');
+    check(editor.state.selection.from===7,'引用搜索时中文输入不跳位');
+    editor.view.dom.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));
+    editor.view.dom.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true,data:''}));
+    await wait();
+    check(editor.state.selection.from===7&&editor.getHTML()===saved,'取消输入候选不改正文和光标');
+  } catch(error){results.textContent+=`ERROR ${error.stack}`;}
+};
+</script>

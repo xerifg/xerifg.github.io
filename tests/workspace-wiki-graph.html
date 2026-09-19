@@ -1,0 +1,49 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Wiki 图谱交互测试</title>
+<link rel="stylesheet" href="../static/cloud.css?v=20260919-wiki-graph-v2">
+<style>:root{--line:#dde3ee;--panel:#fff;--muted:#69778c;--surface-page:#fafbfe}body{font:14px system-ui;color:#27364c;max-width:1000px;margin:20px auto}#checks{white-space:pre-wrap}.cloud-graph{margin:12px 0}.cloud-toolbar{display:flex;align-items:center;gap:8px}</style>
+<h1>Wiki 图谱交互测试</h1><div id="app"></div><pre id="checks"></pre>
+<script type="module">
+import React,{useState} from 'https://esm.sh/react@18.3.1';
+import {createRoot} from 'https://esm.sh/react-dom@18.3.1/client';
+import {Graph} from '../static/cloud-graph.mjs?v=20260919-wiki-graph-v2';
+import {fixtureGraph} from './workspace-wiki-data.mjs';
+const h=React.createElement, original=fixtureGraph();
+let selections=0;
+function App(){
+  const [data,setData]=useState(original),[selected,setSelected]=useState('');
+  return h('section',{className:'cloud-wiki'},
+    h('button',{onClick:()=>{setSelected('');setData(original);}},'全局示例'),
+    h('button',{onClick:()=>setData({nodes:[],edges:[],total:0})},'空图'),
+    h('button',{onClick:()=>setData({nodes:original.nodes.slice(0,1),edges:[],total:1})},'单节点'),
+    h('button',{onClick:()=>setData({nodes:Array.from({length:100},(_,i)=>({slug:`n${i}`,title:`知识 ${i}`,type:'concept'})),edges:Array.from({length:99},(_,i)=>({source:`n${i}`,target:`n${i+1}`})),total:100})},'100 节点'),
+    h(Graph,{data,selected,onSelect:slug=>{selections++;setSelected(slug);}}),
+    h('output',{id:'selection'},`已选择：${selected||'无'}；打开次数：${selections}`));
+}
+createRoot(document.querySelector('#app')).render(h(App));
+document.addEventListener('wheel',event=>{
+  if(!event.target.closest('.cloud-graph svg'))return;
+  const world=document.querySelector('.cloud-graph-world'), before=world.getScreenCTM();
+  const x=(event.clientX-before.e)/before.a,y=(event.clientY-before.f)/before.d;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const after=world.getScreenCTM();
+    const error=Math.hypot((event.clientX-after.e)/after.a-x,(event.clientY-after.f)/after.d-y);
+    const ratio=after.a/before.a;
+    document.querySelector('#checks').textContent+=`${error<.01&&ratio>.85&&ratio<1.17?'PASS':'FAIL'} 滚轮缩放：幅度平缓，鼠标位置不漂移\n`;
+  }));
+},true);
+let start;
+document.addEventListener('pointerdown',event=>{
+  const node=event.target.closest('[data-graph-node]'),svg=event.target.closest('svg');
+  if(!svg)return;
+  start={x:event.clientX,y:event.clientY,selections,node,world:document.querySelector('.cloud-graph-world').getAttribute('transform'),transform:node?.getAttribute('transform')};
+},true);
+document.addEventListener('pointerup',event=>{
+  if(!start)return;const saved=start;start=null;
+  if(Math.hypot(event.clientX-saved.x,event.clientY-saved.y)<4)return;
+  const moved=saved.node?saved.node.getAttribute('transform')!==saved.transform:document.querySelector('.cloud-graph-world').getAttribute('transform')!==saved.world;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const stable=selections===saved.selections;
+    document.querySelector('#checks').textContent+=`${moved&&stable?'PASS':'FAIL'} ${saved.node?'拖节点':'平移画布'}：位置更新且没有误打开条目\n`;
+  }));
+},true);
+</script></html>

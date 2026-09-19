@@ -1,0 +1,72 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>历史版本附件回归检查</title>
+<body><h1>历史版本附件回归检查</h1><button id="run">运行检查</button><pre id="result">尚未运行</pre>
+<script type="importmap">{"imports":{"react":"https://esm.sh/react@18.3.1"}}</script>
+<script type="module">
+import { saveSnapshot, restorePortableNotes, downloadNotebook } from '../static/knowledge-storage.mjs?v=20260919-history-assets-v1';
+import { hydrateDraftAsset, createDraftAssetStore } from '../static/draft-asset-store.mjs';
+const remote='/tests/workspace-whiteboard-image.svg';
+const output=document.querySelector('#result');
+const check=(ok,message)=>{if(!ok)throw Error(message);};
+const request=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+async function latest(id){
+  const db=await request(indexedDB.open('personal-notebook-history-v1',1));
+  try{return (await request(db.transaction('versions').objectStore('versions').get(id)))?.items[0]?.note;}
+  finally{db.close();}
+}
+document.querySelector('#run').onclick=async()=>{
+  output.textContent='';
+  const ids=[],urls=[],store=createDraftAssetStore({memory:new Map()});
+  const note=(html,assets)=>{const id=`history-fixture-${crypto.randomUUID()}`;ids.push(id);return {id,title:'附件检查',html,assets};};
+  const run=async(label,fn)=>{try{await fn();output.textContent+=`PASS ${label}\n`;}catch(error){output.textContent+=`FAIL ${label}：${error.message}\n`;}};
+  const published=await hydrateDraftAsset({id:'published-image',name:'已发布图片.svg',published:true,localUrl:remote,remotePath:remote},store);
+  await run('已发布附件经过初始化后可保存历史并恢复',async()=>{
+    const n=note(`<p>正文</p><img src="${remote}">`,[published]);
+    await saveSnapshot(n,store);
+    const snapshot=await latest(n.id);
+    check(snapshot.html===n.html&&snapshot.assets[0].remotePath===remote,'发布路径未保留');
+    const [restored]=await restorePortableNotes([snapshot],store);
+    check(restored.html===n.html&&restored.assets[0].published,'恢复没有保留已发布附件');
+  });
+  await run('正文已使用发布路径时，忽略过期的本地附件元数据',async()=>{
+    const n=note(`<img src="${remote}">`,[{...published,assetId:'deleted-cache',storage:'indexeddb',localUrl:'blob:expired'}]);
+    await saveSnapshot(n,store);
+    check((await latest(n.id)).html===n.html,'正文路径被修改');
+  });
+  await run('未发布的本地附件完整打包并可恢复',async()=>{
+    const blob=new Blob(['local image'],{type:'image/svg+xml'}),assetId=crypto.randomUUID();
+    await store.put(assetId,blob);
+    const localUrl=await store.createObjectUrl(assetId);urls.push(localUrl);
+    const n=note(`<img src="${localUrl}">`,[{id:assetId,assetId,storage:'indexeddb',localUrl,name:'草稿.svg'}]);
+    await saveSnapshot(n,store);
+    const snapshot=await latest(n.id);
+    check(snapshot.assets[0].dataUrl?.startsWith('data:image/svg+xml;base64,'),'附件没有打包');
+    const [restored]=await restorePortableNotes([snapshot],store);urls.push(restored.assets[0].localUrl);
+    check(await (await store.get(restored.assets[0].assetId)).text()==='local image','恢复的附件不完整');
+  });
+  await run('真正缺失的本地附件仍报错，保留上一份有效历史',async()=>{
+    const n=note('<p>上一版正文</p>',[]);await saveSnapshot(n,store);
+    let error;
+    try{await saveSnapshot({...n,html:'<p>新正文</p><img src="draft-asset://missing">',assets:[{id:'missing',assetId:'missing',storage:'indexeddb',name:'缺失图片.png'}]},store);}catch(e){error=e;}
+    check(error?.message.includes('本地附件不可用'),'缺失附件没有明确报错');
+    check((await latest(n.id)).html===n.html,'覆盖了上一份有效历史');
+  });
+  await run('无附件记录的旧图片仍可保存历史',async()=>{
+    const n=note(`<img src="${remote}">`,[]);await saveSnapshot(n,store);
+    check((await latest(n.id)).assets[0].remotePath===remote,'旧图片路径丢失');
+  });
+  await run('已发布附件仍能包含在完整备份中',async()=>{
+    const n=note(`<img src="${remote}">`,[published]);
+    const originalURL=URL.createObjectURL,originalClick=HTMLAnchorElement.prototype.click;let captured;
+    URL.createObjectURL=blob=>{captured=blob;return 'blob:fixture';};HTMLAnchorElement.prototype.click=function(){};
+    try{await downloadNotebook({notes:[n],folders:[]},store,'backup');}
+    finally{URL.createObjectURL=originalURL;HTMLAnchorElement.prototype.click=originalClick;}
+    const backup=JSON.parse(await captured.text());
+    check(backup.notes[0].assets[0].dataUrl?.startsWith('data:image/svg+xml;base64,'),'发布附件没有包含在备份中');
+  });
+  // Remove only the histories and temporary URLs created by this test run.
+  const db=await request(indexedDB.open('personal-notebook-history-v1',1));
+  const tx=db.transaction('versions','readwrite');ids.forEach(id=>tx.objectStore('versions').delete(id));
+  await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();
+  urls.forEach(url=>URL.revokeObjectURL(url));
+};
+</script></body></html>

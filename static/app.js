@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "https://esm.sh/react@18.3.1";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "https://esm.sh/react@18.3.1";
 import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
+import { createPortal } from "https://esm.sh/react-dom@18.3.1";
 import { Editor, Node, mergeAttributes } from "https://esm.sh/@tiptap/core@2.11.7";
 import katex from "https://esm.sh/katex@0.16.22";
 import mermaid from "https://esm.sh/mermaid@11.12.0";
@@ -36,13 +37,13 @@ import { buildPublishTagSuggestions, normalizePublishTagInput, stablePublishTags
 import { assertPublishableHtml, assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260918-workspace-v1";
 import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260918-workspace-v1";
 import { LibraryHome, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260918-workspace-v1";
-import { CloudAssistant, CloudWiki } from "./cloud-ui.mjs?v=20260918-wiki-links";
+import { CloudAssistant, CloudWiki } from "./cloud-ui.mjs?v=20260919-wiki-graph-v2";
 
 import { cloudClient } from "./cloud-client.mjs?v=20260917-account-v1";
 
 import { noteHref, linkedNoteId, textFromNote, normalizeProperties, openWorkspaceNote, closeWorkspaceNote, dailyTitle, templateContent, mergeBackup } from "./knowledge-model.mjs";
 import { WorkspaceSidebar, NoteTabs, QuickOpen, RelationsPane, NoteProperties, CreateNoteDialog } from "./knowledge-ui.mjs";
-import { HistoryDialog, BackupDialog, saveSnapshot, downloadNotebook, restorePortableNotes } from "./knowledge-storage.mjs?v=20260919-whiteboard-v8";
+import { HistoryDialog, BackupDialog, saveSnapshot, downloadNotebook, restorePortableNotes } from "./knowledge-storage.mjs?v=20260919-history-assets-v1";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -2953,6 +2954,47 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onOpenNote 
     editorRef.current.chain().focus().insertContentAt(range, { type: "text", text: target.title, marks: [{ type: "link", attrs: { href: noteHref(target.id), target: null, rel: null } }] }).command(({ tr }) => { tr.setStoredMarks([]); return true; }).run();
     setLinkQuery(null); linkRangeRef.current = null;
   };
+  useLayoutEffect(() => {
+    const picker = linkPickerRef.current;
+    if (linkQuery === null || !editor || !picker) return;
+    const scroll = shellRef.current.closest(".paper-scroll");
+    let frame = 0;
+    const position = () => {
+      frame = 0;
+      const range = linkRangeRef.current;
+      if (!range || editor.isDestroyed) return;
+      const caret = editor.view.coordsAtPos(range.to);
+      const bounds = scroll?.getBoundingClientRect();
+      const top = Math.max(8, bounds?.top ?? 8), bottom = Math.min(window.innerHeight - 8, bounds?.bottom ?? window.innerHeight - 8);
+      const left = Math.max(8, bounds?.left ?? 8), right = Math.min(window.innerWidth - 8, bounds?.right ?? window.innerWidth - 8);
+      if (caret.bottom < top || caret.top > bottom) { picker.style.visibility = "hidden"; return; }
+      picker.style.width = `${Math.min(400, right - left)}px`;
+      picker.style.maxHeight = "320px";
+      const height = picker.getBoundingClientRect().height;
+      const below = Math.max(0, bottom - caret.bottom - 8), above = Math.max(0, caret.top - top - 8);
+      const placeBelow = below >= height || below >= above;
+      const visibleHeight = Math.min(height, placeBelow ? below : above);
+      Object.assign(picker.style, {
+        left: `${Math.max(left, Math.min(caret.left, right - picker.offsetWidth))}px`,
+        top: `${placeBelow ? caret.bottom + 8 : caret.top - 8 - visibleHeight}px`,
+        maxHeight: `${visibleHeight}px`, visibility: "visible"
+      });
+    };
+    const schedule = event => {
+      if (event?.target && picker.contains(event.target)) return;
+      if (!frame) frame = requestAnimationFrame(position);
+    };
+    position();
+    window.addEventListener("scroll", schedule, true);
+    window.addEventListener("resize", schedule);
+    const observer = new ResizeObserver(schedule);
+    observer.observe(shellRef.current);
+    return () => {
+      cancelAnimationFrame(frame); observer.disconnect();
+      window.removeEventListener("scroll", schedule, true);
+      window.removeEventListener("resize", schedule);
+    };
+  }, [linkQuery, editor, notes]);
   const [tablePicker, setTablePicker] = useState(null);
   const [tablePickerClosing, setTablePickerClosing] = useState(false);
   const tablePickerCloseTimerRef = useRef(0);
@@ -3001,6 +3043,7 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onOpenNote 
 
   useEffect(() => {
     if (!hostRef.current) return undefined;
+    let compositionEndTimer = 0;
     const updateSideButton = (current) => {
       sideButtonUpdateSeqRef.current += 1;
       const updateSeq = sideButtonUpdateSeqRef.current;
@@ -3018,6 +3061,19 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onOpenNote 
           // Keep the previous position when ProseMirror cannot resolve coords during blank-area clicks.
         }
       });
+    };
+    const syncEditorContent = (current, allowAssetRemoval = false) => {
+      updateSideButton(current);
+      const html = current.getHTML();
+      if (html !== emittedHtmlRef.current) {
+        // Record local content before React echoes it back through note.html.
+        emittedHtmlRef.current = html;
+        callbacksRef.current.onChange(html, { allowAssetRemoval });
+      }
+      const { $from, from, empty } = current.state.selection;
+      const match = empty && !current.isActive("codeBlock") && !current.isActive("code") && $from.parent.textBetween(0, $from.parentOffset, " ").match(/\[\[([^\[\]\n]*)$/);
+      linkRangeRef.current = match ? { from: from - match[0].length, to: from } : null;
+      setLinkQuery(match ? match[1] : null);
     };
     const instance = new Editor({
       element: hostRef.current,
@@ -3100,15 +3156,26 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onOpenNote 
           dblclick(view, event) {
             return maybeCreateParagraphBetweenBlocks(view, event);
           },
-          compositionend(view) {
-            const current = editorRef.current || view.editor;
-            updateSideButton(current);
-            if (current) onChange(current.getHTML());
+          compositionstart() {
+            window.clearTimeout(compositionEndTimer);
+            setInsertMenu(null);
+            setLinkQuery(null); linkRangeRef.current = null;
+            return false;
+          },
+          compositionend() {
+            window.clearTimeout(compositionEndTimer);
+            // Let ProseMirror finish handling the IME commit and its DOM mutations.
+            compositionEndTimer = window.setTimeout(() => {
+              compositionEndTimer = 0;
+              const current = editorRef.current;
+              if (current && !current.isDestroyed && !current.view.composing) syncEditorContent(current);
+            }, 0);
             return false;
           }
         },
         handleKeyDown(view, event) {
-          if (event.key === "Enter" && !event.isComposing && view.state.selection.empty) {
+          if (event.isComposing || view.composing || event.keyCode === 229) return false;
+          if (event.key === "Enter" && view.state.selection.empty) {
             const { $from, from } = view.state.selection;
             const command = $from.parent.textBetween(0, $from.parentOffset, " ").match(/(?:^|\s)(\/白板)$/);
             if (command && !editorRef.current?.isActive("codeBlock")) {
@@ -3118,7 +3185,7 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onOpenNote 
               return true;
             }
           }
-          if (linkRangeRef.current && !event.isComposing) {
+          if (linkRangeRef.current) {
             if (event.key === "Escape") { setLinkQuery(null); linkRangeRef.current = null; return true; }
             if (event.key === "ArrowDown") { linkPickerRef.current?.querySelector("button")?.focus(); return true; }
             if (event.key === "Enter") { linkPickerRef.current?.querySelector("button")?.click(); return true; }
@@ -3163,16 +3230,13 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onOpenNote 
       },
       onUpdate({ editor: current, transaction }) {
         if (current.view.composing) return;
-        updateSideButton(current);
-        emittedHtmlRef.current = current.getHTML();
-        callbacksRef.current.onChange(emittedHtmlRef.current, { allowAssetRemoval: transaction.getMeta("whiteboard-change") === true });
-        const { $from, from, empty } = current.state.selection;
-        const match = empty && !current.isActive("codeBlock") && !current.isActive("code") && $from.parent.textBetween(0, $from.parentOffset, " ").match(/\[\[([^\[\]\n]*)$/);
-        linkRangeRef.current = match ? { from: from - match[0].length, to: from } : null;
-        setLinkQuery(match ? match[1] : null);
+        syncEditorContent(current, transaction.getMeta("whiteboard-change") === true);
       },
       onSelectionUpdate({ editor: current }) {
         if (current.view.composing) return;
+        if (linkRangeRef.current && (!current.state.selection.empty || current.state.selection.from !== linkRangeRef.current.to)) {
+          setLinkQuery(null); linkRangeRef.current = null;
+        }
         setInsertMenu(null);
         updateSideButton(current);
       },
@@ -3185,6 +3249,7 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onOpenNote 
     setEditor(instance);
     updateSideButton(instance);
     return () => {
+      window.clearTimeout(compositionEndTimer);
       if (sideButtonFrameRef.current) window.cancelAnimationFrame(sideButtonFrameRef.current);
       instance.destroy();
       editorRef.current = null;
@@ -3274,13 +3339,13 @@ function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onOpenNote 
       }
     }, "+"),
     h("div", { ref: hostRef }),
-    linkQuery !== null ? h("div", { ref: linkPickerRef, className: "note-link-picker", role: "group", "aria-label": "选择引用笔记", onKeyDown: event => {
+    linkQuery !== null ? createPortal(h("div", { ref: linkPickerRef, className: "note-link-picker", role: "group", "aria-label": "选择引用笔记", onKeyDown: event => {
       const buttons = [...linkPickerRef.current.querySelectorAll("button")]; const index = buttons.indexOf(document.activeElement);
       if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); buttons[(index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length]?.focus(); }
       if (event.key === "Escape") { setLinkQuery(null); linkRangeRef.current = null; editorRef.current?.commands.focus(); }
     } }, h("small", null, "引用笔记 · ↑ ↓ 选择 · Enter 插入"),
       notes.filter(item => item.id !== note.id && `${item.title} ${(item.properties?.aliases || []).join(" ")}`.toLowerCase().includes(linkQuery.toLowerCase())).slice(0, 8).map(item => h("button", { key: item.id, type: "button", onMouseDown: event => event.preventDefault(), onClick: () => insertNoteLink(item) }, item.title)),
-      !notes.some(item => item.id !== note.id && item.title.toLowerCase().includes(linkQuery.toLowerCase())) ? h("p", null, "未找到笔记，请先创建目标笔记。") : null) : null,
+      !notes.some(item => item.id !== note.id && item.title.toLowerCase().includes(linkQuery.toLowerCase())) ? h("p", null, "未找到笔记，请先创建目标笔记。") : null), document.body) : null,
     h("input", {
       ref: fileInputRef,
       type: "file",

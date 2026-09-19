@@ -54,14 +54,23 @@
 .cloud-comparison, .cloud-revisions { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--line); }
 .cloud-graph { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 24px; }
 .cloud-graph .cloud-toolbar > span { margin-right: auto; font-size: 12px; color: var(--muted); }
-.cloud-graph-scroll { overflow: auto; max-height: 540px; }
-.cloud-graph svg { display: block; min-height: 340px; }
-.cloud-edge { stroke: var(--line); stroke-width: 1.5; }
-.cloud-graph g { cursor: pointer; }
-.cloud-graph circle { fill: #6586d3; stroke: var(--panel, white); stroke-width: 3; }
-.cloud-graph circle.entity { fill: #9b7cc5; }
-.cloud-graph g.is-active circle { fill: #e0aa4b; }
-.cloud-graph text { fill: currentColor; font: 12px sans-serif; }
+.cloud-graph-stage { position: relative; overflow: hidden; border-radius: 8px; background: var(--surface-page, #fafbfe); }
+.cloud-graph svg { display: block; width: 100%; height: clamp(340px, 55vh, 540px); touch-action: none; user-select: none; cursor: grab; }
+.cloud-graph svg.is-dragging,.cloud-graph svg.is-dragging .cloud-graph-node { cursor: grabbing; }
+.cloud-graph svg:focus-visible { outline: 2px solid #6586d3; outline-offset: -2px; }
+.cloud-edge { stroke: #aebbd1; stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
+.cloud-edge.is-connected { stroke: #6586d3; stroke-width: 2.5; }
+.cloud-graph-node { cursor: grab; outline: none; }
+.cloud-graph .cloud-node-hit { fill: transparent; stroke: none; }
+.cloud-graph .cloud-node-dot { fill: #6586d3; stroke: var(--panel, white); stroke-width: 2; }
+.cloud-graph .cloud-node-dot.entity { fill: #9b7cc5; }
+.cloud-graph .is-active .cloud-node-dot { fill: #e0aa4b; }
+.cloud-graph .is-highlighted .cloud-node-dot,.cloud-graph-node:focus-visible .cloud-node-dot { stroke: #335fb6; stroke-width: 3; }
+.cloud-graph .is-muted { opacity: .22; }
+.cloud-graph text { fill: currentColor; font: 12px sans-serif; paint-order: stroke; stroke: var(--surface-page, #fafbfe); stroke-width: 4; stroke-linejoin: round; }
+.cloud-graph-help { margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.cloud-graph-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
+.cloud-graph output { min-width: 42px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
 .document-auxiliary .cloud-toolbar select { width: 100%; }
 .document-auxiliary .cloud-composer { flex-wrap: wrap; }
 .document-auxiliary .cloud-composer textarea { flex-basis: 100%; }

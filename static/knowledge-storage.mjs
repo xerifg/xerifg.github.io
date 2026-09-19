@@ -58,12 +58,14 @@ async function portableNotes(notes, store, includePublished) {
     const bundled = [];
     for (const asset of assets) {
       const urls = [asset.localUrl, asset.dataUrl, asset.remotePath, asset.assetId && `draft-asset://${asset.assetId}`].filter(Boolean);
-      if (!urls.some(url => html.includes(url))) continue;
+      const references = urls.filter(url => html.includes(url));
+      if (!references.length) continue;
       let blob;
-      const local = urls.find(url => /^(blob:|data:|draft-asset:|\/api\/local-assets\/)/.test(url));
-      if (asset.storage === "indexeddb" && asset.assetId) blob = await store.get(asset.assetId);
+      // Old cache metadata does not make a published URL a local draft attachment.
+      const local = references.find(url => /^(blob:|data:|draft-asset:|\/api\/local-assets\/)/.test(url));
+      if (local && asset.storage === "indexeddb" && asset.assetId) blob = await store.get(asset.assetId);
       if (!blob && local?.startsWith("data:")) blob = dataUrlToBlob(local);
-      const candidate = local && !local.startsWith("draft-asset:") ? local : includePublished ? urls.find(url => !url.startsWith("draft-asset:")) : null;
+      const candidate = local && !local.startsWith("draft-asset:") ? local : includePublished ? references.find(url => !url.startsWith("draft-asset:")) : null;
       if (!blob && candidate) {
         const address = new URL(candidate, location.href);
         if (address.origin === location.origin || address.protocol === "blob:") {
