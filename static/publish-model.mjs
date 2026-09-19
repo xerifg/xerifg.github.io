@@ -1,3 +1,5 @@
+import { normalizeProperties } from "./knowledge-model.mjs";
+
 function stableTags(tags) {
   return Array.from(new Set((tags || []).map((tag) => String(tag || "").trim()).filter(Boolean))).sort();
 }
@@ -33,6 +35,8 @@ function comparableNote(note) {
     title: note?.title || "",
     folderId: note?.folderId || null,
     tags: stableTags(note?.tags),
+    properties: normalizeProperties(note?.properties),
+    dailyDate: note?.dailyDate || "",
     html: comparableHtml(note),
     assets: comparableAssets(note)
   };
@@ -305,6 +309,8 @@ export function buildPublishChangeDetails(localState, remoteState, change) {
   pushDetail(details, "标题", remoteComparable.title, localComparable.title);
   pushDetail(details, "目录", remoteComparable.folderId || "根目录", localComparable.folderId || "根目录");
   pushDetail(details, "标签", remoteComparable.tags.join("、"), localComparable.tags.join("、"));
+  pushDetail(details, "笔记属性", JSON.stringify(remoteComparable.properties), JSON.stringify(localComparable.properties));
+  pushDetail(details, "每日笔记日期", remoteComparable.dailyDate, localComparable.dailyDate);
 
   const remoteUnavailable = Boolean(remote?.missingRemote);
   const remoteText = textFromHtml(remoteComparable.html);

@@ -272,7 +272,7 @@ function settingSwitch(checked, label, onChange) {
 
 function generalSettings(preferences, onChangePreferences) {
   return [settingsGroup("启动", [
-    settingRow("打开应用时", "默认回到知识库首页，也可以继续上次浏览位置。",
+    settingRow("打开应用时", "继续上次浏览位置，或每次打开知识库概览。",
       preferenceSelect(preferences.rememberLastLocation ? "last" : "home", "启动视图", [["home", "知识库首页"], ["last", "上次位置"]], (value) => onChangePreferences({ rememberLastLocation: value === "last" })))
   ])];
 }
@@ -294,7 +294,7 @@ function readingSettings(preferences, onChangePreferences) {
       h("input", { type: "range", min: 50, max: 100, step: 1, value: preferences.contentWidthRatio, "aria-label": "正文宽度", onChange: (event) => onChangePreferences({ contentWidthRatio: Number(event.target.value) }) })),
     settingRow("显示文档大纲", "在文档旁显示标题导航。",
       settingSwitch(preferences.showOutline, "显示文档大纲", (showOutline) => onChangePreferences({ showOutline }))),
-    settingRow("默认模式", "选择或新建笔记时使用的模式。",
+    settingRow("默认模式", "打开已有笔记时使用的模式，新建笔记直接进入编辑。",
       preferenceSelect(preferences.defaultMode, "默认模式", [["read", "阅读"], ["edit", "编辑"]], (defaultMode) => onChangePreferences({ defaultMode })))
   ])];
 }

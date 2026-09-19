@@ -47,6 +47,22 @@ function providerMock() {
     return new Response('data: {"choices":[{"delta":{"content":"根据原文回答。[1]"}}]}\n\ndata: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n', {headers:{'Content-Type':'text/event-stream'}});
   };
 }
+test('related-note requests use published context and reject missing identities', async () => {
+  const f = fixture();
+  const original = globalThis.fetch;
+  const prompts = [];
+  globalThis.fetch = async (url, options) => { prompts.push(JSON.parse(options.body)); return providerMock()(url, options); };
+  try {
+    assert.equal((await f.call('/api/prepare', {question:'推荐关联', relatedNoteId:'missing'})).status, 404);
+    assert.equal((await f.call('/api/prepare', {question:'推荐关联', relatedNoteId:42})).status, 400);
+    const response = await f.call('/api/prepare', {question:'PRIVATE DRAFT', relatedNoteId:'n1'});
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    const payload = JSON.parse(f.sqlite.prepare('SELECT payload FROM answer_tickets WHERE id=?').get(result.ticket).payload);
+    assert.match(payload.question, /特征融合的原文证据/);
+    assert.doesNotMatch(JSON.stringify(prompts), /PRIVATE DRAFT/);
+  } finally { globalThis.fetch = original; f.sqlite.close(); }
+});
 test('custom login shares a session across APIs and revokes logout', async () => {
   const f=fixture();
   assert.deepEqual(await(await f.call('/auth/config',null,null,false)).json(),{salt:authSalt,iterations:600000});

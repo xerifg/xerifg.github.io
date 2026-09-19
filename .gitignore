@@ -24,7 +24,13 @@ dev/package-lock.json
 .superpowers/
 
 docs/
-tests/
+tests/*
+!tests/knowledge-model.test.mjs
+!tests/workspace-*
+!tests/notebook-zip.test.mjs
+!tests/command-palette.test.mjs
+!tests/document-image-preview.test.mjs
+!tests/library-ui-model.test.mjs
 !cloud/tests/
 !cloud/tests/**
 cloud/node_modules/

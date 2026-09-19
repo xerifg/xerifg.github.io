@@ -128,10 +128,17 @@ async function retrieve(env, generation, query, scope, warnings, signal) {
 
 async function prepare(request, env) {
   const input = await bodyJSON(request);
-  const question = typeof input.question === "string" ? input.question.trim() : "";
+  let question = typeof input.question === "string" ? input.question.trim() : "";
   if (!question || question.length > 2000) fail("请输入 2000 字以内的问题");
   const generation = await active(env);
   if (!generation) fail("知识库尚未完成首次同步", 409);
+  if (input.relatedNoteId !== undefined) {
+    if (typeof input.relatedNoteId !== "string" || input.relatedNoteId.length > 200) fail("关联笔记 ID 无效");
+    const source = await first(env.DB, "SELECT title FROM documents WHERE generation=? AND id=?", generation, input.relatedNoteId);
+    if (!source) fail("这篇笔记尚未加入已发布知识库", 404);
+    const excerpts = await all(env.DB, "SELECT text FROM chunks WHERE generation=? AND note_id=? ORDER BY ordinal LIMIT 2", generation, input.relatedNoteId);
+    question = `请推荐与《${source.title}》相关、值得对照阅读的其他笔记，解释关联并引用来源。当前笔记摘录：${excerpts.map(item => item.text).join("\n").slice(0, 1200)}`;
+  }
   const model = await first(env.DB, "SELECT embedding_model FROM generations WHERE id=?", generation);
   if (model.embedding_model !== `${env.EMBEDDING_MODEL}:1024`) fail("向量模型已改变，请先重建索引", 409);
   const day = new Date().toISOString().slice(0, 10);

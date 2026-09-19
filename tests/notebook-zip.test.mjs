@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { zipFiles } from '../static/notebook-zip.mjs';
+const zip = new Uint8Array(await zipFiles([{name:'中文.md',data:'hello'},{name:'assets/a.bin',data:new Uint8Array([0,128,255])}]).arrayBuffer());
+const view = new DataView(zip.buffer);
+assert.equal(view.getUint32(0,true),0x04034b50);
+assert.equal(view.getUint32(14,true),0x3610a686,'CRC32 must match the standard hello fixture');
+assert.equal(view.getUint16(6,true),0x800,'UTF-8 filenames must be signalled');
+assert.equal(view.getUint16(zip.length-14,true),2);
+assert.equal(view.getUint32(zip.length-22,true),0x06054b50);
+assert.throws(()=>zipFiles([{name:'../escape',data:'x'}]));
+console.log('ZIP compatibility tests passed');

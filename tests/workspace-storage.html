@@ -1,0 +1,38 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>笔记备份验收</title>
+<body><h1>独立备份验收</h1><button id="run">运行备份验收</button><pre id="result">尚未运行</pre>
+<script type="importmap">{"imports":{"react":"https://esm.sh/react@18.3.1"}}</script>
+<script type="module">
+import { downloadNotebook, restorePortableNotes } from '../static/knowledge-storage.mjs';
+import { validateBackup } from '../static/knowledge-model.mjs';
+const check=(condition,message)=>{if(!condition)throw Error(message)};
+document.querySelector('#run').onclick=async()=>{
+ const output=document.querySelector('#result'); output.textContent='正在验收';
+ const savedURL=URL.createObjectURL, savedClick=HTMLAnchorElement.prototype.click;
+ let captured;
+ URL.createObjectURL=blob=>{captured=blob; return 'blob:fixture';};
+ HTMLAnchorElement.prototype.click=function(){};
+ try {
+  const image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+  const state={folders:[],notes:[{id:'a',title:'测试笔记',tags:['论文'],properties:{type:'论文',status:'在读'},html:`<h2>内容</h2><p><a href="#note/b">关联</a></p><img src="${image}"><div data-type="mermaid-diagram" data-mermaid-code="graph TD; A--&gt;B"></div><span data-type="math-inline" data-tex="x^2"></span>`,assets:[]},{id:'b',title:'关联笔记',html:'<p>目标</p>',tags:[],assets:[]}]};
+  const stored=new Map();const store={put:async(id,blob)=>stored.set(id,blob),get:async id=>stored.get(id),createObjectUrl:async id=>`blob:restored-${id}`};
+  await downloadNotebook(state,store,'backup');
+  const backup=validateBackup(JSON.parse(await captured.text()));
+  check(backup.notes[0].assets[0].dataUrl===image,'内嵌附件未完整保留');
+  const restored=await restorePortableNotes(backup.notes,store);
+  check(restored[0].html.includes('blob:restored-'),'恢复附件没有重新创建本机引用');
+  check(restored[0].assets[0].storage==='indexeddb' && stored.size===1,'附件未保存到存储');
+  await downloadNotebook(state,store,'markdown');
+  const bytes=new Uint8Array(await captured.arrayBuffer()), view=new DataView(bytes.buffer), decode=new TextDecoder();
+  const files=new Map();let offset=0;
+  while(view.getUint32(offset,true)===0x04034b50){const size=view.getUint32(offset+18,true),length=view.getUint16(offset+26,true);const name=decode.decode(bytes.slice(offset+30,offset+30+length));const start=offset+30+length;files.set(name,bytes.slice(start,start+size));offset=start+size;}
+  const markdown=decode.decode(files.get('测试笔记--a.md'));
+  check(markdown.includes('graph TD; A-->B'),'Mermaid 源码丢失');
+  check(markdown.includes('$x^2$'),'公式源码丢失');
+  check(markdown.includes(encodeURI('关联笔记--b.md')),'引用没有指向导出的 Markdown');
+  check(markdown.includes('assets/a/'),'附件路径没有转换');
+  check(files.has('notebook-backup.json'),'缺少完整恢复文件');
+  check(markdown.includes('type: "论文"'),'属性丢失');
+  output.textContent='PASS：完整 JSON 备份；内嵌附件；IndexedDB 恢复引用；Markdown 链接；公式与 Mermaid；属性；ZIP 附件目录。';
+ }catch(error){output.textContent='FAIL：'+error.stack;}finally{URL.createObjectURL=savedURL;HTMLAnchorElement.prototype.click=savedClick;}
+};
+</script></body></html>

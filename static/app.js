@@ -32,12 +32,16 @@ import { clearModalState } from "./library-ui-model.mjs";
 import { FAVORITES_INDEX_PATH, hasFavoriteChanges, normalizeFavorites, resolveFavoriteNotes, toggleFavorite } from "./favorites-model.mjs";
 import { blobToBase64 as blobToBase64FromDraftAsset, createDraftAssetStore, hasPendingDraftAssets, hydrateDraftAsset, restoreDraftAssetReferences } from "./draft-asset-store.mjs?v=20260805-indexeddb-draft-assets-v1";
 import { buildPublishTagSuggestions, normalizePublishTagInput, stablePublishTags } from "./publish-tag-model.mjs";
-import { assertPublishableHtml, assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260908-publish-blob-guard-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260917-account-v1";
-import { LibraryHome, PrimaryRail, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260917-account-v1";
+import { assertPublishableHtml, assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260918-workspace-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260918-workspace-v1";
+import { LibraryHome, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260918-workspace-v1";
 import { CloudAssistant, CloudWiki } from "./cloud-ui.mjs?v=20260918-wiki-links";
 
 import { cloudClient } from "./cloud-client.mjs?v=20260917-account-v1";
+
+import { noteHref, linkedNoteId, textFromNote, normalizeProperties, openWorkspaceNote, closeWorkspaceNote, dailyTitle, templateContent, mergeBackup } from "./knowledge-model.mjs";
+import { WorkspaceSidebar, NoteTabs, QuickOpen, RelationsPane, NoteProperties, CreateNoteDialog } from "./knowledge-ui.mjs";
+import { HistoryDialog, BackupDialog, saveSnapshot, downloadNotebook, restorePortableNotes } from "./knowledge-storage.mjs";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -749,6 +753,11 @@ function App() {
   const [treeFocusId, setTreeFocusId] = useState("");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
+  const [toolsView, setToolsView] = useState(null);
+  const [splitChoosing, setSplitChoosing] = useState(false);
+  const historyRef = useRef(new Map());
+  const stateRef = useRef(state); stateRef.current = state;
+  const panelOpen = state.workspace?.panelOpen !== false;
   const [assistantSettings, setAssistantSettings] = useState(loadAssistantSettings);
   const authBusy = useRef(false);
   const commandPaletteTriggerRef = useRef(null);
@@ -758,6 +767,15 @@ function App() {
     window.setTimeout(() => commandPaletteTriggerRef.current?.isConnected && commandPaletteTriggerRef.current.focus(), 0);
   };
   const notebookPersistencePayload = JSON.stringify(notebookStateForPersistence(state));
+  useEffect(() => {
+    const previous = historyRef.current;
+    const changed = state.notes.filter(note => note.dirty && previous.get(note.id) !== JSON.stringify([note.title, note.html, note.properties]));
+    if (!changed.length || !state.draftAssetsReady) return undefined;
+    const timer = setTimeout(() => {
+      changed.forEach(note => saveSnapshot(note, draftAssetStore).then(() => previous.set(note.id, JSON.stringify([note.title, note.html, note.properties]))).catch(error => setToast(`历史版本保存失败：${error.message}`)));
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [state.notes, state.draftAssetsReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -804,7 +822,7 @@ function App() {
         const local = migrate(loadLocalState() || {});
         const shouldKeepLocal = local.notes?.some((note) => note.dirty);
         if (!shouldKeepLocal) {
-          setState((current) => migrate({
+          setState((current) => current.notes.some(note => note.dirty) ? current : ({ ...migrate({
             ...published,
             view: current.view,
             activeId: current.activeId,
@@ -813,11 +831,12 @@ function App() {
             tagSort: current.tagSort,
             tagReturnContext: current.tagReturnContext,
             query: current.query,
+            workspace: current.workspace,
             collapsedFolders: current.collapsedFolders,
             folderExpansionInitialized: current.folderExpansionInitialized,
             uiPreferences: current.uiPreferences,
             settings: { ...current.settings, token: current.settings.token }
-          }));
+          }), authenticated: current.authenticated, mode: current.mode }));
         }
       })
       .catch((error) => console.warn("Published library load failed", error));
@@ -909,7 +928,7 @@ function App() {
         commandPaletteTriggerRef.current = document.activeElement;
         setCommandPaletteOpen((open) => !open);
       }
-      if (event.key === "Escape") closeCommandPalette();
+      if (event.key === "Escape" && !document.querySelector(".knowledge-dialog")) closeCommandPalette();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -1052,6 +1071,7 @@ function App() {
     setIsDocumentSwitching(true);
     patchState((draft) => {
       draft.activeId = noteId;
+      draft.workspace = openWorkspaceNote(draft.workspace, noteId, draft.notes);
       draft.collapsedFolders = revealNoteFolderPath(draft.collapsedFolders, draft.folders, draft.notes, noteId);
       draft.view = "library";
       draft.modal = null;
@@ -1068,6 +1088,13 @@ function App() {
       window.setTimeout(locate, 80);
     }
   };
+
+  useEffect(() => {
+    const openHash = () => { const id = linkedNoteId(location.hash); if (id && stateRef.current.notes.some(n => n.id === id)) selectNote(id); };
+    window.addEventListener("hashchange", openHash);
+    if (location.hash) openHash();
+    return () => window.removeEventListener("hashchange", openHash);
+  }, [state.notes.length]);
 
   const treeDragDisabled = Boolean(state.query.trim());
   const targetForTreeEvent = (event, item) => {
@@ -1164,10 +1191,12 @@ function App() {
     setIsContextSidebarOpen(false);
   };
   const commandItems = filterCommandItems([
-    { id: "new-note", label: "新建笔记", run: () => createNote() },
+    { id: "new-note", label: "新建笔记", run: () => { closeCommandPalette(); if (requireEditPermission("edit")) setToolsView("new"); } },
     { id: "settings", label: "打开设置", run: () => navigate("settings") },
     { id: "assistant", label: "打开 AI 助手", run: () => navigate("assistant") },
-    { id: "library", label: "打开笔记", run: () => navigate("library") }
+    { id: "library", label: "打开笔记", run: () => { navigate("library"); closeCommandPalette(); } },
+    { id: "daily", label: "打开今日笔记", run: () => { openDaily(); closeCommandPalette(); } },
+    { id: "backup", label: "备份与导出", run: () => { setToolsView("backup"); closeCommandPalette(); } }
   ], commandQuery);
   const openArea = (folderId) => {
     patchState((draft) => {
@@ -1202,6 +1231,10 @@ function App() {
     patchState((draft) => {
       const item = draft.notes.find((candidate) => candidate.id === noteId);
       if (!item) return;
+      if (!historyRef.current.has(noteId)) {
+        historyRef.current.set(noteId, JSON.stringify([item.title, item.html, item.properties]));
+        saveSnapshot(structuredClone(item), draftAssetStore).catch(error => setToast(error.message));
+      }
       updater(item, draft);
       item.date = now();
       item.dirty = true;
@@ -1222,11 +1255,11 @@ function App() {
     setToast("文件夹已创建");
   };
 
-  const createNote = (targetFolderId) => {
+  const createNote = (targetFolderId, options = {}) => {
     if (!requireEditPermission("edit")) return;
-    const title = document.querySelector("[data-modal-input='noteTitle']")?.value.trim() || "未命名文档";
+    const title = options.title || document.querySelector("[data-modal-input='noteTitle']")?.value.trim() || "未命名文档";
     patchState((draft) => {
-      const id = `note-${Date.now()}`;
+      const id = `note-${crypto.randomUUID()}`;
       const folderId = targetFolderId ?? draft.modalContext?.folderId ?? null;
       draft.notes.unshift({
         id,
@@ -1238,11 +1271,13 @@ function App() {
         dirty: true,
         publishedAt: "",
         assets: [],
-        html: "<p></p>"
+        ...templateContent(options.template || "blank"),
+        dailyDate: options.dailyDate || ""
       });
       if (folderId) delete draft.collapsedFolders?.[folderId];
       draft.activeId = id;
-      draft.mode = draft.uiPreferences.defaultMode;
+      draft.workspace = openWorkspaceNote(draft.workspace, id, draft.notes);
+      draft.mode = "edit";
       draft.view = "library";
       draft.selectedTag = "";
       draft.query = "";
@@ -1251,8 +1286,33 @@ function App() {
       draft.modalContext = null;
       draft.message = "新文档已保存为本地草稿";
     });
+    setToolsView(null);
     setToast("文档已创建");
   };
+
+  const openDaily = () => {
+    const date = dailyTitle();
+    const existing = state.notes.find(item => item.dailyDate === date || (item.title === date && item.properties?.type === "日记"));
+    if (existing) selectNote(existing.id);
+    else createNote(null, { title: date, template: "daily", dailyDate: date });
+  };
+  const restoreNoteVersion = async (snapshot) => {
+    if (!requireEditPermission("edit")) return;
+    const current = state.notes.find(n => n.id === snapshot.id);
+    if (current) await saveSnapshot(current, draftAssetStore, true);
+    const [restored] = await restorePortableNotes([snapshot], draftAssetStore);
+    updateNote(snapshot.id, item => { Object.assign(item, restored, { html: sanitizeHtml(restored.html) }); });
+    setToolsView(null); setToast("已恢复为本地草稿，原版本保留在历史中");
+  };
+  const importBackup = async (backup) => {
+    if (!requireEditPermission("edit")) throw new Error("请先登录后恢复备份");
+    const restored = await restorePortableNotes(backup.notes, draftAssetStore);
+    const next = mergeBackup(state, { ...backup, notes: restored.map(note => ({ ...note, html: sanitizeHtml(note.html) })) });
+    await Promise.all(state.notes.filter(note => restored.some(n => n.id === note.id)).map(note => saveSnapshot(note, draftAssetStore, true)));
+    patchState(draft => { draft.notes = next.notes; draft.folders = next.folders; });
+    setToast("备份已合并为本地草稿，请审阅后发布");
+  };
+  const exportNotes = (notes, format) => downloadNotebook({ notes, folders: state.folders }, draftAssetStore, format).catch(error => setToast(`导出失败：${error.message}`));
 
   const renameFolder = () => {
     if (!requireEditPermission("edit")) return;
@@ -1637,6 +1697,8 @@ function App() {
           folderId: item.folderId,
           path: folderPath(publishState, item.folderId),
           tags: publishTags,
+          properties: normalizeProperties(item.properties),
+          dailyDate: item.dailyDate || "",
           createdAt: item.createdAt || item.date || publishedAt,
           updatedAt: publishedAt,
           assets: publishedNote.assets,
@@ -1948,7 +2010,13 @@ function App() {
     }
     return h(React.Fragment, null,
       renderDocumentTopbar(state, note, state.uiPreferences, localPersistenceStatus, handleAction, toggleFavoriteNote),
-      h(PaperScroll, { hasDocumentAuxiliary: Boolean(note) },
+      h(NoteTabs, { notes: state.notes, workspace: state.workspace, activeId: state.activeId,
+        onSelect: selectNote, onClose: id => patchState(draft => { draft.workspace = closeWorkspaceNote({ ...draft.workspace, activeId: draft.activeId }, id); draft.activeId = draft.workspace.activeId; }),
+        onNew: () => { if (requireEditPermission("edit")) setToolsView("new"); },
+        splitId: state.workspace?.splitId,
+        onSplit: () => state.workspace?.splitId ? patchState(draft => { draft.workspace.splitId = ""; }) : setSplitChoosing(true),
+        panelOpen, onPanel: () => patchState(draft => { draft.workspace = { ...draft.workspace, panelOpen: !panelOpen }; }) }),
+      h(PaperScroll, { hasDocumentAuxiliary: Boolean(note), noteId: note?.id },
         note
           ? h(DocumentPaper, {
               key: `${note.id}-${state.mode}`,
@@ -1960,6 +2028,11 @@ function App() {
               onStartDirectoryResize,
               onOpenNote: selectNote,
               assistantSettings,
+              panelOpen,
+              onTools: setToolsView,
+              onExport: () => exportNotes([note], "markdown"),
+              onPanelView: view => patchState(draft => { draft.workspace = { ...draft.workspace, auxiliaryView: view }; }),
+              onCloseSplit: () => patchState(draft => { draft.workspace.splitId = ""; }),
               onOpenAssistantSettings: () => {
                 patchState((draft) => { draft.view = "settings"; draft.settingsCategory = "assistant"; });
               }
@@ -1972,34 +2045,23 @@ function App() {
 
   return h(React.Fragment, null,
     h("div", { className: "app-shell", "data-view": state.view },
-      h(PrimaryRail, { view: state.view, onNavigate: navigate }),
-      state.view === "settings"
-        ? h("div", {
-            id: "context-sidebar",
-            className: `context-sidebar settings-sidebar-shell ${isContextSidebarOpen ? "is-open" : ""}`,
-            role: "navigation",
-            "aria-label": "设置目录"
-          }, h(SettingsSidebar, {
-              activeCategory: state.settingsCategory,
-              onSelectCategory: (settingsCategory) => {
-                patchState((draft) => { draft.settingsCategory = settingsCategory; });
-                setIsContextSidebarOpen(false);
-              }
-            }))
-        : state.view === "library"
-          ? renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen, onStartDirectoryResize)
-          : null,
+      h(WorkspaceSidebar, { state, open: isContextSidebarOpen,
+        onNavigate: navigate,
+        onSearch: () => { commandPaletteTriggerRef.current = document.activeElement; setCommandPaletteOpen(true); },
+        onNew: () => { if (requireEditPermission("edit")) setToolsView("new"); }, onTools: setToolsView, onDaily: openDaily,
+        onOpenNote: selectNote, onClose: () => setIsContextSidebarOpen(false),
+        onResize: event => onStartDirectoryResize(event, "notebookSidebarWidth", 1),
+        settings: h(SettingsSidebar, { activeCategory: state.settingsCategory, onSelectCategory: category => { patchState(draft => { draft.settingsCategory = category; }); setIsContextSidebarOpen(false); } }),
+        tree: h("div", { className: "tree", role: "tree", "aria-label": "文档目录" }, renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)) }),
       h("main", { className: `content ${isDocumentSwitching ? "is-document-switching" : ""}` },
-        state.view === "library"
-          ? h("button", {
+        h("button", {
               type: "button",
               className: "context-sidebar-toggle",
               "aria-controls": "context-sidebar",
               "aria-expanded": isContextSidebarOpen,
               "aria-label": isContextSidebarOpen ? "关闭目录" : "打开目录",
               onClick: () => setIsContextSidebarOpen(toggleContextDrawer)
-            }, icon("library", { size: 17 }), h("span", null, "目录"))
-          : null,
+            }, icon("library", { size: 17 }), h("span", null, "目录")),
         state.view === "home"
           ? h(LibraryHome, {
               summary,
@@ -2007,7 +2069,7 @@ function App() {
               tags: tagStats,
               recentNotes,
               favoriteNotes,
-              onCreateNote: () => createNote(),
+              onCreateNote: () => { if (requireEditPermission("edit")) setToolsView("new"); },
               onOpenArea: openArea,
               onOpenTag: enterTag,
               onOpenNote: selectNote,
@@ -2018,31 +2080,30 @@ function App() {
     ),
     renderModal(state, handleAction, assistantSettings),
     toast ? h("div", { className: "toast", role: "status", "aria-live": "polite", "aria-atomic": "true" }, toast) : null,
-    commandPaletteOpen ? h("div", { className: "command-palette-backdrop", onMouseDown: closeCommandPalette },
-      h("div", { className: "command-palette", role: "dialog", "aria-modal": "true", "aria-label": "命令面板", onMouseDown: (event) => event.stopPropagation(), onKeyDown: (event) => {
-        if (event.key !== "Tab") return;
-        const focusable = Array.from(event.currentTarget.querySelectorAll("input:not(:disabled), button:not(:disabled)"));
-        const first = focusable[0];
-        const last = focusable.at(-1);
-        if (!first || !last) return;
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-      } },
-        h("input", { autoFocus: true, value: commandQuery, placeholder: "搜索命令…", onChange: (event) => setCommandQuery(event.target.value), onKeyDown: (event) => {
-          const buttons = Array.from(event.currentTarget.closest(".command-palette")?.querySelectorAll(".command-palette-list button") || []);
-          if (event.key === "ArrowDown") { event.preventDefault(); buttons[0]?.focus(); }
-          if (event.key === "ArrowUp") { event.preventDefault(); buttons.at(-1)?.focus(); }
-          if (event.key === "Enter") { event.preventDefault(); buttons[0]?.click(); }
-        } }),
-        h("div", { className: "command-palette-list" }, commandItems.map((item) => h("button", { key: item.id, type: "button", onClick: () => { item.run(); closeCommandPalette(); } }, item.label)))
-      )
-    ) : null
+    commandPaletteOpen ? h(QuickOpen, { notes: state.notes, folders: state.folders, recent: state.workspace?.recent || [], query: commandQuery, onQuery: setCommandQuery,
+      onOpen: id => { selectNote(id); closeCommandPalette(); }, onClose: closeCommandPalette, commands: commandItems.map(item => ({ ...item, run: () => { item.run(); closeCommandPalette(); } })) }) : null,
+    splitChoosing ? h(QuickOpen, { title: "选择对照阅读的笔记", notes: state.notes.filter(n => n.id !== state.activeId), folders: state.folders, query: commandQuery, onQuery: setCommandQuery,
+      onOpen: id => { patchState(draft => { draft.workspace = { ...draft.workspace, splitId: id }; }); setSplitChoosing(false); setCommandQuery(""); }, onClose: () => { setSplitChoosing(false); setCommandQuery(""); } }) : null,
+    toolsView === "new" ? h(CreateNoteDialog, { onClose: () => setToolsView(null), onCreate: (title, template) => createNote(null, { title, template }), onFolder: () => { setToolsView(null); handleAction("new-folder-in-folder", null); } }) : null,
+    toolsView === "history" && note ? h(HistoryDialog, { note, canRestore: state.authenticated, onRestore: restoreNoteVersion, onClose: () => setToolsView(null) }) : null,
+    toolsView === "backup" ? h(BackupDialog, { state, store: draftAssetStore, canRestore: state.authenticated, onRestore: importBackup, onClose: () => setToolsView(null) }) : null
   );
 }
 
-function PaperScroll({ children, hasDocumentAuxiliary = false }) {
+function PaperScroll({ children, hasDocumentAuxiliary = false, noteId }) {
   const scrollRef = useRef(null);
   const dragRef = useRef(null);
+  useEffect(() => {
+    if (!noteId || !scrollRef.current) return undefined;
+    const element = scrollRef.current;
+    const key = `notebook-scroll:${noteId}`;
+    try { element.scrollTop = Number(localStorage.getItem(key)) || 0; } catch {}
+    let timer, lastTop = element.scrollTop;
+    const save = () => { try { localStorage.setItem(key, String(lastTop)); } catch {} };
+    const onScroll = () => { lastTop = element.scrollTop; clearTimeout(timer); timer = setTimeout(save, 200); };
+    element.addEventListener("scroll", onScroll, { passive: true });
+    return () => { clearTimeout(timer); save(); element.removeEventListener("scroll", onScroll); };
+  }, [noteId]);
   const [metrics, setMetrics] = useState({
     clientWidth: 1,
     clientHeight: 1,
@@ -2173,7 +2234,7 @@ function renderNoteTagPill(tag, note, editable, handleAction) {
   );
 }
 
-function DocumentPaper({ note, state, editable, updateNote, handleAction, onStartDirectoryResize, onOpenNote, assistantSettings, onOpenAssistantSettings }) {
+function DocumentPaper({ note, state, editable, updateNote, handleAction, onStartDirectoryResize, onOpenNote, assistantSettings, onOpenAssistantSettings, panelOpen, onTools, onExport, onPanelView, onCloseSplit }) {
   const html = normalizeHtml(note.html || blocksToHtml(note.blocks));
   const outline = useMemo(() => documentOutlineFromHtml(html), [html]);
   const readerRef = useRef(null);
@@ -2186,12 +2247,18 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
       const root = readerRef.current;
       enhanceReaderCodeBlocks(root);
       renderMathElements(root);
+      root.querySelectorAll('a[href^="#note/"]').forEach(link => {
+        const target = state.notes.find(item => item.id === linkedNoteId(link.getAttribute("href")));
+        link.classList.add("internal-note-link"); link.removeAttribute("target");
+        if (target) { link.textContent = target.title; link.title = `${target.title}\n${textFromNote(target.html).slice(0, 240)}`; }
+        else { link.classList.add("is-missing"); link.title = "目标已删除或尚未发布"; }
+      });
       const handleCopy = (event) => copyMathSelectionToClipboard(event, root);
       root.addEventListener("copy", handleCopy);
       return () => root.removeEventListener("copy", handleCopy);
     }
     return undefined;
-  }, [editable, html]);
+  }, [editable, html, state.notes]);
 
   useEffect(() => () => {
     if (closePreviewTimerRef.current) window.clearTimeout(closePreviewTimerRef.current);
@@ -2245,12 +2312,14 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
   }, []);
 
   const showOutline = state.uiPreferences.showOutline;
-  const [auxiliaryView, setAuxiliaryView] = useState(showOutline ? "outline" : "assistant");
+  const auxiliaryView = state.workspace?.auxiliaryView || "relations";
+  const setAuxiliaryView = onPanelView;
   useEffect(() => {
-    if (!showOutline) setAuxiliaryView("assistant");
+    if (!showOutline && auxiliaryView === "outline") setAuxiliaryView("relations");
   }, [showOutline]);
-  const showAuxiliary = showOutline || auxiliaryView === "assistant";
-  return h("div", { className: `document-workspace ${showAuxiliary ? `has-auxiliary ${outline.length ? "has-outline" : "has-empty-outline"}` : "without-outline"}` },
+  const splitNote = state.notes.find(item => item.id === state.workspace?.splitId && item.id !== note.id);
+  const showAuxiliary = panelOpen && !splitNote;
+  return h("div", { className: `document-workspace ${splitNote ? "is-split" : ""} ${showAuxiliary ? `has-auxiliary ${outline.length ? "has-outline" : "has-empty-outline"}` : "without-outline"}` },
     h("article", { className: `paper ${editable ? "is-editing" : ""}`, "data-note-id": note.id },
       editable
         ? h("input", {
@@ -2274,6 +2343,7 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
         h("span", { className: `pill ${note.dirty ? "dirty" : ""}` }, note.dirty ? "本地草稿" : "已发表"),
         h("span", { className: "pill" }, formatDate(note.date))
       ),
+      h(NoteProperties, { note, editable, onChange: properties => updateNote(note.id, item => { item.properties = properties; }), onHistory: () => onTools("history"), onExport }),
       h("div", { className: "tiptap-shell" },
         editable
           ? (!state.draftAssetsReady && hasPendingDraftAssets(note)
@@ -2285,6 +2355,7 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
             : h(TiptapEditor, {
               key: `${note.id}:${note.publishedAt || "local"}`,
               note,
+              notes: state.notes,
               onChange: (nextHtml) => updateNote(note.id, (item) => {
                 item.html = normalizeDraftHtml(nextHtml, item.html, item.assets);
               }),
@@ -2298,13 +2369,23 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
           : h("div", {
               ref: readerRef,
               className: "reader tiptap-reader",
-              onClick: openImagePreview,
+              onClick: event => {
+                const link = event.target.closest('a[href^="#note/"]');
+                if (link) { event.preventDefault(); onOpenNote(linkedNoteId(link.getAttribute("href"))); }
+                else openImagePreview(event);
+              },
               dangerouslySetInnerHTML: { __html: sanitizeHtml(html) }
             })
       )
     ),
+    splitNote ? h("aside", { className: "reference-pane", "aria-label": "对照笔记" },
+      h("header", null, h("strong", null, splitNote.title), h("button", { type: "button", onClick: onCloseSplit, "aria-label": "退出分屏" }, h(X, { size: 16 }))),
+      h("p", { className: "knowledge-empty" }, "参考笔记 · 只读"),
+      h(ReferenceReader, { note: splitNote, notes: state.notes, onOpenNote, onImagePreview: openImagePreview })) : null,
     imagePreview ? h(DocumentImagePreview, { preview: imagePreview, onClose: closeImagePreview }) : null,
     showAuxiliary ? h(DocumentAuxiliary, {
+      canEdit: editable,
+      onLink: id => updateNote(note.id, item => { const target = state.notes.find(n => n.id === id); if (target) item.html += `<p><a href="${noteHref(id)}">${escapeHtml(target.title)}</a></p>`; }),
       activeView: auxiliaryView,
       onSelectView: setAuxiliaryView,
       showOutline,
@@ -2318,6 +2399,25 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
       onOpenAssistantSettings
     }) : null
   );
+}
+
+function ReferenceReader({ note, notes, onOpenNote, onImagePreview }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const root = ref.current;
+    enhanceReaderCodeBlocks(root);
+    renderMathElements(root);
+    root.querySelectorAll('a[href^="#note/"]').forEach(link => {
+      const target = notes.find(item => item.id === linkedNoteId(link.getAttribute("href")));
+      link.removeAttribute("target");
+      if (target) { link.textContent = target.title; link.title = textFromNote(target.html).slice(0, 240); }
+    });
+  }, [note, notes]);
+  return h("div", { ref, className: "reader tiptap-reader", onClick: event => {
+    const link = event.target.closest('a[href^="#note/"]');
+    if (link) { event.preventDefault(); onOpenNote(linkedNoteId(link.getAttribute("href"))); }
+    else onImagePreview(event);
+  }, dangerouslySetInnerHTML: { __html: sanitizeHtml(note.html) } });
 }
 
 function DocumentImagePreview({ preview, onClose }) {
@@ -2349,17 +2449,19 @@ function DocumentImagePreview({ preview, onClose }) {
   );
 }
 
-function DocumentAuxiliary({ activeView, onSelectView, showOutline, noteId, outline, onStartDirectoryResize, notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings }) {
+function DocumentAuxiliary({ activeView, onSelectView, showOutline, noteId, outline, onStartDirectoryResize, notes, folders, onOpenNote, assistantSettings, onOpenAssistantSettings, canEdit, onLink }) {
   return h("aside", { className: "document-auxiliary", "aria-label": "文档辅助工具" },
     h("div", { className: "document-auxiliary-sticky" },
       h("div", { className: "directory-resize-handle document-outline-resize-handle", title: "拖拽调整右侧栏宽度", onPointerDown: (event) => onStartDirectoryResize(event, "documentOutlineWidth", -1) }),
       h("div", { className: "document-auxiliary-tabs", role: "tablist", "aria-label": "文档辅助工具" },
         showOutline ? h("button", { type: "button", role: "tab", className: activeView === "outline" ? "is-active" : "", "aria-selected": activeView === "outline", onClick: () => onSelectView("outline") }, "大纲") : null,
-        h("button", { type: "button", role: "tab", className: activeView === "assistant" ? "is-active" : "", "aria-selected": activeView === "assistant", onClick: () => onSelectView("assistant") }, "AI 助手")
+        h("button", { type: "button", role: "tab", className: activeView === "relations" ? "is-active" : "", "aria-selected": activeView === "relations", onClick: () => onSelectView("relations") }, "关联"),
+        h("button", { type: "button", role: "tab", className: activeView === "assistant" ? "is-active" : "", "aria-selected": activeView === "assistant", onClick: () => onSelectView("assistant") }, "AI 问答")
       ),
       activeView === "outline" && showOutline
         ? h(DocumentOutline, { noteId, outline, onStartDirectoryResize })
-        : h(NotebookAssistant, { notes, folders, noteId, onOpenNote, assistantSettings, onOpenAssistantSettings })
+        : activeView === "relations" ? h(RelationsPane, { notes, noteId, onOpenNote, onLink, canEdit, backendUrl: assistantSettings.backendUrl, onAssistant: () => onSelectView("assistant") })
+          : h(NotebookAssistant, { notes, folders, noteId, onOpenNote, assistantSettings, onOpenAssistantSettings })
     )
   );
 }
@@ -2827,7 +2929,7 @@ function cssEscape(value) {
   return String(value).replace(/["\\]/g, "\\$&");
 }
 
-function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
+function TiptapEditor({ note, notes = [], onChange, onAssetInserted, onImagePreview }) {
   const shellRef = useRef(null);
   const hostRef = useRef(null);
   const editorRef = useRef(null);
@@ -2837,6 +2939,17 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
   const pendingAssetKindRef = useRef("file");
   const [editor, setEditor] = useState(null);
   const [insertMenu, setInsertMenu] = useState(null);
+  const [linkQuery, setLinkQuery] = useState(null);
+  const linkRangeRef = useRef(null);
+  const linkPickerRef = useRef(null);
+  const callbacksRef = useRef({ onChange, onAssetInserted }); callbacksRef.current = { onChange, onAssetInserted };
+  const emittedHtmlRef = useRef(note.html);
+  const insertNoteLink = target => {
+    const range = linkRangeRef.current;
+    if (!range || !editorRef.current) return;
+    editorRef.current.chain().focus().insertContentAt(range, { type: "text", text: target.title, marks: [{ type: "link", attrs: { href: noteHref(target.id), target: null, rel: null } }] }).command(({ tr }) => { tr.setStoredMarks([]); return true; }).run();
+    setLinkQuery(null); linkRangeRef.current = null;
+  };
   const [tablePicker, setTablePicker] = useState(null);
   const [tablePickerClosing, setTablePickerClosing] = useState(false);
   const tablePickerCloseTimerRef = useRef(0);
@@ -2990,6 +3103,11 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
           }
         },
         handleKeyDown(view, event) {
+          if (linkRangeRef.current && !event.isComposing) {
+            if (event.key === "Escape") { setLinkQuery(null); linkRangeRef.current = null; return true; }
+            if (event.key === "ArrowDown") { linkPickerRef.current?.querySelector("button")?.focus(); return true; }
+            if (event.key === "Enter") { linkPickerRef.current?.querySelector("button")?.click(); return true; }
+          }
           if (maybeReplaceGapCursorWithParagraph(editorRef.current, event)) return true;
           const tableLineKind = tableSelectionKind(editorRef.current);
           if ((event.key === "Backspace" || event.key === "Delete") && tableLineKind) {
@@ -3031,7 +3149,12 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
       onUpdate({ editor: current }) {
         if (current.view.composing) return;
         updateSideButton(current);
-        onChange(current.getHTML());
+        emittedHtmlRef.current = current.getHTML();
+        callbacksRef.current.onChange(emittedHtmlRef.current);
+        const { $from, from, empty } = current.state.selection;
+        const match = empty && !current.isActive("codeBlock") && !current.isActive("code") && $from.parent.textBetween(0, $from.parentOffset, " ").match(/\[\[([^\[\]\n]*)$/);
+        linkRangeRef.current = match ? { from: from - match[0].length, to: from } : null;
+        setLinkQuery(match ? match[1] : null);
       },
       onSelectionUpdate({ editor: current }) {
         if (current.view.composing) return;
@@ -3043,6 +3166,7 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
       }
     });
     editorRef.current = instance;
+    emittedHtmlRef.current = note.html;
     setEditor(instance);
     updateSideButton(instance);
     return () => {
@@ -3052,6 +3176,13 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
       setEditor(null);
     };
   }, [note.id]);
+
+  useEffect(() => {
+    if (editorRef.current && note.html !== emittedHtmlRef.current) {
+      editorRef.current.commands.setContent(note.html || "<p></p>", false);
+      emittedHtmlRef.current = note.html;
+    }
+  }, [note.html, note.id]);
 
   useEffect(() => {
     const stopSelecting = () => {
@@ -3083,6 +3214,9 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
       if (editorRef.current.state.doc.textBetween(from, to) === "/") {
         editorRef.current.chain().focus().deleteRange({ from, to }).run();
       }
+    }
+    if (command === "template") {
+      setInsertMenu({ ...insertMenu, templates: true }); return;
     }
     if (command === "table") {
       openTablePicker(context.event);
@@ -3125,13 +3259,20 @@ function TiptapEditor({ note, onChange, onAssetInserted, onImagePreview }) {
       }
     }, "+"),
     h("div", { ref: hostRef }),
+    linkQuery !== null ? h("div", { ref: linkPickerRef, className: "note-link-picker", role: "group", "aria-label": "选择引用笔记", onKeyDown: event => {
+      const buttons = [...linkPickerRef.current.querySelectorAll("button")]; const index = buttons.indexOf(document.activeElement);
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); buttons[(index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length]?.focus(); }
+      if (event.key === "Escape") { setLinkQuery(null); linkRangeRef.current = null; editorRef.current?.commands.focus(); }
+    } }, h("small", null, "引用笔记 · ↑ ↓ 选择 · Enter 插入"),
+      notes.filter(item => item.id !== note.id && `${item.title} ${(item.properties?.aliases || []).join(" ")}`.toLowerCase().includes(linkQuery.toLowerCase())).slice(0, 8).map(item => h("button", { key: item.id, type: "button", onMouseDown: event => event.preventDefault(), onClick: () => insertNoteLink(item) }, item.title)),
+      !notes.some(item => item.id !== note.id && item.title.toLowerCase().includes(linkQuery.toLowerCase())) ? h("p", null, "未找到笔记，请先创建目标笔记。") : null) : null,
     h("input", {
       ref: fileInputRef,
       type: "file",
       className: "hidden-file-input",
       onChange: handleFileInput
     }),
-    insertMenu ? h(FeishuInsertMenu, { position: insertMenu, run, onTableHoverStart: openTablePicker, onTableHoverEnd: closeTablePicker }) : null,
+    insertMenu?.templates ? h("div", { className: "note-template-picker" }, ["paper", "experiment", "concept", "project"].map((id, index) => h("button", { key: id, type: "button", onClick: () => { editorRef.current.chain().focus().insertContent(templateContent(id).html).run(); setInsertMenu(null); } }, ["论文笔记", "实验记录", "概念笔记", "项目记录"][index]))) : insertMenu ? h(FeishuInsertMenu, { position: insertMenu, run, onTableHoverStart: openTablePicker, onTableHoverEnd: closeTablePicker }) : null,
     tablePicker ? h(TableInsertGrid, {
       position: tablePicker,
       isClosing: tablePickerClosing,
@@ -4062,7 +4203,7 @@ function tablePickerPositionForTrigger(event, shell, menuPosition) {
 
 function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, handleAction, onToggleFavorite) {
   const isFavorite = note && normalizeFavorites(state.favorites).noteIds.includes(note.id);
-  return h("header", { className: "topbar document-topbar", "data-outline-visible": preferences.showOutline ? "true" : "false" }, h("div", { className: "document-breadcrumb" }, h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "" : ""), note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null, h("strong", null, note ? note.title : "")), note ? h(localPersistenceStatus === "error" ? "button" : "span", { className: "document-save-status", role: "status", "aria-live": "polite", "data-state": localPersistenceStatus, type: localPersistenceStatus === "error" ? "button" : undefined, onClick: localPersistenceStatus === "error" ? () => handleAction("retry-local-persistence") : undefined, title: localPersistenceStatusText(localPersistenceStatus) }, localPersistenceStatus === "error" ? "\u4fdd\u5b58\u5931\u8d25\uff0c\u70b9\u51fb\u91cd\u8bd5" : localPersistenceStatusText(localPersistenceStatus)) : null, h("div", { className: "toolbar" }, note ? h("button", { className: `ghost-btn favorite-toggle ${isFavorite ? "is-active" : ""}`, "aria-label": isFavorite ? "取消收藏笔记" : "收藏笔记", "aria-pressed": isFavorite, onClick: () => onToggleFavorite(note.id) }, h(isFavorite ? Star : StarOff, { size: 18, strokeWidth: 1.9, "aria-hidden": "true" })) : null, note ? h("button", { className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`, onClick: () => handleAction("toggle-mode"), "aria-pressed": state.mode === "edit" }, icon(state.mode === "read" ? "read" : "edit", { size: 16 }), state.mode === "read" ? "\u9605\u8bfb" : "\u7f16\u8f91") : null, note ? h(PublishActionsMenu, { state, handleAction }) : null));
+  return h("header", { className: "topbar document-topbar", "data-outline-visible": preferences.showOutline ? "true" : "false" }, h("div", { className: "document-breadcrumb" }, h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "" : ""), note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null, h("strong", null, note ? note.title : "")), note ? h(localPersistenceStatus === "error" ? "button" : "span", { className: "document-save-status", role: "status", "aria-live": "polite", "data-state": localPersistenceStatus, type: localPersistenceStatus === "error" ? "button" : undefined, onClick: localPersistenceStatus === "error" ? () => handleAction("retry-local-persistence") : undefined, title: localPersistenceStatusText(localPersistenceStatus) }, localPersistenceStatus === "error" ? "\u4fdd\u5b58\u5931\u8d25\uff0c\u70b9\u51fb\u91cd\u8bd5" : localPersistenceStatus === "saved" ? `已保存到本机 · ${note.dirty || !note.publishedAt ? "未发布" : "已发布"}` : localPersistenceStatusText(localPersistenceStatus)) : null, h("div", { className: "toolbar" }, note ? h("button", { className: `ghost-btn favorite-toggle ${isFavorite ? "is-active" : ""}`, "aria-label": isFavorite ? "取消收藏笔记" : "收藏笔记", "aria-pressed": isFavorite, onClick: () => onToggleFavorite(note.id) }, h(isFavorite ? Star : StarOff, { size: 18, strokeWidth: 1.9, "aria-hidden": "true" })) : null, note ? h("button", { className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`, onClick: () => handleAction("toggle-mode"), "aria-pressed": state.mode === "edit" }, icon(state.mode === "read" ? "read" : "edit", { size: 16 }), state.mode === "read" ? "\u9605\u8bfb" : "\u7f16\u8f91") : null, note ? h(PublishActionsMenu, { state, handleAction }) : null));
 }
 function PublishActionsMenu({ state, handleAction }) {
   const triggerRef = useRef(null); const menuRef = useRef(null); const isOpen = state.openCreateMenu === "publish-actions"; const draftCount = state.notes.filter((item) => item.dirty || !item.publishedAt).length;
@@ -4085,48 +4226,6 @@ function githubBrowserUrl(settings, path) {
   const branch = settings?.branch || "main";
   if (!owner || !repo || !path) return path || "notebooks/index.json";
   return `https://github.com/${owner}/${repo}/blob/${branch}/${trimSlash(path)}`;
-}
-function renderContextSidebar(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard, isContextSidebarOpen, onStartDirectoryResize) {
-  return h("nav", {
-    id: "context-sidebar",
-    className: `sidebar context-sidebar ${isContextSidebarOpen ? "is-open" : ""}`,
-    "aria-label": "知识库目录"
-  },
-    h("header", { className: "sidebar-heading" },
-      h("div", null,
-        h("strong", null, "我的知识库"),
-        h("span", null, "个人笔记")
-      ),
-      h("div", { className: "sidebar-create-control" },
-        h("button", {
-          className: "sidebar-add-note",
-          "aria-label": "新建",
-          title: "新建",
-          onClick: () => handleAction("toggle-create-menu", "root")
-        }, icon("add")),
-        state.openCreateMenu === "root"
-          ? h("div", { className: "create-menu" },
-              h("button", { onClick: () => handleAction("new-note-in-folder", null) }, "新建文档"),
-              h("button", { onClick: () => handleAction("new-folder-in-folder", null) }, "新建文件夹")
-            )
-          : null
-      )
-    ),
-    h("label", { className: "search-wrap" },
-      icon("search", { size: 16 }),
-      h("span", { className: "sr-only" }, "搜索笔记"),
-      h("input", {
-        className: "search",
-        value: state.query,
-        placeholder: "搜索笔记、标签、内容",
-        onChange: (event) => handleAction("search-library", event.target.value)
-      })
-    ),
-    h("div", { className: "tree", role: "tree", "aria-label": "文档目录" },
-      renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard)
-    ),
-    h("div", { className: "directory-resize-handle sidebar-resize-handle", title: "拖拽调整笔记目录宽度", onPointerDown: (event) => onStartDirectoryResize(event, "notebookSidebarWidth", 1) })
-  );
 }
 function renderTree(state, visibleNotes, selectNote, handleAction, treeDrag, dragTarget, treeKeyboard) {
   const rootFolders = state.folders.filter((folder) => !folder.parentId);
@@ -5359,6 +5458,8 @@ async function loadPublishedLibrary() {
       title: documentData.title || doc.title,
       folderId: doc.folderId || documentData.folderId || null,
       tags: ensureDefaultTags(documentData.tags || doc.tags),
+      properties: normalizeProperties(documentData.properties),
+      dailyDate: documentData.dailyDate || "",
       date: documentData.updatedAt || doc.updatedAt || now(),
       file: doc.file,
       dirty: false,
@@ -5455,6 +5556,8 @@ function buildRemotePublishedNote(summary, documentData) {
     title: documentData.title || summary.title || "未命名文档",
     folderId: documentData.folderId || summary.folderId || null,
     tags: ensureDefaultTags(documentData.tags || summary.tags),
+    properties: normalizeProperties(documentData.properties),
+    dailyDate: documentData.dailyDate || "",
     date: documentData.updatedAt || summary.updatedAt || now(),
     file: summary.file,
     dirty: false,
@@ -5687,6 +5790,8 @@ function migrate(data) {
       title: note.title || "未命名文档",
       folderId: note.folderId || null,
       tags: ensureDefaultTags(note.tags),
+      properties: normalizeProperties(note.properties),
+      dailyDate: note.dailyDate || "",
       date: note.date || note.updatedAt || now(),
       file: note.file || `notebooks/docs/${slugify(note.title || "untitled")}.json`,
       dirty: noteDirty,
@@ -5695,6 +5800,9 @@ function migrate(data) {
       html: noteHtml
     };
   });
+  merged.workspace = { tabs: [], recent: [], panelOpen: window.innerWidth > 1100, auxiliaryView: "relations", ...(data.workspace || {}) };
+  merged.workspace.tabs = merged.workspace.tabs.filter(id => merged.notes.some(n => n.id === id));
+  if (merged.activeId) merged.workspace = openWorkspaceNote(merged.workspace, merged.activeId, merged.notes);
   if (merged.activeId && !merged.notes.some((note) => note.id === merged.activeId)) merged.activeId = "";
   if (!data.view && isNotebookRoute()) {
     merged.view = "library";

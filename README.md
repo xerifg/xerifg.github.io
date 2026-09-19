@@ -6,9 +6,14 @@
 
 - GitHub Pages 静态访问，入口为 `index.html`。
 - Tiptap/ProseMirror 富文本编辑器，支持标题、列表、引用、代码块、表格、任务列表、链接、高亮、图片、视频和文件附件。
-- 56px 主功能轨提供首页、笔记、标签和设置入口；上下文目录保留文件夹、文档、搜索、重命名和删除能力。
+- 统一左侧知识库、中央多标签笔记、右侧“大纲 / 关联 / AI 问答”；手机上按需展开目录和辅助栏。
 - 知识库首页汇总知识领域、常用标签和库概览；标签浏览器支持搜索、排序、分组筛选和打开相关笔记。
-- 默认从知识库首页启动；可在“通用”设置中选择记住上次位置。
+- 默认恢复上次位置、打开的标签页和阅读进度；点击左上角“我的知识库”进入概览，也可在设置中选择每次从概览启动。已有明确启动偏好保持不变。
+- `Ctrl/Cmd + K` 搜索标题、别名、标签和正文，显示命中摘要；支持 `tag:标签`、`path:目录`、引号短语和 `-排除词`。
+- 编辑正文输入 `[[` 选择内部引用，使用稳定 ID 关联笔记；阅读时显示最新标题和悬停摘要，右栏显示双向链接、引用上下文与一跳关系图。
+- 论文、实验、概念、项目模板；类型、状态、来源和别名随笔记发布。左下角“每日笔记”打开或创建当天记录。
+- “对照阅读”同时查看另一篇只读笔记；历史版本保留最近 20 个本机快照，恢复前自动保留当前版本。
+- 左下角“备份与导出”下载完整 JSON 备份，或带附件的 Markdown ZIP；导入先审阅再合并为本地草稿，备份中没有的笔记会保留。
 - 浏览器本地草稿自动保存，未发布内容不会丢失。
 - 发布保持选择性与 GitHub-backed：审阅后只提交勾选的文档、目录和标签索引，未选改动继续保留为本地草稿。
 - 附件先缓存在本地或浏览器中，发布后上传到 `notebooks/assets/{noteId}/` 并替换为仓库相对路径。
@@ -20,7 +25,7 @@
 
 1. 页面由 `index.html` 加载 `static/app.css` 和 `static/app.js`。
 2. `static/app.js` 负责 React UI、Tiptap 编辑器、文档库状态、发布流程和 GitHub Contents API 调用。
-3. `static/library-ui-model.mjs` 提供启动偏好、首页概览和标签浏览计算，`static/library-ui.mjs` 提供主功能轨、首页、标签和设置视图。
+3. `static/library-ui-model.mjs` 提供启动偏好、首页概览和标签浏览计算，`static/library-ui.mjs` 提供首页、标签和设置视图；`knowledge-*` 模块负责工作区、链接、搜索、属性、历史与导出。
 4. `server.py` 是本地辅助服务，提供静态文件服务和本地附件缓存接口。
 5. 已发布内容存放在 `notebooks/` 下，GitHub Pages 直接读取这些 JSON 和资源文件。
 
@@ -31,7 +36,11 @@ index.html              # GitHub Pages 入口
 static/
   app.js                # 前端应用、编辑器、发布逻辑
   app.css               # 页面样式
-  library-ui.mjs        # 主功能轨、首页、标签与设置视图
+  library-ui.mjs        # 首页、标签与设置视图
+  workspace.css        # 三栏工作区与响应式样式
+  knowledge-model.mjs  # 链接、检索、模板、备份合并模型
+  knowledge-ui.mjs     # 工作区、属性与关系面板
+  knowledge-storage.mjs # 历史快照、备份恢复、Markdown 导出
   library-ui-model.mjs  # 启动偏好、知识库概览与标签浏览模型
 notebooks/
   index.json            # 已发布文档索引
@@ -147,6 +156,10 @@ node --check static/app.js
 ```
 
 ## 发布
+
+工作区升级的验收记录见 [design-qa.md](design-qa.md)。历史版本和阅读进度仅存于当前浏览器；定期下载 JSON 备份可在其他浏览器恢复。Markdown ZIP 同时包含完整恢复 JSON，外部网站媒体保留原地址。
+
+“AI 关联建议”需要前端与更新后的 Cloudflare Worker 一起部署；服务端仅使用已发布笔记构建检索上下文，用户确认后才把引用添加为本地修改。
 
 ```bash
 git add .

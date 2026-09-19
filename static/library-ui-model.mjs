@@ -1,11 +1,11 @@
 export const DEFAULT_UI_PREFERENCES = Object.freeze({
-  rememberLastLocation: false,
+  rememberLastLocation: true,
   theme: "auto",
   sidebarDensity: "comfortable",
   translucentMaterials: true,
-  contentWidthRatio: 76,
-  notebookSidebarWidth: 14,
-  documentOutlineWidth: 12,
+  contentWidthRatio: 100,
+  notebookSidebarWidth: 20.5,
+  documentOutlineWidth: 25,
   showOutline: true,
   defaultMode: "read",
   tagOrder: []
@@ -92,19 +92,19 @@ export function normalizeUiPreferences(value = {}) {
     ? contentWidthRatio
     : Number.isFinite(legacyContentWidth)
       ? Math.round(legacyContentWidth / 10)
-      : 76;
+      : 100;
   const normalizeDirectoryWidth = (width, fallback) => {
     const parsed = Number(width);
     return Number.isFinite(parsed) ? Math.min(28, Math.max(10, Math.round(parsed * 100) / 100)) : fallback;
   };
   return {
-    rememberLastLocation: value.rememberLastLocation === true,
+    rememberLastLocation: value.rememberLastLocation !== false,
     theme: ["auto", "light", "dark"].includes(value.theme) ? value.theme : "auto",
     sidebarDensity: value.sidebarDensity === "compact" ? "compact" : "comfortable",
     translucentMaterials: value.translucentMaterials !== false,
     contentWidthRatio: Math.min(100, Math.max(50, resolvedContentWidthRatio)),
-    notebookSidebarWidth: normalizeDirectoryWidth(value.notebookSidebarWidth, 14),
-    documentOutlineWidth: normalizeDirectoryWidth(value.documentOutlineWidth, 12),
+    notebookSidebarWidth: normalizeDirectoryWidth(value.notebookSidebarWidth, 20.5),
+    documentOutlineWidth: normalizeDirectoryWidth(value.documentOutlineWidth, 25),
     showOutline: value.showOutline !== false,
     defaultMode: value.defaultMode === "edit" ? "edit" : "read",
     tagOrder: normalizeTagOrder(value.tagOrder)
