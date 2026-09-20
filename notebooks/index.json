@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-18T12:09:11.678Z",
+  "updatedAt": "2026-09-20T12:06:23.646Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -91,6 +91,64 @@
       "id": "folder-1789440059892",
       "name": "世界模型",
       "parentId": "folder-1783672397764"
+    }
+  ],
+  "sources": [
+    {
+      "id": "bestblogs",
+      "name": "BestBlogs",
+      "url": "https://www.bestblogs.dev/explore/newsletter",
+      "description": "精选技术文章与每周好内容",
+      "category": "周报",
+      "pinned": false
+    },
+    {
+      "id": "ruanyifeng",
+      "name": "阮一峰的网络日志",
+      "url": "https://www.ruanyifeng.com/blog/index.html",
+      "description": "科技爱好者的每周阅读清单",
+      "category": "周报",
+      "pinned": false
+    },
+    {
+      "id": "hex2077",
+      "name": "何夕2077",
+      "url": "https://hex2077.dev/",
+      "description": "AI 资讯日报与深度周报",
+      "category": "日报",
+      "pinned": false
+    },
+    {
+      "id": "zhidx",
+      "name": "智东西",
+      "url": "https://www.zhidx.com/",
+      "description": "AI、芯片与智能汽车产业资讯",
+      "category": "资讯",
+      "pinned": false
+    },
+    {
+      "id": "hacker-news",
+      "name": "Hacker News on the Go",
+      "url": "https://hn.etelej.com/",
+      "description": "轻量浏览技术社区热点",
+      "category": "资讯",
+      "pinned": false
+    },
+    {
+      "id": "inoreader",
+      "name": "Inoreader",
+      "url": "https://www.inoreader.com/dashboard",
+      "description": "集中打开自己的 RSS 阅读空间",
+      "category": "工具",
+      "pinned": false
+    },
+    {
+      "id": "6711d851-ae36-4bd3-a8d7-8e1a63daccc1",
+      "name": "科技爱好者周刊",
+      "url": "https://github.com/ruanyf/weekly",
+      "description": "",
+      "category": "周报",
+      "pinned": false
     }
   ],
   "docs": [
