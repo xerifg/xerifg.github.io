@@ -2,8 +2,8 @@
 <body><h1>独立备份验收</h1><button id="run">运行备份验收</button><pre id="result">尚未运行</pre>
 <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.3.1"}}</script>
 <script type="module">
-import { downloadNotebook, restorePortableNotes } from '../static/knowledge-storage.mjs?v=20260919-history-assets-v1';
-import { validateBackup } from '../static/knowledge-model.mjs';
+import { downloadNotebook, restorePortableNotes } from '../static/knowledge-storage.mjs?v=20260920-sources-v2';
+import { validateBackup } from '../static/knowledge-model.mjs?v=20260920-sources-v2';
 const check=(condition,message)=>{if(!condition)throw Error(message)};
 document.querySelector('#run').onclick=async()=>{
  const output=document.querySelector('#result'); output.textContent='正在验收';
@@ -15,8 +15,10 @@ document.querySelector('#run').onclick=async()=>{
   const image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
   const state={folders:[],notes:[{id:'a',title:'测试笔记',tags:['论文'],properties:{type:'论文',status:'在读'},html:`<h2>内容</h2><p><a href="#note/b">关联</a></p><img src="${image}"><div data-type="mermaid-diagram" data-mermaid-code="graph TD; A--&gt;B"></div><span data-type="math-inline" data-tex="x^2"></span>`,assets:[]},{id:'b',title:'关联笔记',html:'<p>目标</p>',tags:[],assets:[]}]};
   const stored=new Map();const store={put:async(id,blob)=>stored.set(id,blob),get:async id=>stored.get(id),createObjectUrl:async id=>`blob:restored-${id}`};
+  state.sources=[{id:'site',name:'测试信息源',url:'https://example.org/',category:'周报',description:'每周阅读',pinned:true}];
   await downloadNotebook(state,store,'backup');
   const backup=validateBackup(JSON.parse(await captured.text()));
+  check(backup.sources.length===1 && Object.entries(state.sources[0]).every(([key,value])=>backup.sources[0][key]===value),'信息源清单备份不完整');
   check(backup.notes[0].assets[0].dataUrl===image,'内嵌附件未完整保留');
   const restored=await restorePortableNotes(backup.notes,store);
   check(restored[0].html.includes('blob:restored-'),'恢复附件没有重新创建本机引用');
@@ -31,8 +33,9 @@ document.querySelector('#run').onclick=async()=>{
   check(markdown.includes(encodeURI('关联笔记--b.md')),'引用没有指向导出的 Markdown');
   check(markdown.includes('assets/a/'),'附件路径没有转换');
   check(files.has('notebook-backup.json'),'缺少完整恢复文件');
+  check(JSON.parse(decode.decode(files.get('notebook-backup.json'))).sources[0].name==='测试信息源','ZIP 备份缺少信息源');
   check(markdown.includes('type: "论文"'),'属性丢失');
-  output.textContent='PASS：完整 JSON 备份；内嵌附件；IndexedDB 恢复引用；Markdown 链接；公式与 Mermaid；属性；ZIP 附件目录。';
+  output.textContent='PASS：完整 JSON 备份；信息源清单；内嵌附件；IndexedDB 恢复引用；Markdown 链接；公式与 Mermaid；属性；ZIP 附件目录。';
  }catch(error){output.textContent='FAIL：'+error.stack;}finally{URL.createObjectURL=savedURL;HTMLAnchorElement.prototype.click=savedClick;}
 };
 </script></body></html>

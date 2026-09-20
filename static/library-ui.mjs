@@ -50,7 +50,7 @@ export function PrimaryRail({ view, onNavigate }) {
   );
 }
 
-export function LibraryHome({ summary, areas, tags, recentNotes = [], favoriteNotes = [], onCreateNote, onOpenArea, onOpenTag, onOpenNote, onOpenRecentNotes }) {
+export function LibraryHome({ summary, areas, tags, recentNotes = [], favoriteNotes = [], onCreateNote, onOpenArea, onOpenTag, onOpenNote, onOpenRecentNotes, onOpenFavorites }) {
   const summaryItems = [
     ["file", summary.notes, "文档", "已记录的知识条目"],
     ["folder", summary.folders, "文件夹", "组织你的知识结构"],
@@ -97,11 +97,12 @@ export function LibraryHome({ summary, areas, tags, recentNotes = [], favoriteNo
       ),
       h("section", { className: "library-section recent-notes-section favorites-notes-section", "aria-labelledby": "favorite-notes-title" },
         h("div", { className: "library-section-heading" },
-          h("h2", { id: "favorite-notes-title" }, "收藏笔记")
+          h("h2", { id: "favorite-notes-title" }, "收藏笔记"),
+          h("button", { type: "button", className: "recent-notes-all", onClick: onOpenFavorites }, "查看全部")
         ),
         h("div", { className: "recent-note-list" },
           favoriteNotes.length
-            ? favoriteNotes.map(noteRow)
+            ? favoriteNotes.slice(0, 5).map(noteRow)
             : h("div", { className: "library-inline-empty favorites-empty" }, "在任意笔记顶部点击星标，它会显示在这里并随 GitHub 同步。")
         )
       ),

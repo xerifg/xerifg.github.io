@@ -1,53 +1,103 @@
-# Notebook workspace acceptance — 2026-09-18
+# 收藏笔记预览追加验收
 
-## Target and visual evidence
+final result: passed
 
-Approved combined design: `C:/Users/ethan/.codex/generated_images/01a0b4d5-47a7-7f72-a652-b7e7e13f083b/exec-4cebc452-08d0-43d7-865c-643fb01404b5.png`.
+- 依据：用户确认在第二版收藏列表上增加右侧正文预览抽屉。保留原列表，单击预览，点击「打开笔记」进入阅读页。
+- 隔离验收地址：localhost:8006，六篇模拟笔记；没有操作生产数据。
+- 实际截图：`.notebook-cache/favorites-qa/preview-desktop.png`（1280 × 720）、`preview-mobile.png`（390 × 844）。与下方记录的第二版原图在同一次图像输入中比较，未拉伸截图；抽屉是此次明确批准的布局追加。
+- 字体、间距、颜色、图标和内容检查：沿用系统字体及浅深主题，桌面抽屉宽 680px，手机满宽，正文独立滚动；标题和标签清晰，长文不会挤掉关闭和打开按钮，无水平溢出。正文图片为隔离测试资产。
+- 修正：底部公共弹窗样式曾覆盖按钮对齐，已限定预览样式优先级，并重新截图复核。最终无遗留 P0/P1/P2 问题。
+- 浏览器验证：标题、正文、列表、引用、图片、表格、代码和公式正常渲染；预览没有可编辑区域。正文滚动 586px 时背景列表保持 0px。
+- 关闭按钮、Escape、点击遮罩均可关闭；关闭后焦点回到对应笔记，列表滚动位置 415px 保持不变。打开正文后返回收藏仍保留 JEPA 搜索条件。
+- 预览里的笔记引用可以打开目标正文并返回收藏；Tab 在底部按钮处回到关闭按钮。
+- JavaScript 语法、workspace-favorites 回归测试及 diff 检查通过，浏览器 error/warn 日志为空。尚未部署。
 
-The reference and rendered desktop were visually inspected together at 1487 × 1058. A final screenshot is `.notebook-cache/upgrade/desktop-final.png`. The left column is approximately 305 px, article begins at x=340, and the right column begins at x=1115, matching the reference's main proportions. Sidebar and auxiliary widths remain user adjustable. Existing explicit preferences are preserved.
+---
 
-The fixture contains the same article heading and comparable paragraph/link structure. It does not insert the image generator's illustrative diagram into the user's notes. Deliberate functional additions are collapsed note properties, history/export controls, recent notes, daily notes, relation graph and explicit AI suggestions. Auxiliary tabs sit below the common document tab bar, keeping the global panel toggle reachable. UI type is slightly denser than the reference for longer real note titles.
+# 收藏独立列表页验收（预览追加前）
 
-Evidence, kept locally rather than bundled into the published site:
+final result: passed
 
-- `.notebook-cache/upgrade/desktop-final.png`: light desktop, two open notes, relationships visible.
-- `.notebook-cache/upgrade/split.png`: main note and read-only reference.
-- `.notebook-cache/upgrade/mobile.png`: 390 × 844 dark reading view after minimum-width correction.
-- `.notebook-cache/upgrade/mobile-outline.png`: mobile auxiliary drawer and heading navigation.
+## 本次设计依据与截图
 
-## Passed
+- 用户选择的第二张可见效果图：`C:/Users/ethan/.codex/generated_images/01a0b4d5-47a7-7f72-a652-b7e7e13f083b/exec-3bf51b0c-ad8f-4757-a380-2936be45a605.png`，1487 × 1058 像素，清爽列表布局。不是第一张的预览分栏，也不是第三张卡片。
+- 实现：现有笔记应用，隔离验收地址 `http://localhost:8005/`，六篇示例收藏；模拟发布没有发送到生产仓库。
+- 截图目录：`D:/projects/xerifg.github.io/.notebook-cache/favorites-qa/`。
+- 桌面：`desktop.png`，1280 × 720 像素 / CSS 视口，浅色、全部标签、手动排序。原图较高，实际页面通过纵向滚动查看全部六篇；不将视口高度差当作裁切错误。没有拉伸或伪造截图。
+- 其他证据：`desktop-before.png`、`dark.png`、`mobile.png`、`empty.png`、`mobile-return.png`。手机截图为 390 × 844 像素 / CSS 视口；另验证 820 × 900 视口。截图按 1:1 查看。
+- 原图和 desktop-before.png 在同一次图像输入中比较；修正手机返回入口后，原图和 desktop.png 又放在同一次输入中复核。首排文字、标签、图标、操作和分隔线可直接读清，不需要另外放大裁剪。
 
-- Unified navigation, folder tree, bottom settings, home via brand, note tabs, auxiliary panel.
-- Actual real-library loading on the normal local server; edits and publishing acceptance used the isolated fixture only.
-- Full-text query `像素重建` returns the note and highlights its body excerpt; Enter opens the result. Search and template dialogs manage keyboard focus and Escape.
-- Paper template creates headings and type/status. `[[WA` offers a candidate; Enter inserts `#note/demo-wa`, with relation count changing immediately.
-- Renaming WA-JEPA updates the displayed source link title without changing its href, and the link still opens the renamed note.
-- History lists snapshots with preview. Restoring the original version updates the active rich-text editor, resets its properties, removes later links, and retains the pre-restore snapshot.
-- Daily-note repeated invocation produces only one note for the local day.
-- Reference split displays another note read-only and exits correctly.
-- Reading scroll position of 276 px is restored after switching to another tab and back.
-- AI relation fixture produces a suggestion; no link is added until clicking “添加引用”. That click updates editor and relationship count and disables duplicate insertion.
-- AI question entry is available in the right tab and scopes to the current note.
-- Mobile directory and auxiliary drawers; the outline is visible after overriding legacy hiding rules. Reading region has equal client/scroll widths after overriding the legacy 720 px minimum. Both light and dark themes were inspected.
-- Isolated publish workflow from tag review through selected change review to completion; repository fixture JSON contains paper properties and dailyDate. No GitHub writes were made.
-- `tests/workspace-storage.html` reports PASS for JSON backup, embedded media, restored IndexedDB asset references, Markdown internal filenames, math, Mermaid source, metadata, and ZIP attachment directory.
-- New knowledge/publish/ZIP tests pass, existing publishing and preference model tests pass. Worker suite passes 23/23, including new published-context relationship retrieval validation.
-- Syntax checks and `git diff --check` pass.
+## 结果与修正历史
 
-## Regression baseline and limits
+- 桌面列表：标题、搜索、排序、标签筛选、单列笔记、金色收藏星标、管理菜单均按选定结构实现，无右侧预览栏。
+- [P2，已修复] 新增「返回收藏」曾成为正文顶部网格的额外一列，手机下挤压阅读和发布按钮。前一次浏览器截图已显示此问题；现已移入原有面包屑，手机使用带可访问名称的返回箭头，桌面保留文字。`mobile-return.png` 复查确认工具栏完整显示。
+- 最终桌面共同输入复核和手机修复复核后，无遗留 P0/P1/P2 问题。
 
-Full local suite: 28 passed test files, 11 failures. These same 11 files failed before implementation: `document-mode-toggle`, `document-note-tag-actions`, `document-outline-layout`, `document-visual-layout`, `draft-image-persistence`, `final-binding-fixes`, `library-interactions`, `library-shell-ui`, `mermaid-editor-integration`, `publish-review-diff-ui`, `table-editor-integration`. Many check old literal source strings/layout contracts; they are not counted as passing. The quick-open and image-preview assertions affected by this change were updated to their new contracts.
+## 五项视觉检查
 
-AI provider quality and live deployment are not validated: the browser uses a local mock, while Worker tests exercise retrieval/authentication with in-memory SQL and provider fixtures. The updated frontend and Worker should be deployed together to enable `relatedNoteId`. History and workspace state are local to the browser; exported JSON is the portable recovery format. External-origin media remains a URL; unavailable required local attachments produce an error instead of a silently incomplete backup.
+- 字体：沿用现有 SF Pro Text / Segoe UI / PingFang SC / Microsoft YaHei 字体栈，标题 34px、笔记标题 17px、摘要 14px、元信息 12px。标题允许换行，摘要单行省略；与原图的系统字体和视口缩放差异保留为现有应用的一致性选择。
+- 间距和布局：40px 主区边距、独立横向列表、轻分隔线、小文档图标。保留现有可调宽度的侧栏及真实文件夹，而非将示例侧栏写死。手机改为窄屏列表，隐藏独立日期列和文档图标，保留标题、摘要、目录、标签和操作。
+- 颜色：白色页面、浅灰侧栏、蓝色筛选与文档图标、金色星标；使用现有主题变量，深色主题截图已检查。
+- 图像和图标：原图无照片、封面或自定义位图；全部是与现有 Lucide 一致的标准图标，未用自制图形或占位图片替代。
+- 内容：名称、副标题和搜索文案与选图一致；标签和目录由实际笔记生成，更新日期来自笔记。新增数量、批量管理和待发布状态是必要功能反馈，未加入额外收藏夹或 AI 功能。
 
-## Reproduce
+## 交互与验证
 
-Use Node 22 or newer. In this environment test subprocess spawning is restricted, so tests use in-process isolation:
+- 收藏导航进入独立页，首页保留最多五篇快捷条目和「查看全部」。
+- 搜索标题/摘要/目录/标签，按标签过滤，按更新时间排序，手动拖动及菜单移动通过。
+- 单篇取消、批量取消、撤销、全空状态通过；原笔记保留，撤销不重复添加，也不恢复已删除的笔记。
+- 打开正文后返回，搜索条件保留；滚动位置 464px 返回后仍为 464px。
+- 取消收藏后刷新仍保留结果；新的 favoritesDirty 标记防止未发布清单被线上旧内容覆盖。
+- 隔离发布审阅显示收藏名称与顺序差异，仅发表收藏成功；未修改笔记正文。撤销到与线上相同时，审阅清除待发布标记。
+- 390、820、1280 宽度均无页面横向溢出。批量复选框、搜索、排序有标签；菜单可用 Escape 关闭，正文返回按钮保留可访问名称。
+- workspace-favorites、library-ui-model、workspace-publish、workspace-sources 回归测试、相关 JavaScript 语法及 diff 检查通过。浏览器 error/warn 日志为空。
+- 本次尚未部署；本地 8001 原测试服务可刷新体验。
 
-```powershell
-node --test --experimental-test-isolation=none tests/knowledge-model.test.mjs tests/workspace-publish.test.mjs tests/notebook-zip.test.mjs
-node --test --experimental-test-isolation=none cloud/tests/*.test.mjs
-python tests/workspace-fixture-server.py
-```
+---
 
-Open `http://127.0.0.1:8001/` for the isolated account, notes and publication fixture. It never forwards API calls to production. Open `/tests/workspace-storage.html` on that origin and click its test button for portable backup/export acceptance. The ordinary `python server.py` preview continues to use the actual repository notes and configured authentication.
+# 上一次信息源界面验收
+
+final result: passed
+
+## 对照与证据
+
+- 设计依据：用户选定的第一张卡片网格效果图；名称按最新要求调整为「信息源」。
+- 原图：`C:/Users/ethan/.codex/generated_images/01a0b4d5-47a7-7f72-a652-b7e7e13f083b/exec-7411c204-f364-4d4e-9cf5-1f0bc44d1126.png`，1487 × 1058 像素。
+- 实际页面：`http://localhost:8004/`，完整应用的隔离测试服务，浅色、六个网站、全部分类、登录状态。
+- 桌面截图：`D:/projects/xerifg.github.io/.notebook-cache/sources-qa/desktop.png`、`desktop-menu.png`、`desktop-bottom.png`（后两张同目录），1280 × 720 像素，对应 1280 × 720 CSS 视口，按 1:1 截图查看。
+- 手机截图：同目录 `mobile.png`、`mobile-form.png`，390 × 844 像素，对应 390 × 844 CSS 视口。另检查了 820 × 900 CSS 视口。
+- 对照方式：原图与 desktop-menu.png 放在同一次图像输入中比较导航、标题、搜索、首排卡片和菜单；原图与 desktop-bottom.png 放在另一次共同图像输入中比较全部六张卡片。没有把不同尺寸视口当作逐像素匹配。原图较高，实际桌面第二排通过滚动完整检查。
+- 聚焦检查：同一次对照输入中首排标题、描述、分类、按钮和展开菜单均可清楚阅读；第二次检查第二排完整卡片，因此未另做裁剪图。
+
+## 检查结果
+
+没有遗留的 P0、P1 或 P2 问题。
+
+- 字体：沿用现有应用的 SF Pro Text / Segoe UI / PingFang SC / Microsoft YaHei 字体栈。标题 34px、卡片标题 17px、正文 14px，层级明确，长标题自然换行，不截断网址。系统字体渲染和原图有细微区别，作为现有应用的一致性选择保留。
+- 布局：左侧入口位于标签下，主区域为三列卡片；中等宽度两列、手机一列。20px 卡片间距、22px 内边距、浅边框和圆角保持原图结构。沿用现有可调整宽度的目录及真实文件夹数据，未重画整个导航栏。
+- 颜色：使用现有浅色/深色主题变量；蓝色主按钮、浅蓝选中分类和导航、白色卡片、浅灰打开按钮。删除操作红色，置顶金色，拖动目标浅蓝高亮。
+- 图片和图标：六个站点采用真实网站 favicon，而非原图中的示意字母图标；保留原比例，无裁切。低分辨率 favicon 的清晰度取决于站点原文件。操作图标沿用应用 Lucide 图标库，图标加载失败显示通用网站图标。
+- 内容：六个网站来自《每日优质信息》。名称统一为「信息源」；搜索文案准确描述名称、网址和简介筛选。原始笔记入口仅在笔记存在时显示，已在 localhost:8000 的真实笔记数据上验证跳转到《每日优质信息》。
+- 状态：额外的本地保存/待发布提示属于现有发布流程的必要反馈。菜单增加前移/后移，提供拖拽之外的排序方式。未加入自动抓取、RSS 订阅或新闻摘要功能。
+- 响应式：390、820、1280 CSS 宽度下 documentElement.scrollWidth 均未超过视口；手机表单完整显示，字段和保存按钮可见。
+- 可访问性：表单字段有标签，管理按钮有网站名称，筛选和置顶提供选中状态；现有对话框处理焦点和 Escape，菜单支持 Escape/外部点击关闭，并提供可通过键盘访问的排序按钮。
+
+## 比较历史
+
+实现阶段修正了主题颜色变量、主按钮阴影、顶部间距，并把无法在实际拖动中生效的原生 HTML 拖拽替换为 Pointer Events，增加目标卡片高亮。随后才开始上述共同图像输入的正式对照。第一次正式对照未产生需要继续修改的 P0/P1/P2 差异；第二次共同输入补充检查了第二排卡片。
+
+## 功能验证
+
+- 浏览器：新增、重复网址报错、编辑、置顶、分类、中文搜索、删除和撤销、刷新后持久化通过。
+- 浏览器：BestBlogs 拖到第二个位置后顺序改变，菜单「向前移动」恢复原顺序。
+- 浏览器：在隔离发布服务中，仅选择「信息源清单」即可发布索引；真实生产仓库没有被测试发布修改。
+- 浏览器：完整备份验收通过，包括信息源 JSON 和 ZIP 内恢复文件，同时原有附件、属性、Markdown 链接、公式和 Mermaid 导出通过。
+- 模型：信息源 URL 校验、去重、排序不修改原数组、显式空清单、持久化、单独发布、未选中清单保留线上内容、备份和旧格式兼容测试通过。
+- 回归：knowledge-model、workspace-publish、library-ui-model 测试及 JavaScript 语法检查。
+- 浏览器控制台：信息源测试页读取的 error/warn 日志为空。
+
+## 交付检查
+
+- 已集成到现有笔记应用；本地 8001 测试服务刷新后可进入「信息源」。
+- 未部署本次功能，等待用户本地验收。
+- 本报告不声称原图与实现逐像素一致；已列明名称、真实图标、现有导航和视口差异。

@@ -30,20 +30,23 @@ import {
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { filterCommandItems } from "./command-palette.mjs";
-import { clearModalState } from "./library-ui-model.mjs";
-import { FAVORITES_INDEX_PATH, hasFavoriteChanges, normalizeFavorites, resolveFavoriteNotes, toggleFavorite } from "./favorites-model.mjs";
+import { clearModalState } from "./library-ui-model.mjs?v=20260920-favorites-v1";
+import { normalizeSources, SOURCE_NOTE_ID } from "./sources-model.mjs";
+import { SourcesPage } from "./sources-ui.mjs?v=20260920-sources-v2";
+import { FAVORITES_INDEX_PATH, hasFavoriteChanges, normalizeFavorites, resolveFavoriteNotes, toggleFavorite } from "./favorites-model.mjs?v=20260920-favorites-v1";
+import { FavoritesPage } from "./favorites-ui.mjs?v=20260920-favorite-preview-v1";
 import { blobToBase64 as blobToBase64FromDraftAsset, createDraftAssetStore, hasPendingDraftAssets, hydrateDraftAsset, restoreDraftAssetReferences } from "./draft-asset-store.mjs?v=20260805-indexeddb-draft-assets-v1";
 import { buildPublishTagSuggestions, normalizePublishTagInput, stablePublishTags } from "./publish-tag-model.mjs";
-import { assertPublishableHtml, assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260918-workspace-v1";
-import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260918-workspace-v1";
-import { LibraryHome, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260918-workspace-v1";
+import { assertPublishableHtml, assignSelectedPublishFiles, buildMissingRemoteNote, buildPublishChangeDetails, buildPublishChangeSet, mergeSelectedPublishState, reconcilePublishedNotes, revertDraftChange, validatePublishSelection } from "./publish-model.mjs?v=20260920-favorites-v1";
+import { DEFAULT_UI_PREFERENCES, applyLocalTagMutation, applyNoteTagMutation, applyTagOrder, normalizeUiPreferences, resizeDirectoryWidth, resolveStartupState, buildLibrarySummary, buildKnowledgeAreas, buildTagBrowser, buildTagReturnContext, buildVisibleTreeItems, defaultCollapsedFolders, enterTagView, groupTagRecords, localPersistenceErrorText, localPersistenceStatusText, navigatePrimaryView, notebookStateForPersistence, revealNoteFolderPath, resolveLocalPersistenceStatus, resolveMenuKeyboard, resolvePublishReviewReturnTarget, resolveTreeKeyboard, toggleContextDrawer, restoreTagView } from "./library-ui-model.mjs?v=20260920-favorites-v1";
+import { LibraryHome, SettingsPage, SettingsSidebar, TagBrowser, icon } from "./library-ui.mjs?v=20260920-favorites-v1";
 import { CloudAssistant, CloudWiki } from "./cloud-ui.mjs?v=20260919-wiki-graph-v2";
 
 import { cloudClient } from "./cloud-client.mjs?v=20260917-account-v1";
 
-import { noteHref, linkedNoteId, textFromNote, normalizeProperties, openWorkspaceNote, closeWorkspaceNote, dailyTitle, templateContent, mergeBackup } from "./knowledge-model.mjs";
-import { WorkspaceSidebar, NoteTabs, QuickOpen, RelationsPane, NoteProperties, CreateNoteDialog } from "./knowledge-ui.mjs";
-import { HistoryDialog, BackupDialog, saveSnapshot, downloadNotebook, restorePortableNotes } from "./knowledge-storage.mjs?v=20260919-history-assets-v1";
+import { noteHref, linkedNoteId, textFromNote, normalizeProperties, openWorkspaceNote, closeWorkspaceNote, dailyTitle, templateContent, mergeBackup } from "./knowledge-model.mjs?v=20260920-sources-v2";
+import { WorkspaceSidebar, NoteTabs, QuickOpen, RelationsPane, NoteProperties, CreateNoteDialog } from "./knowledge-ui.mjs?v=20260920-sidebar-v1";
+import { HistoryDialog, BackupDialog, saveSnapshot, downloadNotebook, restorePortableNotes } from "./knowledge-storage.mjs?v=20260920-sources-v2";
 
 const h = React.createElement;
 const storageKey = "personal-notebook-tiptap-v1";
@@ -822,9 +825,9 @@ function App() {
       .then((published) => {
         if (cancelled || !published) return;
         const local = migrate(loadLocalState() || {});
-        const shouldKeepLocal = local.notes?.some((note) => note.dirty);
+        const shouldKeepLocal = local.favoritesDirty || local.sourcesDirty || local.notes?.some((note) => note.dirty);
         if (!shouldKeepLocal) {
-          setState((current) => current.notes.some(note => note.dirty) ? current : ({ ...migrate({
+          setState((current) => current.favoritesDirty || current.sourcesDirty || current.notes.some(note => note.dirty) ? current : ({ ...migrate({
             ...published,
             view: current.view,
             activeId: current.activeId,
@@ -832,6 +835,8 @@ function App() {
             tagQuery: current.tagQuery,
             tagSort: current.tagSort,
             tagReturnContext: current.tagReturnContext,
+            favoritesView: current.favoritesView,
+            favoriteReturnNoteId: current.favoriteReturnNoteId,
             query: current.query,
             workspace: current.workspace,
             collapsedFolders: current.collapsedFolders,
@@ -996,6 +1001,7 @@ function App() {
   const toggleFavoriteNote = (noteId) => {
     patchState((draft) => {
       draft.favorites = toggleFavorite(draft.favorites, noteId, now());
+      if (draft.favorites.changed) draft.favoritesDirty = true;
     });
   };
   const updateUiPreferences = useCallback((nextPreferences) => {
@@ -1181,14 +1187,9 @@ function App() {
     selectNote(noteId);
   };
   const navigate = (view) => {
-    if (view === "favorites") {
-      patchState((draft) => { draft.view = "home"; draft.activeId = ""; draft.selectedTag = ""; });
-      window.requestAnimationFrame(() => document.getElementById("favorite-notes-title")?.scrollIntoView({ behavior: "smooth", block: "start" }));
-      setIsContextSidebarOpen(false);
-      return;
-    }
     patchState((draft) => {
       Object.assign(draft, navigatePrimaryView(draft, view));
+      draft.favoriteReturnNoteId = "";
     });
     setIsContextSidebarOpen(false);
   };
@@ -1589,8 +1590,8 @@ function App() {
   };
 
   const preparePublish = (overrideSettings, skipTagModal = false) => {
-    if (!note) return;
-    if (hasPendingDraftAssets(note) && !state.draftAssetsReady) {
+    if (!note && !["sources", "favorites"].includes(state.view)) return;
+    if (!["sources", "favorites"].includes(state.view) && note && hasPendingDraftAssets(note) && !state.draftAssetsReady) {
       setToast("本地附件正在恢复，请稍候再发表");
       return;
     }
@@ -1607,7 +1608,7 @@ function App() {
       setToast("请先完成验证");
       return;
     }
-    if (!skipTagModal) {
+    if (!skipTagModal && !["sources", "favorites"].includes(state.view)) {
       openPublishTagModal();
       return;
     }
@@ -1626,6 +1627,8 @@ function App() {
       if (hasFavoriteChanges(localState.favorites, remoteState.favorites)) changeSet.changes.push({ id: "favorites", kind: "favorites", action: "update", title: "收藏笔记" });
       changeSet.selectedIds = changeSet.changes.map((change) => change.id);
       patchState((draft) => {
+        if (!changeSet.selectedIds.includes("sources") && JSON.stringify(normalizeSources(draft.sources)) === JSON.stringify(normalizeSources(localState.sources))) draft.sourcesDirty = false;
+        if (!changeSet.selectedIds.includes("favorites") && !hasFavoriteChanges(draft.favorites, localState.favorites)) draft.favoritesDirty = false;
         draft.modal = "publish-review";
         draft.modalContext = {
           settings,
@@ -1718,11 +1721,12 @@ function App() {
         await deleteGitHubFile(settings, remoteNote.file, `Delete notebook: ${remoteNote.title}`);
       }
       if (selectedIds.has("favorites")) await putGitHubFile(settings, FAVORITES_INDEX_PATH, { ...merged.state.favorites, updatedAt: publishedAt }, "Publish notebook favorites");
-      if (selectedNotes.length || merged.deletedRemoteNotes.length || merged.includeFolders || merged.includeDeletedTags) await putGitHubFile(settings, publishedIndexPath, buildPublishedIndex(indexState, publishedAt), "Publish selected notebook changes");
+      if (selectedIds.has("sources") || selectedNotes.length || merged.deletedRemoteNotes.length || merged.includeFolders || merged.includeDeletedTags) await putGitHubFile(settings, publishedIndexPath, buildPublishedIndex(indexState, publishedAt), "Publish selected notebook changes");
       setState((latest) => {
         const next = structuredClone(latest);
         next.notes = reconcilePublishedNotes(latest.notes, publishedNotes, selectedIds);
-        if (selectedIds.has("favorites")) next.favorites = { ...merged.state.favorites, updatedAt: publishedAt };
+        if (selectedIds.has("favorites") && !hasFavoriteChanges(latest.favorites, review.localState.favorites)) { next.favorites = { ...merged.state.favorites, updatedAt: publishedAt }; next.favoritesDirty = false; }
+        if (selectedIds.has("sources") && JSON.stringify(normalizeSources(latest.sources)) === JSON.stringify(normalizeSources(review.localState.sources))) next.sourcesDirty = false;
         if (merged.includeDeletedTags) next.deletedTags = [];
         next.syncStatus = "ready";
         next.message = `已发表 ${selectedIds.size} 项改动到 GitHub 仓库`;
@@ -1741,6 +1745,7 @@ function App() {
     }
   };
   const handleAction = (action, targetFolderId) => {
+    if (action === "back-to-favorites") navigate("favorites");
     if (action === "search-library") {
       patchState((draft) => {
         draft.query = targetFolderId;
@@ -1967,6 +1972,27 @@ function App() {
   };
 
   const renderActiveView = () => {
+    if (state.view === "favorites") {
+      const notes = resolveFavoriteNotes(state.favorites, state.notes).map(item => ({ ...item, ...buildRecentNotes([item])[0], folderPath: folderPath(state, item.folderId) }));
+      return h(FavoritesPage, { notes, favorites: state.favorites, availableIds: state.notes.map(n => n.id), view: state.favoritesView,
+        dirty: state.favoritesDirty, saving: state.syncStatus === "publishing", persistenceStatus: localPersistenceStatus,
+        onView: view => patchState(draft => { draft.favoritesView = view; }),
+        onPosition: scrollTop => patchState(draft => { draft.favoritesView = { ...draft.favoritesView, scrollTop }; }),
+        onOpen: id => { selectNote(id); patchState(draft => { draft.favoriteReturnNoteId = id; }); },
+        renderPreview: preview => !state.draftAssetsReady && hasPendingDraftAssets(preview)
+          ? h("p", { role: "status" }, "正在恢复本地附件…")
+          : h(ReferenceReader, { note: preview, notes: state.notes, onImagePreview: () => {}, onOpenNote: id => { selectNote(id); patchState(draft => { draft.favoriteReturnNoteId = id; }); } }),
+        onChange: favorites => patchState(draft => { if (hasFavoriteChanges(draft.favorites, favorites)) { draft.favorites = normalizeFavorites(favorites); draft.favoritesDirty = true; } }),
+        onBrowse: () => navigate("library"), onPublish: () => preparePublish(undefined, true) });
+    }
+    if (state.view === "sources") {
+      return h(SourcesPage, { sources: state.sources, canEdit: state.authenticated,
+        dirty: state.sourcesDirty, saving: state.syncStatus === "publishing", persistenceStatus: localPersistenceStatus,
+        onChange: sources => { if (requireEditPermission("edit")) patchState(draft => { draft.sources = normalizeSources(sources); draft.sourcesDirty = true; }); },
+        onLogin: () => requireEditPermission("edit"),
+        onOriginal: state.notes.some(n => n.id === SOURCE_NOTE_ID) ? () => selectNote(SOURCE_NOTE_ID) : null,
+        onPublish: () => preparePublish(undefined, true) });
+    }
     if (state.view === "wiki") {
       return h(CloudWiki, { assistantSettings, onOpenNote: selectNote, onOpenAssistantSettings: () => {
         patchState((draft) => { draft.view = "settings"; draft.settingsCategory = "assistant"; });
@@ -2075,7 +2101,8 @@ function App() {
               onOpenArea: openArea,
               onOpenTag: enterTag,
               onOpenNote: selectNote,
-              onOpenRecentNotes: () => navigate("library")
+              onOpenRecentNotes: () => navigate("library"),
+              onOpenFavorites: () => navigate("favorites")
             })
           : renderActiveView()
       )
@@ -4285,7 +4312,7 @@ function tablePickerPositionForTrigger(event, shell, menuPosition) {
 
 function renderDocumentTopbar(state, note, preferences, localPersistenceStatus, handleAction, onToggleFavorite) {
   const isFavorite = note && normalizeFavorites(state.favorites).noteIds.includes(note.id);
-  return h("header", { className: "topbar document-topbar", "data-outline-visible": preferences.showOutline ? "true" : "false" }, h("div", { className: "document-breadcrumb" }, h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "" : ""), note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null, h("strong", null, note ? note.title : "")), note ? h(localPersistenceStatus === "error" ? "button" : "span", { className: "document-save-status", role: "status", "aria-live": "polite", "data-state": localPersistenceStatus, type: localPersistenceStatus === "error" ? "button" : undefined, onClick: localPersistenceStatus === "error" ? () => handleAction("retry-local-persistence") : undefined, title: localPersistenceStatusText(localPersistenceStatus) }, localPersistenceStatus === "error" ? "\u4fdd\u5b58\u5931\u8d25\uff0c\u70b9\u51fb\u91cd\u8bd5" : localPersistenceStatus === "saved" ? `已保存到本机 · ${note.dirty || !note.publishedAt ? "未发布" : "已发布"}` : localPersistenceStatusText(localPersistenceStatus)) : null, h("div", { className: "toolbar" }, note ? h("button", { className: `ghost-btn favorite-toggle ${isFavorite ? "is-active" : ""}`, "aria-label": isFavorite ? "取消收藏笔记" : "收藏笔记", "aria-pressed": isFavorite, onClick: () => onToggleFavorite(note.id) }, h(isFavorite ? Star : StarOff, { size: 18, strokeWidth: 1.9, "aria-hidden": "true" })) : null, note ? h("button", { className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`, onClick: () => handleAction("toggle-mode"), "aria-pressed": state.mode === "edit" }, icon(state.mode === "read" ? "read" : "edit", { size: 16 }), state.mode === "read" ? "\u9605\u8bfb" : "\u7f16\u8f91") : null, note ? h(PublishActionsMenu, { state, handleAction }) : null));
+  return h("header", { className: "topbar document-topbar", "data-outline-visible": preferences.showOutline ? "true" : "false" }, h("div", { className: "document-breadcrumb" }, note && state.favoriteReturnNoteId === note.id ? h("button", { type: "button", className: "favorites-return", "aria-label": "返回收藏", title: "返回收藏", onClick: () => handleAction("back-to-favorites") }, icon("back", { size: 16 }), h("span", null, "返回收藏")) : null, h("span", null, state.selectedTag ? `# ${state.selectedTag}` : note ? folderPath(state, note.folderId) || "" : ""), note ? h("span", { className: "document-breadcrumb-separator", "aria-hidden": "true" }, "/") : null, h("strong", null, note ? note.title : "")), note ? h(localPersistenceStatus === "error" ? "button" : "span", { className: "document-save-status", role: "status", "aria-live": "polite", "data-state": localPersistenceStatus, type: localPersistenceStatus === "error" ? "button" : undefined, onClick: localPersistenceStatus === "error" ? () => handleAction("retry-local-persistence") : undefined, title: localPersistenceStatusText(localPersistenceStatus) }, localPersistenceStatus === "error" ? "\u4fdd\u5b58\u5931\u8d25\uff0c\u70b9\u51fb\u91cd\u8bd5" : localPersistenceStatus === "saved" ? `已保存到本机 · ${note.dirty || !note.publishedAt ? "未发布" : "已发布"}` : localPersistenceStatusText(localPersistenceStatus)) : null, h("div", { className: "toolbar" }, note ? h("button", { className: `ghost-btn favorite-toggle ${isFavorite ? "is-active" : ""}`, "aria-label": isFavorite ? "取消收藏笔记" : "收藏笔记", "aria-pressed": isFavorite, onClick: () => onToggleFavorite(note.id) }, h(isFavorite ? Star : StarOff, { size: 18, strokeWidth: 1.9, "aria-hidden": "true" })) : null, note ? h("button", { className: `ghost-btn document-mode-toggle ${state.mode === "edit" ? "active" : ""}`, onClick: () => handleAction("toggle-mode"), "aria-pressed": state.mode === "edit" }, icon(state.mode === "read" ? "read" : "edit", { size: 16 }), state.mode === "read" ? "\u9605\u8bfb" : "\u7f16\u8f91") : null, note ? h(PublishActionsMenu, { state, handleAction }) : null));
 }
 function PublishActionsMenu({ state, handleAction }) {
   const triggerRef = useRef(null); const menuRef = useRef(null); const isOpen = state.openCreateMenu === "publish-actions"; const draftCount = state.notes.filter((item) => item.dirty || !item.publishedAt).length;
@@ -5193,6 +5220,8 @@ function PublishReviewSheet({ state, handleAction, returnFocusSelector }) {
   }, []);
 
   const changeDescription = (change) => {
+    if (change.kind === "sources") return "网站清单、分类与排列顺序会同步到线上";
+    if (change.kind === "favorites") return "收藏清单与排列顺序会同步到线上";
     if (change.kind === "folders") return "目录结构会随必要的索引更新发表";
     if (change.kind === "tags") return "已删除标签会从线上标签目录移除";
     return `${typeLabels[change.action] || "修改"}文档`;
@@ -5555,7 +5584,7 @@ async function loadPublishedLibrary() {
   return migrate({
     ...seed,
     folders: index.folders?.length ? index.folders : seed.folders,
-    notes: docs.filter(Boolean), favorites
+    notes: docs.filter(Boolean), favorites, sources: normalizeSources(index.sources)
   });
 }
 
@@ -5564,6 +5593,7 @@ function buildPublishedIndex(state, updatedAt) {
     version: 1,
     updatedAt,
     folders: state.folders,
+    sources: normalizeSources(state.sources),
     docs: state.notes.map((note) => ({
       id: note.id,
       title: note.title,
@@ -5627,7 +5657,7 @@ async function loadGitHubPublishedLibrary(settings) {
   return {
     folders: index.folders || [],
     notes: docs.filter(Boolean),
-    deletedTags: [], favorites
+    deletedTags: [], favorites, sources: normalizeSources(index.sources)
   };
 }
 
@@ -5863,6 +5893,9 @@ function migrate(data) {
     notes: data.notes?.length ? data.notes : structuredClone(seed.notes)
   };
   merged.favorites = normalizeFavorites(data.favorites);
+  merged.favoritesDirty = data.favoritesDirty === true;
+  merged.sources = normalizeSources(data.sources);
+  merged.sourcesDirty = data.sourcesDirty === true;
   merged.notes = merged.notes.map((note) => {
     const noteDirty = Boolean(note.dirty);
     const noteHtml = normalizeHtml(note.html || blocksToHtml(note.blocks));

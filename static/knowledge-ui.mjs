@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "https://esm.sh/react@18.3.1";
-import { BookOpenText, ChevronDown, Search, NotebookTabs, Star, Tag, Settings, Plus, FileText, X, PanelLeftClose, PanelRightClose, Columns2, Link, Sparkles, CalendarDays, History, Download, Archive, Network } from "https://esm.sh/lucide-react@0.468.0?external=react";
-import { buildRelations, referenceExcerpt, textFromNote, searchNotes, normalizeProperties, noteTemplates } from "./knowledge-model.mjs";
+import { BookOpenText, Search, NotebookTabs, Star, Tag, Settings, Plus, FileText, X, PanelLeftClose, PanelRightClose, Columns2, Link, Sparkles, CalendarDays, History, Download, Archive, Network, Newspaper } from "https://esm.sh/lucide-react@0.468.0?external=react";
+import { buildRelations, referenceExcerpt, textFromNote, searchNotes, normalizeProperties, noteTemplates } from "./knowledge-model.mjs?v=20260920-sources-v2";
 import { cloudClient } from "./cloud-client.mjs?v=20260917-account-v1";
 
 const h = React.createElement;
@@ -8,10 +8,10 @@ const glyph = (Icon, size = 18) => h(Icon, { size, strokeWidth: 1.7, "aria-hidde
 const button = (label, onClick, props = {}) => h("button", { type: "button", onClick, ...props }, label);
 
 export function WorkspaceSidebar({ state, tree, settings, open, onNavigate, onSearch, onNew, onTools, onDaily, onOpenNote, onClose, onResize }) {
-  const nav = [["library", "笔记", NotebookTabs], ["favorites", "收藏", Star], ["wiki", "知识 Wiki", BookOpenText], ["tags", "标签", Tag]];
+  const nav = [["library", "笔记", NotebookTabs], ["favorites", "收藏", Star], ["wiki", "知识 Wiki", BookOpenText], ["tags", "标签", Tag], ["sources", "信息源", Newspaper]];
   const recent = (state.workspace?.recent || []).map(id => state.notes.find(note => note.id === id)).filter(Boolean).slice(0, 5);
   return h("aside", { id: "context-sidebar", className: `workspace-sidebar ${open ? "is-open" : ""}`, "aria-label": "知识库导航" },
-    button([glyph(BookOpenText, 22), h("strong", { key: "title" }, "我的知识库"), glyph(ChevronDown, 15)], () => onNavigate("home"), { className: "workspace-brand", title: "知识库概览" }),
+    button([glyph(BookOpenText, 22), h("strong", { key: "title" }, "我的知识库")], () => onNavigate("home"), { className: "workspace-brand", title: "知识库概览" }),
     button([glyph(Search), h("span", { key: "label" }, "搜索笔记…"), h("kbd", { key: "key" }, "Ctrl K")], onSearch, { className: "workspace-search", "aria-label": "搜索笔记、内容或命令" }),
     h("nav", { className: "workspace-navigation", "aria-label": "主导航" }, nav.map(([view, label, Icon]) => button([glyph(Icon, 20), label], () => onNavigate(view), { key: view, className: state.view === view ? "is-active" : "", "aria-current": state.view === view ? "page" : undefined }))),
     h("div", { className: "workspace-sidebar-body" },

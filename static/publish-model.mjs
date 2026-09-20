@@ -1,4 +1,6 @@
-import { normalizeProperties } from "./knowledge-model.mjs";
+import { normalizeSources } from "./sources-model.mjs";
+import { normalizeFavorites } from "./favorites-model.mjs?v=20260920-favorites-v1";
+import { normalizeProperties } from "./knowledge-model.mjs?v=20260920-sources-v2";
 
 function stableTags(tags) {
   return Array.from(new Set((tags || []).map((tag) => String(tag || "").trim()).filter(Boolean))).sort();
@@ -260,6 +262,7 @@ export function buildPublishChangeSet(localState, remoteState) {
     }
   }
 
+  if (!sameValue(normalizeSources(localState.sources), normalizeSources(remoteState.sources))) changes.push({ id: "sources", kind: "sources", action: "update", title: "信息源清单" });
   if (!sameValue(localState.folders || [], remoteState.folders || [])) {
     changes.push({ id: "folders", kind: "folders", action: "update", title: "目录结构" });
   }
@@ -273,6 +276,14 @@ export function buildPublishChangeSet(localState, remoteState) {
 
 export function buildPublishChangeDetails(localState, remoteState, change) {
   if (!change) return [];
+  if (change.kind === "favorites") {
+    const summary = state => normalizeFavorites(state.favorites).noteIds.map((id, index) => `${index + 1}. ${(state.notes || []).find(note => note.id === id)?.title || id}`).join("\n") || "无";
+    return [{ label: "收藏笔记", remote: summary(remoteState), local: summary(localState), summary: "同步收藏清单与排列顺序，不修改笔记正文" }];
+  }
+  if (change.kind === "sources") {
+    const summary = value => normalizeSources(value).map(s => `${s.pinned ? "[置顶] " : ""}${s.name} · ${s.category} · ${s.url}${s.description ? " · " + s.description : ""}`).join("\n") || "无";
+    return [{ label: "信息源", remote: summary(remoteState.sources), local: summary(localState.sources), summary: "发布网站清单、分类与排列顺序" }];
+  }
   if (change.kind === "folders") {
     return [{
       label: "目录",
@@ -362,6 +373,7 @@ export function revertDraftChange(localState, remoteState, change) {
       next.notes = (next.notes || []).map((note) => note.id === change.noteId ? remote : note);
     }
   }
+  if (change.kind === "sources") { next.sources = normalizeSources(remoteState.sources); next.sourcesDirty = false; }
   if (change.kind === "folders") next.folders = clone(remoteState?.folders || []);
   if (change.kind === "tags") next.deletedTags = clone(remoteState?.deletedTags || []);
   return next;
@@ -421,6 +433,7 @@ export function mergeSelectedPublishState(localState, remoteState, selectedIds) 
 
   return {
     state: {
+      sources: normalizeSources(selected.has("sources") ? localState.sources : remoteState.sources),
       folders: clone(includeFolders ? (localState.folders || []) : (remoteState.folders || [])),
       notes: orderedIds.map((id) => remoteById.get(id)),
       deletedTags: clone(includeDeletedTags ? (localState.deletedTags || []) : (remoteState.deletedTags || []))

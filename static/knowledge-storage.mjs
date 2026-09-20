@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "https://esm.sh/react@18.3.1";
-import { KnowledgeDialog } from "./knowledge-ui.mjs";
-import { dailyTitle, normalizeProperties, linkedNoteId, validateBackup, textFromNote } from "./knowledge-model.mjs";
+import { KnowledgeDialog } from "./knowledge-ui.mjs?v=20260920-sources-v2";
+import { dailyTitle, normalizeProperties, linkedNoteId, validateBackup, textFromNote } from "./knowledge-model.mjs?v=20260920-sources-v2";
 import { blobToBase64, dataUrlToBlob } from "./draft-asset-store.mjs";
 import { zipFiles } from "./notebook-zip.mjs";
 
@@ -147,7 +147,7 @@ function markdownFromHtml(html, filenames) {
 
 export async function downloadNotebook(state, store, format = "backup") {
   const notes = await portableNotes(state.notes, store, true);
-  const backup = { version: 1, exportedAt: new Date().toISOString(), notes, folders: state.folders };
+  const backup = { version: 1, exportedAt: new Date().toISOString(), notes, folders: state.folders, ...(state.sources !== undefined ? { sources: state.sources } : {}) };
   if (format === "backup") { saveDownload(new Blob([JSON.stringify(backup)], { type: "application/json" }), `notebook-backup-${dailyTitle()}.json`); return; }
   const files = []; const names = new Map(notes.map(note => [note.id, `${safeFile(note.title)}--${safeFile(note.id)}.md`]));
   for (const note of notes) {
@@ -184,6 +184,6 @@ export function BackupDialog({ state, store, canRestore, onRestore, onClose }) {
     h("div", { className: "backup-actions" }, button("下载完整备份", () => run(() => downloadNotebook(state, store, "backup")), { disabled: busy }), button("导出 Markdown 与附件", () => run(() => downloadNotebook(state, store, "markdown")), { disabled: busy })),
     h("label", { className: "backup-import" }, "从备份恢复", h("input", { type: "file", accept: ".json,application/json", disabled: busy || !canRestore, onChange: e => { const file = e.target.files?.[0]; if (file) run(async () => { setBackup(null); setMessage(""); setBackup(validateBackup(JSON.parse(await file.text()))); }); } })),
     !canRestore ? h("p", { className: "knowledge-empty" }, "登录后可以恢复备份。") : null,
-    backup ? h("div", null, h("p", null, `备份包含 ${backup.notes.length} 篇笔记、${backup.folders.length} 个文件夹；${backup.notes.filter(note => state.notes.some(n => n.id === note.id)).length} 篇将更新本地内容。备份之外的笔记会保留，原版本会保存快照。`), button("确认合并到本地草稿", () => run(async () => { await onRestore(backup); setBackup(null); setMessage("已恢复，可关闭窗口并审阅本地修改。"); }), { disabled: busy, className: "primary-btn" })) : null,
+    backup ? h("div", null, h("p", null, `备份包含 ${backup.notes.length} 篇笔记、${backup.folders.length} 个文件夹${backup.sources !== undefined ? `、${backup.sources.length} 个信息源（将替换本地清单）` : ""}；${backup.notes.filter(note => state.notes.some(n => n.id === note.id)).length} 篇将更新本地内容。备份之外的笔记会保留，原版本会保存快照。`), button("确认合并到本地草稿", () => run(async () => { await onRestore(backup); setBackup(null); setMessage("已恢复，可关闭窗口并审阅本地修改。"); }), { disabled: busy, className: "primary-btn" })) : null,
     busy ? h("p", { role: "status" }, "正在处理笔记与附件…") : null, message ? h("p", { role: "status" }, message) : null, error ? h("p", { role: "alert", className: "knowledge-warning" }, error) : null);
 }

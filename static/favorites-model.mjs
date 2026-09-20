@@ -61,3 +61,27 @@ export function resolveFavoriteNotes(favorites, notes = []) {
 export function hasFavoriteChanges(current, published) {
   return normalizeFavorites(current).noteIds.join("\u0000") !== normalizeFavorites(published).noteIds.join("\u0000");
 }
+
+export function filterFavoriteNotes(notes, query = "", tag = "", sort = "manual") {
+  const text = query.trim().toLocaleLowerCase();
+  const result = notes.filter(note => (!tag || (note.tags || []).includes(tag)) &&
+    `${note.title} ${note.excerpt || ""} ${note.folderPath || ""} ${(note.tags || []).join(" ")}`.toLocaleLowerCase().includes(text));
+  if (sort === "recent") result.sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
+  return result;
+}
+
+export function moveFavorite(favorites, id, targetId, timestamp = "") {
+  const current = normalizeFavorites(favorites), ids = [...current.noteIds];
+  const from = ids.indexOf(id), to = ids.indexOf(targetId);
+  if (from < 0 || to < 0) return { ...current, changed: false };
+  ids.splice(to, 0, ...ids.splice(from, 1));
+  return updateFavorites(current, ids, timestamp);
+}
+
+export function restoreFavorites(favorites, removed, availableIds, timestamp = "") {
+  const ids = [...normalizeFavorites(favorites).noteIds];
+  for (const item of [...removed].sort((a, b) => a.index - b.index)) {
+    if (availableIds.includes(item.id) && !ids.includes(item.id)) ids.splice(Math.min(item.index, ids.length), 0, item.id);
+  }
+  return updateFavorites(favorites, ids, timestamp);
+}

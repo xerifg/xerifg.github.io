@@ -1,3 +1,5 @@
+import { normalizeSources } from "./sources-model.mjs";
+
 export const noteHref = (id) => `#note/${encodeURIComponent(id)}`;
 export function linkedNoteId(href) {
   if (!String(href || "").startsWith("#note/")) return null;
@@ -126,7 +128,8 @@ export function validateBackup(value) {
       tags: (note.tags || []).filter(tag => typeof tag === "string"), properties: normalizeProperties(note.properties),
       date: note.date, dailyDate: typeof note.dailyDate === "string" ? note.dailyDate : "", assets: note.assets || [] };
   });
-  return { version: 1, notes, folders };
+  if (value.sources !== undefined && (!Array.isArray(value.sources) || normalizeSources(value.sources).length !== value.sources.length)) throw new Error("备份信息源包含无效或重复的网站");
+  return { version: 1, notes, folders, ...(value.sources !== undefined ? { sources: normalizeSources(value.sources) } : {}) };
 }
 
 export function mergeBackup(state, backup) {
@@ -136,6 +139,7 @@ export function mergeBackup(state, backup) {
   backup.folders.forEach(folder => folders.set(folder.id, folder));
   // A merge can introduce a cycle even when each independent tree is valid.
   const result = { ...state, notes: [...notes.values()], folders: [...folders.values()] };
+  if (backup.sources !== undefined) { result.sources = normalizeSources(backup.sources); result.sourcesDirty = true; }
   validateBackup({ version: 1, notes: result.notes, folders: result.folders });
   return result;
 }

@@ -1,0 +1,58 @@
+.sources-page { padding: 64px 40px 40px; overflow: auto; height: 100%; background: var(--surface-page); color:var(--text); }
+.sources-header { display:flex; justify-content:space-between; gap:24px; margin-bottom:30px; }
+.sources-header h1 { margin:0 0 10px; font-size:34px; line-height:1.3; letter-spacing:-.8px; }
+.sources-header p { margin:0; font-size:17px; color:var(--muted); }
+.sources-header-actions { display:flex; align-items:flex-end; flex-direction:column; gap:18px; flex-shrink:0; }
+.sources-header button,.source-open { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.sources-header .primary-btn { padding:12px 20px; border-radius:8px; box-shadow:none; }
+.source-original { color:var(--blue); background:none; font-size:14px; }
+.sources-status { display:flex; justify-content:space-between; align-items:center; gap:12px; color:var(--muted); font-size:13px; min-height:28px; margin-bottom:10px; }
+.sources-sync { display:flex; align-items:center; gap:12px; }
+.sources-sync button { color:var(--blue); background:var(--surface-selected); padding:5px 10px; border-radius:5px; }
+.sources-filters { display:flex; gap:20px; align-items:center; margin-bottom:28px; flex-wrap:wrap; }
+.sources-search { display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:8px; padding:0 12px; min-width:220px; flex:1; color:var(--muted); }
+.sources-search input { border:0; outline:none; background:transparent; color:var(--text); width:100%; padding:12px 0; font:inherit; font-size:14px; }
+.sources-search:focus-within { outline:2px solid var(--blue); outline-offset:2px; }
+.source-categories { display:flex; gap:8px; flex-wrap:wrap; }
+.source-categories button { background:var(--surface-subtle); color:var(--muted); border:1px solid transparent; padding:9px 16px; border-radius:24px; font-size:14px; }
+.source-categories button[aria-pressed=true] { color:var(--blue); background:var(--surface-selected); border-color:var(--blue); }
+.sources-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.source-card { border:1px solid var(--line); border-radius:10px; padding:22px; min-width:0; display:flex; flex-direction:column; background:var(--surface-page); }
+.source-card.is-dragging { opacity:.5; }
+.source-card.is-drop-target { border-color:var(--blue); background:var(--surface-selected); }
+.source-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:16px; }
+.source-logo { display:grid; place-items:center; width:52px; height:52px; flex-shrink:0; border-radius:9px; background:var(--surface-raised); }
+.source-logo img { width:36px; height:36px; object-fit:contain; }
+.source-logo>svg { width:28px; height:28px; color:var(--blue); }
+.source-card-actions { display:flex; align-items:center; gap:2px; }
+.source-card-actions button { padding:6px; display:flex; border-radius:6px; background:none; color:var(--muted); }
+.source-card-actions button:hover { background:var(--surface-raised); }
+.source-card-actions .is-pinned { color:#d18a13; }
+.source-card-actions .is-pinned svg { fill:currentColor; }
+.source-drag { color:var(--muted); cursor:grab; padding:6px 0; opacity:0; touch-action:none; }
+.source-card:hover .source-drag,.source-card:focus-within .source-drag { opacity:1; }
+.source-card h2 { font-size:17px; margin:0 0 8px; line-height:1.4; overflow-wrap:anywhere; }
+.source-domain { font-size:14px; color:var(--muted); overflow-wrap:anywhere; }
+.source-description { font-size:14px; line-height:1.7; color:var(--muted); margin:16px 0 12px; flex:1; overflow-wrap:anywhere; }
+.source-category { align-self:flex-start; padding:4px 12px; color:var(--blue); background:var(--surface-selected); border-radius:16px; font-size:13px; }
+.source-open { margin-top:16px; background:var(--surface-subtle); color:var(--text); border-radius:7px; padding:11px; text-decoration:none; font-size:14px; }
+.source-open:hover { color:var(--blue); background:var(--surface-selected); }
+.source-menu-anchor { position:relative; }
+.source-menu { position:absolute; z-index:30; right:0; top:34px; min-width:155px; background:var(--surface-page); border:1px solid var(--line); box-shadow:0 8px 24px #0002; border-radius:10px; padding:6px; }
+.source-menu button { width:100%; gap:10px; padding:10px; font-size:13px; text-align:left; }
+.source-menu .source-delete,.source-form-error { color:#d33c49; }
+.source-menu button:disabled { opacity:.35; cursor:default; }
+.sources-empty { padding:60px 20px; text-align:center; color:var(--muted); }
+.sources-empty h2 { color:var(--text); font-size:20px; }
+.sources-empty button { color:var(--blue); padding:10px 20px; }
+.source-undo { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:60; border-radius:10px; padding:14px 20px; background:#202b3b; color:white; box-shadow:0 8px 24px #0002; display:flex; gap:18px; max-width:90vw; align-items:center; }
+.source-undo button { color:#8ec2ff; background:none; white-space:nowrap; }
+.source-dialog form { display:grid; gap:16px; }
+.source-dialog label { display:grid; gap:8px; font-size:14px; }
+.source-dialog input,.source-dialog select,.source-dialog textarea { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:7px; background:var(--surface-page); color:var(--text); font:inherit; }
+.source-dialog .source-pin-field { display:flex; align-items:center; gap:8px; }
+.source-pin-field input { width:auto; }
+.source-dialog footer { display:flex; justify-content:flex-end; gap:12px; }
+.source-dialog footer button { padding:10px 16px; border-radius:7px; }
+@media(max-width:1200px) { .sources-page { padding:28px; } .sources-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) { .sources-page { padding:60px 18px 24px; } .sources-header { gap:14px; flex-direction:column; } .sources-header-actions { align-items:flex-start; flex-direction:row; flex-wrap:wrap; } .sources-header h1 { font-size:28px; } .sources-grid { grid-template-columns:1fr; } .sources-status { align-items:flex-start; flex-direction:column; } .source-drag { opacity:1; } }

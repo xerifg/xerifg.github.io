@@ -125,7 +125,7 @@ export function resizeDirectoryWidth(currentWidth, startX, currentX, direction, 
 export function resolveStartupState(state = {}, preferences = DEFAULT_UI_PREFERENCES) {
   if (preferences.rememberLastLocation) {
     return {
-      view: ["home", "library", "assistant", "wiki", "tags", "settings"].includes(state.view) ? state.view : "home",
+      view: ["home", "library", "favorites", "assistant", "wiki", "tags", "sources", "settings"].includes(state.view) ? state.view : "home",
       activeId: state.activeId || "",
       selectedTag: state.selectedTag || ""
     };
@@ -383,7 +383,7 @@ export function enterTagView(state, tag, options = {}) {
 }
 
 export function navigatePrimaryView(state, requestedView) {
-  const view = ["home", "library", "assistant", "wiki", "tags", "settings"].includes(requestedView)
+  const view = ["home", "library", "favorites", "assistant", "wiki", "tags", "sources", "settings"].includes(requestedView)
     ? requestedView
     : "home";
   return {
