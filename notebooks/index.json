@@ -583,8 +583,8 @@
     {
       "id": "note-1786627594701",
       "title": "模型训练平台",
-      "folderId": "folder-1786429147192",
-      "path": "",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
       "tags": [],
       "updatedAt": "2026-08-13T13:32:46.183Z",
       "file": "notebooks/docs/模型训练平台.json"
@@ -592,8 +592,8 @@
     {
       "id": "note-1786627244712",
       "title": "可视化网络结构",
-      "folderId": "folder-1786429147192",
-      "path": "",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
       "tags": [],
       "updatedAt": "2026-08-13T13:32:46.183Z",
       "file": "notebooks/docs/可视化网络结构.json"
@@ -664,8 +664,8 @@
     {
       "id": "note-1786938681439",
       "title": "Attention Residuals",
-      "folderId": "folder-1786429147192",
-      "path": "",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
       "tags": [
         "AttnRes"
       ],
@@ -829,8 +829,8 @@
     {
       "id": "note-1788184267399",
       "title": "Transformer模型",
-      "folderId": "folder-1786429147192",
-      "path": "",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
       "tags": [
         "transformer"
       ],
@@ -869,8 +869,8 @@
     {
       "id": "note-1788488768635",
       "title": "优化器",
-      "folderId": "folder-1786429147192",
-      "path": "",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
       "tags": [],
       "updatedAt": "2026-09-04T06:42:48.247Z",
       "file": "notebooks/docs/优化器.json"
