@@ -3,10 +3,17 @@
   "id": "note-1785676521968",
   "title": "LLM训练指南",
   "folderId": "folder-1785676511361",
-  "path": "Notebooks/大模型",
+  "path": "Notebooks/模型",
   "tags": [],
-  "createdAt": "2026-08-02T13:16:42.794Z",
-  "updatedAt": "2026-08-02T13:31:21.194Z",
+  "properties": {
+    "type": "",
+    "status": "",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-09-21T03:47:33.092Z",
+  "updatedAt": "2026-09-21T03:55:56.101Z",
   "assets": [],
-  "html": "<p>主要介绍了大模型预训练的<strong>Token及模型参数准备</strong></p><p>参考：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://zhuanlan.zhihu.com/p/636812912\">https://zhuanlan.zhihu.com/p/636812912</a></p><hr><p></p>"
+  "html": "<p>主要介绍了大模型预训练的<strong>Token及模型参数准备</strong></p><p>参考：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://zhuanlan.zhihu.com/p/636812912\">https://zhuanlan.zhihu.com/p/636812912</a></p><hr><h2>一、 预训练模型与计算资源分配（Scaling Laws）</h2><p>大模型的性能强依赖于<strong>模型参数量（</strong><span><strong><span data-tex=\"N\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></strong></span><strong>，不含 Embedding）</strong>、<strong>训练 Token 数（</strong><span><strong><span data-tex=\"D\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></strong></span><strong>）</strong> 和 <strong>计算量（</strong><span><strong><span data-tex=\"C\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></strong></span><strong>）</strong>，三者遵循<strong>平滑幂定律</strong>。</p><p>关于预算增加时参数量与 Token 数的分配策略，文章对比了两个重要研究结论：</p><ul><li><p><strong>OpenAI 观点（Kaplan 等）</strong>：当计算预算增加 10 倍时，应优先扩大模型规模（模型参数量增加 5.5 倍，训练 Token 数仅增加 1.8 倍）。</p></li><li><p><strong>DeepMind 观点（Chinchilla 论文，推荐）</strong>：修正了 OpenAI 的实验偏差（如固定学习率调度策略导致的估计偏差），提出<strong>模型参数量与训练 Token 数应等比例（1:1）增加</strong>（即预算增加 10 倍时，二者均增加 3.16 倍）。</p></li></ul><h3>计算优化配置参考（以 Chinchilla 比例为例）</h3><ul><li><p><strong>1B 参数模型</strong>：建议配置 <strong>20.2B Tokens</strong></p></li><li><p><strong>10B 参数模型</strong>：建议配置 <strong>205.1B Tokens</strong></p></li><li><p><strong>67B 参数模型</strong>：建议配置 <strong>1.5T Tokens</strong></p></li><li><p><strong>175B 参数模型</strong>：建议配置 <strong>3.7T Tokens</strong></p></li></ul><hr><h2>二、 重复 Token（多 Epoch）训练的影响</h2><p>面对文本数据可能耗尽的“Token 危机”，文章探讨了对数据集进行多次 Epoch 循环训练的效果：</p><ol><li><p><strong>性能下降与过拟合</strong>：大模型训练通常 <strong>1 个 Epoch 最佳</strong>。重复训练（多 Epochs）会导致模型性能下降，且容易引发过拟合；模型参数量越大、可用的独立 Token 数越少，过拟合越严重。</p></li><li><p><strong>高质量与多样化目标无法根治过拟合</strong>：提高数据集质量（如从 C4 提升至 Wikipedia）或增加训练目标的多样性，均无法弥补数据重复带来的性能衰退。</p></li><li><p><strong>数据规模缓解作用</strong>：原始数据集规模越大（例如在更大的 Token 基数上循环），重复训练带来的负面影响越不明显。</p></li><li><p><strong>Dropout 的正则化效果</strong>：虽然在 LLM 训练中常用 Dropout 会降低训练速度，但它能够有效缓解多 Epoch 训练带来的性能下降。策略上可在训练过程中<strong>逐渐使用 Dropout</strong>。</p></li></ol><hr><h2>三、 SFT（微调）阶段数据准备</h2><ul><li><p>与预训练需要极大规模 Token 不同，<strong>SFT 阶段只需少量、高质量且兼具多样性的数据</strong>，即可训练出效果优秀的指令跟随模型。</p></li></ul><h3>1. <strong>主流做法：直接在预训练模型上使用新数据集微调（SFT）</strong></h3><p>在绝大多数常见场景（如指令微调、特定任务微调）中，<strong>确实是直接使用新的高质量数据集（如指令-回复对）在预训练好的模型上进行 Fine-tune 训练，不需要混入原来的预训练数据</strong>。</p><ul><li><p><strong>原因</strong>：</p><ol><li><p><strong>目标不同</strong>：预训练是为了让模型学会语言结构、世界知识和逻辑推理能力；而微调（SFT）是为了改变模型的<strong>交互范式</strong>（例如把“续写文本”变为“回答问题”或“遵循指令”）。</p></li><li><p><strong>数据量差异极悬殊</strong>：预训练数据通常是数万亿（Trillions）Tokens 的海量网页和图书数据；而微调通常只需要几万到几十万条（甚至数千条）极高质量、多样化的指令数据。混入庞大的预训练数据会导致微调成本暴增且失去针对性。</p></li></ol></li></ul><hr><h3>2. <strong>特殊情况：混合少量预训练数据（Data Replay / Loss Smoothing）</strong></h3><p>如果在微调时<strong>只使用</strong>新领域或特定任务的数据（尤其是特定领域的专业数据，如法律、医学文本），可能会遇到大模型常见的 <strong>“灾难性遗忘”（Catastrophic Forgetting）</strong> 问题——即模型学会了新领域的知识，却失去了原有的通用能力或逻辑推导能力。</p><p>为了解决这个问题，部分团队会采取以下策略：</p><ul><li><p><strong>混合回放（Data Replay）</strong>：在微调（或增量预训练）数据集中，按一定比例（例如 5%~10%）掺入一小部分原有的高质量预训练数据（如 Wikipedia、通用高质量语料），帮助模型保持通用的语言表达与推理能力。</p></li><li><p><strong>退火阶段/多阶段微调</strong>：先进行领域数据的增量预训练（混合通用预训练数据），最后再用纯指令数据进行 SFT。</p></li></ul><hr><h3>总结</h3><ul><li><p>如果你只是做<strong>通用指令微调（SFT）</strong>，直接使用预训练模型 + 新微调数据集训练即可。</p></li><li><p>如果你是在做<strong>特定领域/特定任务的深度的微调</strong>，且发现模型出现了通用能力下降（灾难性遗忘），可以考虑在微调数据中混合少量原有的预训练通用数据。</p></li></ul>"
 }
