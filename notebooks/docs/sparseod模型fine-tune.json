@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "id": "note-2b1c8e2e-7aac-49d5-8915-f876045bf146",
+  "title": "sparseOD模型fine tune",
+  "folderId": "folder-1785676511361",
+  "path": "Notebooks/模型",
+  "tags": [
+    "fine-tune"
+  ],
+  "properties": {
+    "type": "",
+    "status": "待整理",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-09-21T03:50:19.431Z",
+  "updatedAt": "2026-09-21T03:55:56.101Z",
+  "assets": [],
+  "html": "<p><a href=\"#note/note-1785676521968\">LLM训练指南</a></p><p>针对 Sparse4D 这类 3D 目标检测模型，在解决特定类（如 VRU，行人/骑行者等非机动车）严重漏检问题时，<strong>绝对不能只用新采集的数据进行 Fine-tune，必须混合历史训练数据一起训练</strong>。</p><p>主要原因和具体的训练策略如下：</p><h3>1. 为什么不能只用新采集的数据？</h3><ul><li><p><strong>极易引发“灾难性遗忘”（Catastrophic Forgetting）</strong>：如果你只用新采的 VRU 数据训练，模型会迅速过拟合到新数据上，导致对之前学得很好的类别（如汽车、卡车、施工栏杆等）检测能力剧烈下降，甚至连常规场景下的普通目标也开始漏检或误检。</p></li><li><p><strong>破坏 Sparse4D 的 3D 空间与时序先验</strong>：Sparse4D 强依赖 3D Anchor 的 Sparse Query 机制以及多帧时序融合（Sparse4D v2/v3 的核心特征）。只喂入单一/特定场景的新数据，会破坏模型对全局空间分布和时序运动特征的建模平衡。</p></li><li><p><strong>正负样本比例失衡</strong>：新采集的数据通常偏向特例场景（如复杂交叉路口、遮挡 VRU 等），缺乏对背景和常规道路的泛化表达。</p></li></ul><hr><h3>2. 正确的训练方案：数据重放（Data Replay）与联合训练</h3><p>① 数据集构建策略（数据混合）</p><ul><li><p><strong>混合比例</strong>：建议将<strong>新采集的 VRU 数据</strong>与<strong>历史训练数据</strong>按照一定比例混合（常见的混合比例为 <code>新数据 : 历史数据 = 1:2</code><strong> 到 </strong><code>1:4</code>）。</p></li><li><p><strong>历史数据筛选（可精简）</strong>：如果全量历史数据太大导致训练成本极高，<strong>不需要 100% 导入所有旧数据</strong>。可以从历史数据中抽样，重点保留：</p><ul><li><p>历史数据中包含 VRU 的样本（保证 VRU 的多样性）。</p></li><li><p>常见的困难场景（Hard Examples）以及覆盖各种天气、昼夜的通用场景样本。</p></li></ul></li></ul><p>② 采样与 Augmentation 优化（针对 Sparse4D 特化）</p><ul><li><p><strong>Class-Balanced Grouping / Sampler（类别平衡采样）</strong>：在 DataLoader 层级启用类别平衡采样，让包含 VRU（Pedestrian/Bicycle/Motorcycle）的 Frame 在每个 Batch 中有更高的被采样概率。</p></li><li><p><strong>3D Copy-Paste (CBGS / Paste Augmentation)</strong>：在 3D 检测中非常有效的 Tricks。可以把新采集中高质量的 3D VRU 标注框及其点云/图像区域，随机 Paste 到历史数据的其他场景中，快速人工扩充 VRU 的样本密度。</p></li></ul><p>③ 训练参数与 Loss 调整</p><ul><li><p><strong>学习率（Learning Rate）设置</strong>：不要使用预训练时的初始学习率，将学习率降低为原预训练 LR 的 <span><strong><span data-tex=\"1/5\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></strong></span><strong> 到 </strong><span><strong><span data-tex=\"1/10\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></strong></span>（或采用 Warmup 策略），避免破坏已学好的特征表达。</p></li><li><p><strong>分类 Loss 权重</strong>：在 Compute Loss 阶段，可以适当提高 Focal Loss 中对 VRU 类别（如 Pedestrian、Cyclist）的权重，或者调整 Focal Loss 的 <span><span data-tex=\"\\alpha\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> / <span><span data-tex=\"\\gamma\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 参数，强迫模型关注 VRU 的分类与检测。</p></li><li><p><strong>冻结部分主干网络（可选）</strong>：如果新数据量依然偏少，可以考虑冻结图像 Backbone（如 ResNet/Swin）的前几层提取通用边缘特征的结构，只训练 Neck、3D Keypoints Extractor 以及 Sparse Head 结构。</p></li></ul>"
+}
