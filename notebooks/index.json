@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-20T12:06:23.646Z",
+  "updatedAt": "2026-09-21T03:55:56.101Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -24,7 +24,7 @@
     },
     {
       "id": "folder-1785676511361",
-      "name": "大模型",
+      "name": "模型",
       "parentId": "folder-writing"
     },
     {
@@ -51,16 +51,6 @@
       "id": "folder-1785981247369",
       "name": "AI",
       "parentId": null
-    },
-    {
-      "id": "folder-1786429147192",
-      "name": "Deep Learning",
-      "parentId": "folder-writing"
-    },
-    {
-      "id": "folder-1786429236027",
-      "name": "Machine Learning",
-      "parentId": "folder-writing"
     },
     {
       "id": "folder-1788504005278",
@@ -373,9 +363,9 @@
       "id": "note-1785676521968",
       "title": "LLM训练指南",
       "folderId": "folder-1785676511361",
-      "path": "Notebooks/大模型",
+      "path": "Notebooks/模型",
       "tags": [],
-      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "updatedAt": "2026-09-21T03:55:56.101Z",
       "file": "notebooks/docs/llm训练指南.json"
     },
     {
@@ -594,7 +584,7 @@
       "id": "note-1786627594701",
       "title": "模型训练平台",
       "folderId": "folder-1786429147192",
-      "path": "Notebooks/Deep Learning",
+      "path": "",
       "tags": [],
       "updatedAt": "2026-08-13T13:32:46.183Z",
       "file": "notebooks/docs/模型训练平台.json"
@@ -603,7 +593,7 @@
       "id": "note-1786627244712",
       "title": "可视化网络结构",
       "folderId": "folder-1786429147192",
-      "path": "Notebooks/Deep Learning",
+      "path": "",
       "tags": [],
       "updatedAt": "2026-08-13T13:32:46.183Z",
       "file": "notebooks/docs/可视化网络结构.json"
@@ -675,7 +665,7 @@
       "id": "note-1786938681439",
       "title": "Attention Residuals",
       "folderId": "folder-1786429147192",
-      "path": "Notebooks/Deep Learning",
+      "path": "",
       "tags": [
         "AttnRes"
       ],
@@ -840,7 +830,7 @@
       "id": "note-1788184267399",
       "title": "Transformer模型",
       "folderId": "folder-1786429147192",
-      "path": "Notebooks/Deep Learning",
+      "path": "",
       "tags": [
         "transformer"
       ],
@@ -880,7 +870,7 @@
       "id": "note-1788488768635",
       "title": "优化器",
       "folderId": "folder-1786429147192",
-      "path": "Notebooks/Deep Learning",
+      "path": "",
       "tags": [],
       "updatedAt": "2026-09-04T06:42:48.247Z",
       "file": "notebooks/docs/优化器.json"
@@ -921,7 +911,7 @@
       "id": "note-1789287574484",
       "title": "LoRA-参数微调",
       "folderId": "folder-1785676511361",
-      "path": "Notebooks/大模型",
+      "path": "Notebooks/模型",
       "tags": [
         "LoRA"
       ],
@@ -958,6 +948,17 @@
       "tags": [],
       "updatedAt": "2026-09-15T04:02:15.547Z",
       "file": "notebooks/docs/wa-jepa-世界-动作模型.json"
+    },
+    {
+      "id": "note-2b1c8e2e-7aac-49d5-8915-f876045bf146",
+      "title": "sparseOD模型fine tune",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
+      "tags": [
+        "fine-tune"
+      ],
+      "updatedAt": "2026-09-21T03:55:56.101Z",
+      "file": "notebooks/docs/sparseod模型fine-tune.json"
     }
   ]
 }
