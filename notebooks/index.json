@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-21T03:55:56.101Z",
+  "updatedAt": "2026-09-24T11:25:45.429Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -300,7 +300,7 @@
         "工具",
         "github"
       ],
-      "updatedAt": "2026-08-31T09:53:40.523Z",
+      "updatedAt": "2026-09-24T11:25:45.429Z",
       "file": "notebooks/docs/优质github项目.json"
     },
     {
@@ -959,6 +959,17 @@
       ],
       "updatedAt": "2026-09-21T03:55:56.101Z",
       "file": "notebooks/docs/sparseod模型fine-tune.json"
+    },
+    {
+      "id": "note-f0354e7c-e24b-4cba-904b-4c419d1076f0",
+      "title": "RAF-VLA模型",
+      "folderId": "folder-1789438262579",
+      "path": "Notebooks/自动驾驶/端到端模型",
+      "tags": [
+        "RAF-VLA"
+      ],
+      "updatedAt": "2026-09-24T11:25:45.429Z",
+      "file": "notebooks/docs/raf-vla模型.json"
     }
   ]
 }
