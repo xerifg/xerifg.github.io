@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "id": "note-f0354e7c-e24b-4cba-904b-4c419d1076f0",
+  "title": "RAF-VLA模型",
+  "folderId": "folder-1789438262579",
+  "path": "Notebooks/自动驾驶/端到端模型",
+  "tags": [
+    "RAF-VLA"
+  ],
+  "properties": {
+    "type": "论文",
+    "status": "在读",
+    "source": "https://arxiv.org/pdf/2609.17728",
+    "aliases": [
+      "VLA"
+    ]
+  },
+  "dailyDate": "",
+  "createdAt": "2026-09-24T11:25:24.136Z",
+  "updatedAt": "2026-09-24T11:25:45.429Z",
+  "assets": [],
+  "html": "<p></p><p></p>"
+}
