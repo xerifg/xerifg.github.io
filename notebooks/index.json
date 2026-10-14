@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-24T11:25:45.429Z",
+  "updatedAt": "2026-10-14T02:00:59.589Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -394,7 +394,7 @@
       "folderId": "folder-1785849397124",
       "path": "网站收集",
       "tags": [],
-      "updatedAt": "2026-08-13T13:32:46.183Z",
+      "updatedAt": "2026-10-14T02:00:59.589Z",
       "file": "notebooks/docs/实验室.json"
     },
     {
@@ -970,6 +970,15 @@
       ],
       "updatedAt": "2026-09-24T11:25:45.429Z",
       "file": "notebooks/docs/raf-vla模型.json"
+    },
+    {
+      "id": "note-349eaaf4-c8dc-4e61-8ea3-40e0cb87268d",
+      "title": "MGAF 多模态检测模型",
+      "folderId": "folder-1785676968352",
+      "path": "Notebooks/自动驾驶/3D检测模型",
+      "tags": [],
+      "updatedAt": "2026-10-14T02:00:59.589Z",
+      "file": "notebooks/docs/mgaf-多模态检测模型.json"
     }
   ]
 }
