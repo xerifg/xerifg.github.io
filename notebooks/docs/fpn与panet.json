@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "id": "note-7fe16d8e-47af-4253-a7aa-b92412560fdf",
+  "title": "FPN与PANet",
+  "folderId": "folder-1785676511361",
+  "path": "Notebooks/模型",
+  "tags": [
+    "FPN",
+    "PANet"
+  ],
+  "properties": {
+    "type": "",
+    "status": "待整理",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-10-20T03:46:46.774Z",
+  "updatedAt": "2026-10-20T03:47:17.010Z",
+  "assets": [
+    {
+      "id": "asset-1792464388016-kl6dt0",
+      "name": "image.png",
+      "fileName": "image-20261020024628-31x05.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 49862,
+      "localUrl": "notebooks/assets/note-7fe16d8e-47af-4253-a7aa-b92412560fdf/image-20261020024628-31x05.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-7fe16d8e-47af-4253-a7aa-b92412560fdf/image-20261020024628-31x05.png",
+      "remoteUrl": "notebooks/assets/note-7fe16d8e-47af-4253-a7aa-b92412560fdf/image-20261020024628-31x05.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1792464513968-6wy6gy",
+      "name": "image.png",
+      "fileName": "image-20261020024833-x4ofr.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 78200,
+      "localUrl": "notebooks/assets/note-7fe16d8e-47af-4253-a7aa-b92412560fdf/image-20261020024833-x4ofr.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-7fe16d8e-47af-4253-a7aa-b92412560fdf/image-20261020024833-x4ofr.png",
+      "remoteUrl": "notebooks/assets/note-7fe16d8e-47af-4253-a7aa-b92412560fdf/image-20261020024833-x4ofr.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<h1>FPN</h1><img src=\"notebooks/assets/note-7fe16d8e-47af-4253-a7aa-b92412560fdf/image-20261020024628-31x05.png\" alt=\"image.png\" title=\"image.png\" width=\"570\"><p>FPN 巧妙地设计了一种“由粗到精”的跨尺度融合架构，主要包含三条核心通路：</p><ol><li><p><strong>自底向上的通路（Bottom-up Pathway）</strong>：</p><ul><li><p>就是传统的 CNN 主干网络（如 ResNet）。网络在前向传播过程中，特征图尺寸不断缩小，语义信息不断增强。我们把不同缩放比例的特征层提取出来，记作 <span><span data-tex=\"\\{C_2, C_3, C_4, C_5\\}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>（对应步长为 4, 8, 16, 32）。</p></li></ul></li><li><p><strong>自顶向下的通路（Top-down Pathway）</strong>：</p><ul><li><p>从最高层（语义最强但分辨率最低的 <span><span data-tex=\"C_5\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>）开始，将特征图进行<strong>上采样</strong>（通常是 2 倍最近邻插值或双线性插值），使其分辨率扩大，从而能够和上一层的特征图对齐。</p></li></ul></li><li><p><strong>横向连接（Lateral Connections）</strong>：</p><ul><li><p>自底向上某一层（例如 <span><span data-tex=\"C_4\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>）的特征图会经过一个 <span><span data-tex=\"1\\times1\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 卷积（用来调整通道数，使其与上采样后的特征图一致）。</p></li><li><p>然后，将<strong>上采样后的深层特征</strong>与<strong>经过 </strong><span><strong><span data-tex=\"1\\times1\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></strong></span><strong> 卷积的同尺度浅层特征</strong>进行<strong>逐像素相加（Element-wise Addition）</strong>。</p></li><li><p>融合后的特征层记作 <span><span data-tex=\"\\{P_2, P_3, P_4, P_5\\}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>，每一层都准备连接一个预测头（Head）。</p></li></ul></li></ol><h1>PANet</h1><img src=\"notebooks/assets/note-7fe16d8e-47af-4253-a7aa-b92412560fdf/image-20261020024833-x4ofr.png\" alt=\"image.png\" title=\"image.png\" width=\"712\"><p>PANet 的“自底向上（Bottom-up）”路径增强确实是<strong>紧接着 FPN 运行完之后</strong>进行的。</p><p>我们可以把它的整体构建流程拆解为顺序明确的<strong>两个阶段</strong>：</p><h3>第一阶段：先构建标准的 FPN（自顶向下，传递强语义）</h3><ol><li><p><strong>提取 Backbone 特征</strong>：主干网络（如 ResNet）在前向传播时生成多层特征图（如 <span><span data-tex=\"C_2, C_3, C_4, C_5\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>）。</p></li><li><p><strong>自顶向下融合</strong>：</p><ul><li><p>从最高层 <span><span data-tex=\"C_5\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 开始，经过 <span><span data-tex=\"1\\times1\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 卷积得到 <span><span data-tex=\"P_5\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>。</p></li><li><p><span><span data-tex=\"P_5\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 进行 2 倍上采样，与 <span><span data-tex=\"C_4\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 经过 <span><span data-tex=\"1\\times1\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 卷积后的特征图进行逐像素相加（Element-wise Addition），得到 <span><span data-tex=\"P_4\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>。</p></li><li><p>同理，继续向下依次融合生成 <span><span data-tex=\"P_3\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 和 <span><span data-tex=\"P_2\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>。</p></li></ul></li><li><p><strong>阶段产物</strong>：此时我们得到了全套 FPN 特征图 <span><span data-tex=\"\\{P_2, P_3, P_4, P_5\\}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>。<strong>这些特征图已经融合了顶层的强语义信息。</strong></p></li></ol><h3>第二阶段：用 FPN 生成的特征图再做自底向上传导（传递强定位）</h3><p>有了融合深层语义的 <span><span data-tex=\"\\{P_2, P_3, P_4, P_5\\}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 之后，PANet 并没有直接把它们送去预测，而是开启了第二阶段：</p><ol><li><p><strong>起始点（最低层）</strong>：直接将 FPN 的最底层 <span><span data-tex=\"P_2\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 作为新路径的起点，记作 <span><span data-tex=\"N_2\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>（即 <span><span data-tex=\"N_2 = P_2\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>）。</p></li><li><p><strong>逐层向上传导与融合</strong>：</p><ul><li><p><strong>下采样</strong>：将 <span><span data-tex=\"N_2\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 经过一个 <span><span data-tex=\"3\\times3\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 卷积（步长 stride=2）进行 <strong>2 倍下采样</strong>，使其分辨率缩放到与 <span><span data-tex=\"P_3\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 一致。</p></li><li><p><strong>融合</strong>：将下采样后的特征图与 FPN 产生的 <span><span data-tex=\"P_3\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 进行<strong>逐像素相加</strong>，再经过一个 <span><span data-tex=\"3\\times3\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 卷积消除混叠，得到新的特征图 <span><span data-tex=\"N_3\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>。</p></li><li><p><strong>继续上抛</strong>：把 <span><span data-tex=\"N_3\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 同样下采样，与 <span><span data-tex=\"P_4\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 融合生成 <span><span data-tex=\"N_4\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>；再将 <span><span data-tex=\"N_4\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 下采样，与 <span><span data-tex=\"P_5\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 融合生成 <span><span data-tex=\"N_5\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>。</p></li></ul></li><li><p><strong>最终输出</strong>：最终用于目标检测 Head 输入的就是这组经过二次增强的特征图 <span><span data-tex=\"\\{N_2, N_3, N_4, N_5\\}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>。</p></li></ol>"
+}
