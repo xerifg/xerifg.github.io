@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-14T02:00:59.589Z",
+  "updatedAt": "2026-10-20T03:47:17.010Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -979,6 +979,51 @@
       "tags": [],
       "updatedAt": "2026-10-14T02:00:59.589Z",
       "file": "notebooks/docs/mgaf-多模态检测模型.json"
+    },
+    {
+      "id": "note-0f637733-9d8f-4b4f-90ed-8a80857e1f3e",
+      "title": "RepVGG",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
+      "tags": [
+        "RepVGG"
+      ],
+      "updatedAt": "2026-10-20T03:47:17.010Z",
+      "file": "notebooks/docs/repvgg.json"
+    },
+    {
+      "id": "note-fdcb7537-7e66-47d9-8120-04434c2d7d16",
+      "title": "VGG模型",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
+      "tags": [
+        "VGG"
+      ],
+      "updatedAt": "2026-10-20T03:47:17.010Z",
+      "file": "notebooks/docs/vgg模型.json"
+    },
+    {
+      "id": "note-7fe16d8e-47af-4253-a7aa-b92412560fdf",
+      "title": "FPN与PANet",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
+      "tags": [
+        "FPN",
+        "PANet"
+      ],
+      "updatedAt": "2026-10-20T03:47:17.010Z",
+      "file": "notebooks/docs/fpn与panet.json"
+    },
+    {
+      "id": "note-30c486fd-b475-45b9-96be-0480ca53dc4a",
+      "title": "U-Net模型",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
+      "tags": [
+        "UNet"
+      ],
+      "updatedAt": "2026-10-20T03:47:17.010Z",
+      "file": "notebooks/docs/u-net模型.json"
     }
   ]
 }
