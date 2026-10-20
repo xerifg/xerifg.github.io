@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "note-30c486fd-b475-45b9-96be-0480ca53dc4a",
+  "title": "U-Net模型",
+  "folderId": "folder-1785676511361",
+  "path": "Notebooks/模型",
+  "tags": [
+    "UNet"
+  ],
+  "properties": {
+    "type": "论文",
+    "status": "已整理",
+    "source": "https://arxiv.org/pdf/1505.04597",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-10-20T03:46:58.749Z",
+  "updatedAt": "2026-10-20T03:47:17.010Z",
+  "assets": [
+    {
+      "id": "asset-1792463710426-dgey5w",
+      "name": "image.png",
+      "fileName": "image-20261020023510-cipku.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 124321,
+      "localUrl": "notebooks/assets/note-30c486fd-b475-45b9-96be-0480ca53dc4a/image-20261020023510-cipku.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-30c486fd-b475-45b9-96be-0480ca53dc4a/image-20261020023510-cipku.png",
+      "remoteUrl": "notebooks/assets/note-30c486fd-b475-45b9-96be-0480ca53dc4a/image-20261020023510-cipku.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<p><strong>UNet</strong> 最初由 Olaf Ronneberger 等人在 2015 年提出，主要用于医学图像分割。由于其精巧的“U”型对称结构和强大特征融合能力，它不仅在图像分割领域占据统治地位，在后来的图像生成（如 Diffusion Models 中的噪声预测网络）和多任务感知（如自动驾驶中的 Occupancy Network、FreeSpace 解码器）中也得到了广泛应用。</p><h2>模型架构</h2><img src=\"notebooks/assets/note-30c486fd-b475-45b9-96be-0480ca53dc4a/image-20261020023510-cipku.png\" alt=\"image.png\" title=\"image.png\"><p>如果把 UNet 比作一个工厂的流水线，它的处理过程可以这样直观拆解：</p><ol><li><p><strong>左半边（下车/压缩：提取大局观）</strong></p><ul><li><p>输入图像一路向下走。每往下走一步，就进行一次<strong>池化（Max Pooling）缩小尺寸，同时翻倍通道数</strong>。</p></li><li><p><strong>直观效果</strong>：图片越来越小（分辨率降低），但“抽象特征”越来越多（比如最底下时，每个点代表了很强的全局语义）。</p></li></ul></li><li><p><strong>右半边（上车/放大：恢复精细度）</strong></p><ul><li><p>到了最底部，开始向上放大（<strong>上采样 / 转置卷积</strong>）。</p></li><li><p>每往上走一步，图片变大，通道数减半，逐渐恢复到原始的分辨率大小。</p></li></ul></li><li><p><strong>横向桥梁（跳跃连接 / Skip Connections）</strong></p><ul><li><p><strong>为什么需要它？</strong> 如果只有左边压缩、右边放大，中间丢掉了太多边缘和位置坐标细节（就像复印了好几遍的照片，边缘变得很模糊）。</p></li><li><p><strong>怎么运作的？</strong> 犹如在左侧的浅层特征（还带有清晰的像素边界）和右侧对应层之间架起了一座<strong>直通桥梁</strong>。右侧在放大时，直接把左侧高分辨率的特征“剪切并拼接”过来。</p></li><li><p><strong>结果</strong>：既拥有了右侧深层带来的宏观语义（“这是什么物体”），又拥有了左侧浅层带来的微观边界（“物体的边缘在哪里”）。</p></li></ul></li></ol>"
+}
