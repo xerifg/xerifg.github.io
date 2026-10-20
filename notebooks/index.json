@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-20T03:47:17.010Z",
+  "updatedAt": "2026-10-20T10:10:36.726Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -1024,6 +1024,17 @@
       ],
       "updatedAt": "2026-10-20T03:47:17.010Z",
       "file": "notebooks/docs/u-net模型.json"
+    },
+    {
+      "id": "note-b3e02e47-f533-499e-ba03-4f729691d388",
+      "title": "HENet",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
+      "tags": [
+        "HENet"
+      ],
+      "updatedAt": "2026-10-20T10:10:36.726Z",
+      "file": "notebooks/docs/henet.json"
     }
   ]
 }
