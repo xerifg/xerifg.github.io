@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "id": "note-b3e02e47-f533-499e-ba03-4f729691d388",
+  "title": "HENet",
+  "folderId": "folder-1785676511361",
+  "path": "Notebooks/模型",
+  "tags": [
+    "HENet"
+  ],
+  "properties": {
+    "type": "论文",
+    "status": "在读",
+    "source": "https://arxiv.org/pdf/2404.02517",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-10-20T10:10:29.362Z",
+  "updatedAt": "2026-10-20T10:10:36.726Z",
+  "assets": [
+    {
+      "id": "asset-1792490439004-ifjhl1",
+      "name": "image.png",
+      "fileName": "image-20261020100039-bgqdm.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 126159,
+      "localUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100039-bgqdm.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100039-bgqdm.png",
+      "remoteUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100039-bgqdm.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1792490545644-j06if8",
+      "name": "image.png",
+      "fileName": "image-20261020100225-m24hx.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 68894,
+      "localUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100225-m24hx.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100225-m24hx.png",
+      "remoteUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100225-m24hx.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1792490651558-33ejo7",
+      "name": "image.png",
+      "fileName": "image-20261020100411-78ws1.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 675011,
+      "localUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100411-78ws1.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100411-78ws1.png",
+      "remoteUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100411-78ws1.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1792490772721-570f71",
+      "name": "image.png",
+      "fileName": "image-20261020100612-4n0jx.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 15988,
+      "localUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100612-4n0jx.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100612-4n0jx.png",
+      "remoteUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100612-4n0jx.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1792490821371-qf10h6",
+      "name": "image.png",
+      "fileName": "image-20261020100701-0ao0b.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 576311,
+      "localUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100701-0ao0b.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100701-0ao0b.png",
+      "remoteUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100701-0ao0b.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1792490924117-2k88v4",
+      "name": "image.png",
+      "fileName": "image-20261020100844-5ovla.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 10730,
+      "localUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100844-5ovla.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100844-5ovla.png",
+      "remoteUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100844-5ovla.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1792490986615-wptett",
+      "name": "image.png",
+      "fileName": "image-20261020100946-q44b3.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 51881,
+      "localUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100946-q44b3.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100946-q44b3.png",
+      "remoteUrl": "notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100946-q44b3.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<p><span><strong>HENet</strong>（全称 <strong>Hybrid Encoding Network</strong>，由北京大学 VDIG 实验室提出，最初发表于 ECCV 2024，后续演进出支持端到端规划的 HENet++）是一种专门面向<strong>多视角多任务 3D 感知</strong>与<strong>端到端自动驾驶</strong>的高效神经网络架构。</span></p><p><span>在当前的自动驾驶视觉感知方案中（如融合 BEV、Occupancy、3D 检测与端到端规划的框架），HENet 旨在解决一个核心痛点：<strong>如何在有限的板端算力下，同时兼顾高分辨率图像的细节信息（用于精准 3D 定位）和长时序的历史信息（用于速度估计与运动预测）.</strong></span></p><img src=\"notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100039-bgqdm.png\" alt=\"image.png\" title=\"image.png\"><p>简洁版的模型架构图：</p><img src=\"notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100225-m24hx.png\" alt=\"image.png\" title=\"image.png\"><blockquote><p>理解这张图时，先记住三个核心模块：图像特征怎么提取、时间信息怎么融合、不同任务怎么分别处理。</p></blockquote><h1>模块 1：Hybrid Image Encoding（混合图像编码）</h1><p>这是 HENet 最核心的设计之一。它要解决的问题是：既希望使用高分辨率图像和较长的历史序列提高感知精度，又不希望计算量、显存占用和训练成本过高。</p><h2>为什么要设计两条分支？</h2><p>假设车辆有 6 路环视相机，每一时刻都有 6 张图像。如果模型既要处理当前时刻的高分辨率图像，又要处理过去很多帧的高分辨率图像，计算量就会快速增长。</p><p>HENet 的思路是将两种需求分开处理：</p><img src=\"notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100411-78ws1.png\" alt=\"image.png\" title=\"image.png\"><h2>两条分支如何生成 BEV 特征？</h2><p>图像特征并不是最终的 3D 空间特征。自动驾驶还需要知道目标在车辆前方多远、位于左侧还是右侧，因此需要将图像特征转换到鸟瞰视角（BEV）。</p><img src=\"notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100612-4n0jx.png\" alt=\"image.png\" title=\"image.png\"><p>可以把它理解为：图像特征告诉模型“画面里有什么”，BEV 特征则尝试把这些信息组织到“车辆周围的哪个空间位置”。</p><p>这里要特别区分：BEV 并不是把图像简单旋转 90 度，而是需要通过几何关系和深度信息，将图像中的视觉信息映射到统一的鸟瞰空间。</p><h1>模块 2：Temporal Feature Integration（时序特征集成）</h1><p>这个模块解决的是：如何把当前帧和历史帧的信息有效地融合起来。</p><p>它和你在自动驾驶感知后处理中接触的多帧目标跟踪有一个相似点：都希望利用历史信息。不过两者处理的对象不同。</p><ul><li><p>HENet：在神经网络内部融合多帧的 BEV 特征。</p></li><li><p>后处理跟踪：通常在检测结果层面，利用目标位置、速度、协方差等状态信息进行关联和滤波。</p></li></ul><h2>为什么需要历史帧？</h2><p>假设当前帧中有一辆车被前方大车遮挡，只能看到一小部分。</p><img src=\"notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100701-0ao0b.png\" alt=\"image.png\" title=\"image.png\"><h3>注意力机制在这里做什么？</h3><p>可以把每个时刻的 BEV 特征看成一张带有语义信息的空间网格。当前帧的某个位置需要补充信息时，注意力机制可以学习哪些历史特征与它相关，并据此加权融合。</p><p>简化理解，可以写成：</p><img src=\"notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100844-5ovla.png\" alt=\"image.png\" title=\"image.png\"><p>需要注意，HENet 并不是简单地把历史特征全部相加。它通过学习特征之间的关联，让网络更有针对性地利用历史信息。历史特征也不一定总是可靠：如果时间对齐、运动补偿或遮挡变化处理不充分，历史信息反而可能带来噪声。</p><h1>模块 3：Independent BEV Feature Encoding（独立 BEV 特征编码）</h1><p>这是 HENet 的另一个重要设计：不同感知任务不必强制共用同一套最终 BEV 特征编码器。</p><p>为什么需要这样设计？</p><p>因为 3D 目标检测和 BEV 语义分割虽然都使用鸟瞰视角，但关注的信息并不完全一样。</p><img src=\"notebooks/assets/note-b3e02e47-f533-499e-ba03-4f729691d388/image-20261020100946-q44b3.png\" alt=\"image.png\" title=\"image.png\"><p>举个例子：检测任务需要准确判断一辆车的中心坐标和长宽，而分割任务需要连续、完整地识别道路区域。如果两个任务完全共享所有特征编码层，一个任务的优化可能会影响另一个任务，这就是多任务学习中的梯度冲突或任务竞争问题。</p><p>HENet 通过不同分辨率的 BEV 特征、独立的 BEV 编码器和任务解码器，让不同任务能够进一步提取更适合自己的特征。这里的“独立”主要指任务相关的 BEV 编码阶段，并不意味着整个网络从输入到输出完全没有共享模块。</p><h1>把整个过程串起来看</h1><p>假设车辆通过六路相机感知周围环境，同时输入当前帧和多帧历史图像，HENet 的处理逻辑可以总结为：</p><ol><li><p>提取图像特征： 当前帧使用较强的编码路径，历史帧使用更轻量的编码路径，平衡细节与计算开销。</p></li><li><p>转换为 BEV： 将多相机图像中的特征转换到车辆周围的鸟瞰空间。</p></li><li><p>融合时间信息： 通过注意力机制整合当前帧与历史帧的 BEV 特征，利用历史上下文改善感知。</p></li><li><p>分别编码任务特征： 为 3D 目标检测和 BEV 语义分割等任务提供相应的 BEV 特征表示。</p></li><li><p>完成预测： 通过各自的解码器生成目标检测结果、语义分割结果等。</p></li></ol>"
+}
