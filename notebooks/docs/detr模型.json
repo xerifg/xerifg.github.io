@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "id": "note-7fefe2ce-b0d2-4dc4-ac4f-8f3503d142ae",
+  "title": "DETR模型",
+  "folderId": "folder-1788504005278",
+  "path": "Notebooks/自动驾驶/2D检测模型",
+  "tags": [
+    "DETR"
+  ],
+  "properties": {
+    "type": "论文",
+    "status": "已整理",
+    "source": "https://arxiv.org/pdf/2005.12872",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-10-21T03:39:18.347Z",
+  "updatedAt": "2026-10-21T03:39:44.118Z",
+  "assets": [
+    {
+      "id": "asset-1792552546262-cx33je",
+      "name": "image.png",
+      "fileName": "image-20261021031546-gm0wd.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 92146,
+      "localUrl": "notebooks/assets/note-7fefe2ce-b0d2-4dc4-ac4f-8f3503d142ae/image-20261021031546-gm0wd.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-7fefe2ce-b0d2-4dc4-ac4f-8f3503d142ae/image-20261021031546-gm0wd.png",
+      "remoteUrl": "notebooks/assets/note-7fefe2ce-b0d2-4dc4-ac4f-8f3503d142ae/image-20261021031546-gm0wd.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1792552585071-2g36da",
+      "name": "image.png",
+      "fileName": "image-20261021031625-z2onq.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 154359,
+      "localUrl": "notebooks/assets/note-7fefe2ce-b0d2-4dc4-ac4f-8f3503d142ae/image-20261021031625-z2onq.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-7fefe2ce-b0d2-4dc4-ac4f-8f3503d142ae/image-20261021031625-z2onq.png",
+      "remoteUrl": "notebooks/assets/note-7fefe2ce-b0d2-4dc4-ac4f-8f3503d142ae/image-20261021031625-z2onq.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<p><strong>DETR (DEtection TRansformer)</strong> 是 Facebook AI (Meta) 于 2020 年提出的将 Transformer 架构引入目标检测领域的开创性工作（发表于 ECCV 2020）。</p><p>在此之前，目标检测（如 Faster R-CNN、YOLO 等）深度依赖于锚框（Anchor Boxes）、非极大值抑制（NMS）等人工设计的后处理组件。而 DETR 的核心贡献在于：<strong>首次将目标检测视为一个“直接集合预测（Direct Set Prediction）”问题</strong>，彻底抛弃了锚框和 NMS，实现了真正意义上的端到端（End-to-End）目标检测。</p><p>参考解读：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://chatgpt.com/share/6ad83366-4124-83ec-8708-5c7870b8745d\">https://chatgpt.com/share/6ad83366-4124-83ec-8708-5c7870b8745d</a></p><hr><img src=\"notebooks/assets/note-7fefe2ce-b0d2-4dc4-ac4f-8f3503d142ae/image-20261021031546-gm0wd.png\" alt=\"image.png\" title=\"image.png\"><p>详细的模型架构如下</p><img src=\"notebooks/assets/note-7fefe2ce-b0d2-4dc4-ac4f-8f3503d142ae/image-20261021031625-z2onq.png\" alt=\"image.png\" title=\"image.png\"><h2>模型架构</h2><p>DETR 的结构非常简洁，主要由三个部分组成：</p><pre><code>输入图像 ──&gt; CNN 主干网络 ──&gt; Transformer 编码器 ──&gt; Transformer 解码器 ──&gt; 预测头 (类别 + 边界框)\n              (提取特征)       (全局上下文建模)       (Object Queries)        (并行输出 N 个预测)\n</code></pre><ol><li><p><strong>CNN Backbone（主干网络）</strong>：</p><ul><li><p>输入一张尺寸为 <span><span data-tex=\"H \\times W \\times 3\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 的图像，通过传统的 CNN（如 ResNet）提取空间特征，得到低分辨率的特征图，维度通常为 <span><span data-tex=\"\\frac{H}{32} \\times \\frac{W}{32} \\times C\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>。</p></li></ul></li><li><p><strong>Transformer Encoder（编码器）</strong>：</p><ul><li><p>将 CNN 输出的特征图展平（<span><span data-tex=\"\\frac{HW}{32} \\times C\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>），并加上<strong>固定或可学习的二维位置编码（Positional Encoding）</strong>，使其具备空间感知能力。</p></li><li><p>通过多头自注意力机制（Self-Attention），特征图中的每个像素都能与图像中的其他所有像素进行交互，捕获长距离的全局上下文信息（例如：左轮车轮和右轮车轮的关系）。</p></li></ul></li><li><p><strong>Transformer Decoder（解码器）</strong>：</p><ul><li><p>解码器引入了一组可学习的参数，称为 <strong>Object Queries（目标查询）</strong>，数量固定为 <span><span data-tex=\"N\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 个（通常设为 100）。</p></li><li><p>这 <span><span data-tex=\"N\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 个 Query 在解码器中通过交叉注意力机制（Cross-Attention）去编码器输出的特征图中“寻找”和聚合感兴趣的目标特征。</p></li><li><p>每个 Query 最终负责在图像中检测出一个特定的物体。</p></li></ul></li><li><p><strong>Prediction Heads（预测前馈网络 FFN）</strong>：</p><ul><li><p>解码器输出的 <span><span data-tex=\"N\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 个特征向量分别输入到两个并行的多层感知机（MLP）中，同时并行输出：</p><ul><li><p><strong>类别预测</strong>：包括目标类别（若为背景则为“背景”类）。</p></li><li><p><strong>边界框预测</strong>：输出归一化的边界框坐标 <span><span data-tex=\"(cx, cy, w, h)\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span>。</p></li></ul></li></ul></li></ol><h2>核心思想</h2><p>这里有个很重要的概念：<strong>Object Queries，</strong>它是可学习的一组参数，可以把 Query 理解为一组可学习的 Embedding。输入图像后先经过backbone得到一个特征图，然后把输出的最后一个特征图每个位置的特征向量展平送入transformer encoder模块，进行图像特征间的cross attention交互，再将交互后的图像特征token，和<strong>Object Queries</strong>一起送入transformer decoder中，进行self attention, cross attention，FFN输出跟图像特征重复交互后的<strong>Object Queries</strong>特征，最后输入到head里解析2d box这些属性信息。</p><blockquote><p>细节注意：</p><ol><li><p>transformer decoder中的Self-Attention 参与的是 Object Queries 之间的交互；Cross-Attention 参与的是 Object Queries 与 Encoder 输出的图像特征之间的交互。 两者都会更新 Object Queries。</p></li><li><p>backbone出来的特征图只有一个，这也是为啥这个模型对小目标检测不好的原因</p></li></ol></blockquote><h2>核心创新机制</h2><h3>① 二分图匹配与匈牙利损失（Bipartite Matching &amp; Hungarian Loss）</h3><p>因为 DETR 每次固定预测 <span><span data-tex=\"N\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 个物体（通常大于图像中实际的物体数），而真实标注（Ground Truth）的数量是变动的，如何将预测结果与真实标签一一对应？</p><p>DETR 采用了<strong>匈牙利算法（Hungarian Algorithm）进行全局最优二分图匹配</strong>。它定义了一个代价矩阵（Cost Matrix），综合考量分类的准确率和边界框的相似度（通常结合 L1 损失和 Generalized IoU 损失），将 <span><span data-tex=\"N\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span> 个预测结果与真实标注进行一对一匹配。匹配成功者计算分类与回归损失，其余多余的预测则被归为“背景”类别。</p><h3>② 去除锚框（Anchor-Free）与 NMS</h3><p>传统算法需要预先设定大量密集且尺度各异的锚框，并依赖 NMS 过滤重叠框。而 DETR 直接预测最终的边界框，且由于匈牙利匹配保证了每个真实目标只对应唯一的一个预测框，因此<strong>完全不需要 NMS 后处理</strong>。</p><h2>DETR 的优缺点分析</h2><h3>优势</h3><ul><li><p><strong>概念极其简洁</strong>：摆脱了 Anchor 设计的超参数调优和复杂的 NMS 抑制逻辑，管线（Pipeline）极度精简。</p></li><li><p><strong>全局建模能力强</strong>：借助于 Transformer 的自注意力机制，能够很好地利用图像中物体之间的上下文关系（例如：键盘通常在显示器下方）。</p></li><li><p><strong>对遮挡和密集目标表现优异</strong>：得益于全局信息交互。</p></li></ul><h3>劣势（局限性）</h3><ul><li><p><strong>训练收敛速度极慢</strong>：原始 DETR 需要训练长达 500 个 Epoch 才能收敛，因为交叉注意力机制中的 Object Query 在初期很难学到稳定的空间关注区域。</p></li><li><p><strong>小目标检测性能较弱</strong>：由于 CNN 特征图下采样率高，且 Transformer 对全图计算注意力的计算开销大，导致小目标的分辨率丢失严重。</p></li></ul><p></p>"
+}
