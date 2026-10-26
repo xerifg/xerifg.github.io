@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-21T03:39:44.118Z",
+  "updatedAt": "2026-10-26T03:14:02.653Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -312,7 +312,7 @@
         "AI",
         "Skills"
       ],
-      "updatedAt": "2026-09-08T06:49:42.157Z",
+      "updatedAt": "2026-10-26T03:14:02.653Z",
       "file": "notebooks/docs/ai-skills.json"
     },
     {
@@ -683,11 +683,13 @@
     },
     {
       "id": "note-1786936654921",
-      "title": "2d检测模型",
+      "title": "2d检测模型概览",
       "folderId": "folder-1788504005278",
       "path": "Notebooks/自动驾驶/2D检测模型",
-      "tags": [],
-      "updatedAt": "2026-09-04T06:42:48.247Z",
+      "tags": [
+        "2D检测"
+      ],
+      "updatedAt": "2026-10-26T03:14:02.653Z",
       "file": "notebooks/docs/2d检测模型.json"
     },
     {
