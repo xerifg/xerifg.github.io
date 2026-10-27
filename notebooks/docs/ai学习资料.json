@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "note-8c193e4e-1f07-40d0-934e-10b480559d8b",
+  "title": "AI学习资料",
+  "folderId": "folder-1785981247369",
+  "path": "AI",
+  "tags": [],
+  "properties": {
+    "type": "",
+    "status": "待整理",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-10-27T12:38:12.188Z",
+  "updatedAt": "2026-10-27T12:40:21.785Z",
+  "assets": [],
+  "html": "<h2><a target=\"_blank\" rel=\"noreferrer\" class=\"flex items-center gap-3 group flex-shrink-0\" href=\"https://labuladong.online/zh/\"><span style=\"color: rgb(60, 60, 67);\">labuladong 的算法笔记</span></a></h2><p>AI学习资料：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://labuladong.online/zh/roadmap/agent/\">LLM &amp; Agent 开发路线图</a></p><p></p>"
+}
