@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-26T03:14:02.653Z",
+  "updatedAt": "2026-10-27T12:40:21.785Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -1048,6 +1048,15 @@
       ],
       "updatedAt": "2026-10-21T03:39:44.118Z",
       "file": "notebooks/docs/detr模型.json"
+    },
+    {
+      "id": "note-8c193e4e-1f07-40d0-934e-10b480559d8b",
+      "title": "AI学习资料",
+      "folderId": "folder-1785981247369",
+      "path": "AI",
+      "tags": [],
+      "updatedAt": "2026-10-27T12:40:21.785Z",
+      "file": "notebooks/docs/ai学习资料.json"
     }
   ]
 }
