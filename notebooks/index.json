@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-27T12:40:21.785Z",
+  "updatedAt": "2026-10-28T10:17:04.387Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -1057,6 +1057,17 @@
       "tags": [],
       "updatedAt": "2026-10-27T12:40:21.785Z",
       "file": "notebooks/docs/ai学习资料.json"
+    },
+    {
+      "id": "note-bf36909b-01c0-40a8-906d-428f47a6ae71",
+      "title": "QAT量化训练",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
+      "tags": [
+        "qat"
+      ],
+      "updatedAt": "2026-10-28T10:17:04.387Z",
+      "file": "notebooks/docs/qat量化训练.json"
     }
   ]
 }
