@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "id": "note-bf36909b-01c0-40a8-906d-428f47a6ae71",
+  "title": "QAT量化训练",
+  "folderId": "folder-1785676511361",
+  "path": "Notebooks/模型",
+  "tags": [
+    "qat"
+  ],
+  "properties": {
+    "type": "",
+    "status": "待整理",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-10-28T10:16:46.611Z",
+  "updatedAt": "2026-10-28T10:17:04.387Z",
+  "assets": [],
+  "html": "<h1>核心原则</h1><ol><li><p>保证qat训练的计算图和部署到板端的上线模型的计算图一致</p></li><li><p>保证激活分布尽量稳定</p></li></ol><h2>保证qat计算图和模型的计算图一致</h2><p>qat训练是为了抵消量化带来的精度损失，如果两个计算图不一致，那qat抵消的量化误差和实际部署模型的量化误差会差异比较大，qat意义就不大了。</p><h2>保证激活分布尽量稳定</h2><blockquote><p>激活分布不稳，那每次训练的量化误差就会差异很大，模型不容易收敛。</p></blockquote><h3><strong>1. “激活”是什么？</strong></h3><p>网络每一层算完会得到一堆数（feature map）。这些中间结果就叫<span><strong>激活（activation）</strong></span>。</p><p>例如某层输出大概是：</p><p><span style=\"color: rgb(31, 35, 41);\">[-0.3,&nbsp;0.1,&nbsp;2.5,&nbsp;0.8,&nbsp;...]</span></p><p>整张图、整个 batch 上，这些数会形成一个<span><strong>分布</strong></span>：大多数落在哪个区间、有没有特别大的尖峰。</p><hr><h3><strong>2. 量化和 “档位 / scale” 的关系</strong></h3><p>量化大致是：</p><p><span style=\"color: rgb(31, 35, 41);\">整数&nbsp;≈&nbsp;round(浮点数&nbsp;/&nbsp;scale)</span></p><p><span style=\"color: inherit;\">scale</span> 像一把<span><strong>尺子的刻度</strong></span>：</p><ul><li><p>尺子按「大概量到 0～8」做好了</p></li></ul><ul><li><p>真实数忽然跑到 0～80 → 很多档位挤在一起，精度变差</p></li></ul><ul><li><p>忽然都缩到 0～0.8 → 大量数变成同一个整数，细节被抹掉</p></li></ul><p>直觉上：</p><table style=\"min-width: 288px;\"><colgroup><col style=\"min-width: 96px;\"><col style=\"min-width: 96px;\"><col style=\"min-width: 96px;\"></colgroup><tbody><tr><th colspan=\"1\" rowspan=\"1\"><p>浮点范围大致是</p></th><th colspan=\"1\" rowspan=\"1\"><p>scale 合适时</p></th><th colspan=\"1\" rowspan=\"1\"><p>分布突变后</p></th></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>多在 [-2, 2]</p></td><td colspan=\"1\" rowspan=\"1\"><p>能分出很多细档</p></td><td colspan=\"1\" rowspan=\"1\"><p>—</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>突然到 [-20, 20]</p></td><td colspan=\"1\" rowspan=\"1\"><p>—</p></td><td colspan=\"1\" rowspan=\"1\"><p>同样 int8 档位要覆盖更大范围，<span><strong>每个档更粗</strong></span></p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>突然几乎全是 0</p></td><td colspan=\"1\" rowspan=\"1\"><p>—</p></td><td colspan=\"1\" rowspan=\"1\"><p>有效信息挤在少数几个整数上</p></td></tr></tbody></table><p>所以 “对不齐档位” = <span><strong>当初按某种数值范围定的 scale，和现在真实激活范围对不上</strong></span>。</p><h3><strong>分布稳”具体指什么？</strong></h3><p>不是说每个数都一样，而是：</p><ul><li><p>同一层、同类输入下，激活的<span><strong>典型范围</strong></span>（min/max、分位数、方差）相对稳定</p></li></ul><ul><li><p>不会因为某个增强、某条训练支路，让这一层一会儿很“满”、一会儿很“空”</p></li></ul><p>稳 ≈：</p><p><span style=\"color: rgb(31, 35, 41);\">正常情况：这一层&nbsp;95%&nbsp;的值大概在&nbsp;[-3,&nbsp;3]</span></p><p>不稳 ≈：</p><p><span style=\"color: rgb(31, 35, 41);\">这一&nbsp;batch：[-3,&nbsp;3]</span></p><p><span style=\"color: rgb(31, 35, 41);\">下一&nbsp;batch（强遮挡/怪路径）：大量&nbsp;0，偶发&nbsp;±30</span></p><p><span style=\"color: rgb(31, 35, 41);\">再下一&nbsp;batch：整体又缩回去</span></p><p>scale 若相对固定（校准定死，或 QAT 里更新很慢），尺子跟不上这种乱跳，量化误差就忽大忽小。</p>"
+}
