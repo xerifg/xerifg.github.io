@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTML 附件示例</title>
+<style>body{font:16px system-ui;padding:24px;color:#18345a}button{padding:8px}img{display:block;max-width:200px;margin-top:16px}</style>
+<h1>HTML 附件预览</h1>
+<p>样式、脚本和相对路径图片均在预览中显示。</p>
+<button onclick="this.textContent='交互正常'">测试交互</button>
+<img src="workspace-whiteboard-image.svg" alt="相对路径图片">
+<script>
+try { parent.document.body.dataset.attachmentAccess = 'unsafe'; }
+catch { parent.postMessage('html-preview-isolated', '*'); }
+</script>

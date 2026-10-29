@@ -44,7 +44,7 @@ class Handler(SimpleHTTPRequestHandler):
             source = (ROOT / "static/app.js").read_text(encoding="utf-8")
             source = source.replace('editorRef.current = instance;', 'editorRef.current = instance; fixtureEditor = instance;')
             source = source.replace('createRoot(document.getElementById("app")).render(h(App));',
-                                    'export let fixtureEditor; export { TiptapEditor, normalizeDraftHtml };')
+                                    'export let fixtureEditor; export { TiptapEditor, ReferenceReader, normalizeDraftHtml };')
             return self.reply(source, content_type="text/javascript")
         if path == "static/cloud-client.mjs":
             return self.reply((ROOT / "tests/workspace-fixture-client.mjs").read_text(encoding="utf-8"), content_type="text/javascript")

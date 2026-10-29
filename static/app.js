@@ -13,6 +13,7 @@ import Highlight from "https://esm.sh/@tiptap/extension-highlight@2.11.7";
 import TextStyle from "https://esm.sh/@tiptap/extension-text-style@2.11.7";
 import Color from "https://esm.sh/@tiptap/extension-color@2.11.7";
 import { NoteImage } from "./note-image.mjs?v=20260919-image-resize-v1";
+import { enhanceHtmlAttachments } from "./html-attachment.mjs?v=20261029-html-preview-v1";
 import { WhiteboardNode, enhanceWhiteboards } from "./note-whiteboard.mjs?v=20260919-whiteboard-v8";
 import Placeholder from "https://esm.sh/@tiptap/extension-placeholder@2.11.7";
 import Table from "https://esm.sh/@tiptap/extension-table@2.11.7";
@@ -684,6 +685,30 @@ const FileAttachment = Node.create({
       ["a", mergeAttributes({ class: "doc-attachment", href, download: name }, { href }), `附件：${name}`],
       ["span", {}, size]
     ];
+  },
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement("div");
+      dom.dataset.type = "file-attachment";
+      dom.className = "doc-attachment-card";
+      const link = document.createElement("a");
+      link.className = "doc-attachment";
+      link.href = node.attrs.href || "#";
+      link.download = node.attrs.name || "附件";
+      link.textContent = `附件：${link.download}`;
+      const size = document.createElement("span");
+      size.textContent = node.attrs.size || "";
+      dom.append(link, size);
+      const root = document.createDocumentFragment();
+      root.append(dom);
+      const cleanup = enhanceHtmlAttachments(root);
+      return {
+        dom,
+        stopEvent: event => Boolean(event.target.closest("a, .html-attachment-preview")),
+        ignoreMutation: () => true,
+        destroy: cleanup
+      };
+    };
   }
 });
 
@@ -2284,8 +2309,9 @@ function DocumentPaper({ note, state, editable, updateNote, handleAction, onStar
       });
       const handleCopy = (event) => copyMathSelectionToClipboard(event, root);
       const clearWhiteboards = enhanceWhiteboards(root, { notes: state.notes, onOpenNote });
+      const clearHtmlAttachments = enhanceHtmlAttachments(root);
       root.addEventListener("copy", handleCopy);
-      return () => { root.removeEventListener("copy", handleCopy); clearWhiteboards(); };
+      return () => { root.removeEventListener("copy", handleCopy); clearWhiteboards(); clearHtmlAttachments(); };
     }
     return undefined;
   }, [editable, html, state.notes]);
@@ -2442,7 +2468,9 @@ function ReferenceReader({ note, notes, onOpenNote, onImagePreview }) {
       link.removeAttribute("target");
       if (target) { link.textContent = target.title; link.title = textFromNote(target.html).slice(0, 240); }
     });
-    return enhanceWhiteboards(root, { notes, onOpenNote });
+    const clearWhiteboards = enhanceWhiteboards(root, { notes, onOpenNote });
+    const clearHtmlAttachments = enhanceHtmlAttachments(root);
+    return () => { clearWhiteboards(); clearHtmlAttachments(); };
   }, [note, notes]);
   return h("div", { ref, className: "reader tiptap-reader", onClick: event => {
     const link = event.target.closest('a[href^="#note/"]');

@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTML 附件预览回归检查</title>
+<link rel="stylesheet" href="../static/app.css">
+<style>body{display:block;overflow:auto;padding:24px}main{max-width:760px;margin:auto}.feishu-editor{min-height:0;padding:16px}#results{white-space:pre-wrap}</style>
+<main>
+  <h1>HTML 附件预览回归检查</h1>
+  <button id="run">运行检查</button><pre id="results" role="status"></pre>
+  <h2>阅读模式</h2><div id="reader"></div>
+  <h2>编辑模式</h2><div id="editor"></div>
+</main>
+<script type="importmap">{"imports":{"react":"https://esm.sh/react@18.3.1"}}</script>
+<script type="module">
+import React from 'https://esm.sh/react@18.3.1';
+import {createRoot} from 'https://esm.sh/react-dom@18.3.1/client';
+import {TiptapEditor, ReferenceReader, fixtureEditor} from '../static/editor-under-test.mjs';
+import {enhanceHtmlAttachments} from '../static/html-attachment.mjs';
+const h=React.createElement;
+const blob=URL.createObjectURL(new Blob(['<h1>无 MIME 类型的本地 HTML</h1>'],{type:'application/octet-stream'}));
+const card=(href,name)=>`<div data-type="file-attachment" class="doc-attachment-card"><a class="doc-attachment" href="${href}" download="${name}">附件：${name}</a><span>1 KB</span></div>`;
+const html=card('workspace-html-attachment-sample.html','示例.HTML')+card(blob,'local.htm')+card('missing.html','missing.html')+card('sample.pdf','sample.pdf')+'<p>附件后的正文</p>';
+const note={id:'html-preview-test',html,assets:[]};
+let changes=0, isolated=false;
+window.addEventListener('message',event=>{if(event.data==='html-preview-isolated')isolated=true;});
+createRoot(document.querySelector('#reader')).render(h(ReferenceReader,{note,notes:[note],onImagePreview:()=>{},onOpenNote:()=>{}}));
+createRoot(document.querySelector('#editor')).render(h(TiptapEditor,{note,notes:[note],onChange:()=>changes++}));
+const waitFor=async predicate=>{
+  for(let i=0;i<200;i++){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,30));}
+  throw new Error('等待超时');
+};
+const results=document.querySelector('#results');
+const check=(ok,label)=>{results.textContent+=`${ok?'PASS':'FAIL'} ${label}\n`;if(!ok)throw new Error(label);};
+document.querySelector('#run').onclick=async()=>{
+  results.textContent='';
+  try{
+    await waitFor(()=>fixtureEditor&&document.querySelector('#reader a[aria-expanded]'));
+    const before=fixtureEditor.getHTML(), initialChanges=changes;
+    for(const root of [document.querySelector('#reader'),fixtureEditor.view.dom]){
+      isolated=false;
+      const cards=root.querySelectorAll('[data-type="file-attachment"]');
+      const link=cards[0].querySelector('a');
+      check(!root.querySelector('iframe'),'点击前不加载预览');
+      check(!link.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})),'HTML 点击阻止下载和跳转');
+      await waitFor(()=>cards[0].querySelector('iframe'));
+      const frame=cards[0].querySelector('iframe');
+      check(frame.getAttribute('sandbox')==='allow-scripts','预览脚本与笔记页面隔离');
+      check(frame.srcdoc.includes('HTML 附件预览')&&frame.srcdoc.includes('/tests/workspace-html-attachment-sample.html'),'HTML 内容及相对资源基址正确');
+      await waitFor(()=>isolated);
+      check(cards[0].querySelector('.html-attachment-toolbar a').download==='示例.HTML','保留下载原文件入口');
+      cards[0].querySelector('button').click();
+      check(!cards[0].querySelector('iframe')&&link.getAttribute('aria-expanded')==='false','按钮收起预览');
+      link.click();await waitFor(()=>cards[0].querySelector('iframe'));link.click();
+      check(!cards[0].querySelector('iframe'),'再次点击文件名收起预览');
+      cards[1].querySelector('a').click();
+      await waitFor(()=>cards[1].querySelector('iframe'));
+      check(cards[1].querySelector('iframe').srcdoc.includes('无 MIME 类型的本地 HTML'),'本地 Blob 和 .htm 附件可预览');
+      cards[1].querySelector('button').click();
+      cards[2].querySelector('a').click();
+      await waitFor(()=>cards[2].querySelector('[role="status"]')?.textContent.includes('失败'));
+      check(!cards[2].querySelector('iframe'),'失效附件显示错误并允许重试');
+      cards[2].querySelector('button').click();
+      const pdfEvent=new MouseEvent('click',{cancelable:true});
+      cards[3].querySelector('a').dispatchEvent(pdfEvent);
+      check(!pdfEvent.defaultPrevented&&!cards[3].querySelector('iframe'),'其他格式附件保持下载行为');
+    }
+    await waitFor(()=>isolated);
+    check(!document.body.dataset.attachmentAccess,'附件脚本无法访问父文档');
+    check(fixtureEditor.getHTML()===before&&changes===initialChanges,'预览操作不写入正文或产生编辑记录');
+    fixtureEditor.commands.setContent(before);
+    fixtureEditor.view.dom.querySelector('a').click();
+    await waitFor(()=>fixtureEditor.view.dom.querySelector('iframe'));
+    check(!fixtureEditor.getHTML().includes('iframe'),'重新载入后可预览且保存内容不含预览框架');
+    const temporary=document.createElement('div');
+    temporary.innerHTML=card(blob,'cleanup.html');
+    const cleanup=enhanceHtmlAttachments(temporary);
+    temporary.querySelector('a').click();cleanup();
+    await new Promise(resolve=>setTimeout(resolve,60));
+    check(!temporary.querySelector('.html-attachment-preview'),'卸载时取消加载并清理预览');
+    document.querySelector('#reader a').click();
+    results.textContent+='DONE 全部检查通过\n';
+  }catch(error){results.textContent+=`ERROR ${error.stack}\n`;}
+};
+</script>
