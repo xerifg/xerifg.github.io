@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-28T11:32:52.000Z",
+  "updatedAt": "2026-10-31T10:07:44.300Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -844,8 +844,10 @@
       "title": "BEVDet4D",
       "folderId": "folder-1785676968352",
       "path": "Notebooks/自动驾驶/3D检测模型",
-      "tags": [],
-      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "tags": [
+        "BEVDet4D"
+      ],
+      "updatedAt": "2026-10-31T10:07:44.300Z",
       "file": "notebooks/docs/bevdet4d.json"
     },
     {
