@@ -3,10 +3,62 @@
   "id": "note-1788317443023",
   "title": "BEVDet4D",
   "folderId": "folder-1785676968352",
-  "path": "Notebooks/自动驾驶/检测模型",
-  "tags": [],
-  "createdAt": "2026-09-02T02:50:52.738Z",
-  "updatedAt": "2026-09-02T12:49:47.733Z",
-  "assets": [],
-  "html": "<p></p>"
+  "path": "Notebooks/自动驾驶/3D检测模型",
+  "tags": [
+    "BEVDet4D"
+  ],
+  "properties": {
+    "type": "论文",
+    "status": "在读",
+    "source": "https://arxiv.org/pdf/2203.17054",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-10-31T10:07:37.814Z",
+  "updatedAt": "2026-10-31T10:07:44.300Z",
+  "assets": [
+    {
+      "id": "asset-1793439124651-77wt9u",
+      "name": "image.png",
+      "fileName": "image-20261031093204-bg37h.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 63964,
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1788317443023/image-20261031093204-bg37h.png",
+      "remoteUrl": "notebooks/assets/note-1788317443023/image-20261031093204-bg37h.png",
+      "cached": true,
+      "published": true,
+      "localUrl": "notebooks/assets/note-1788317443023/image-20261031093204-bg37h.png"
+    },
+    {
+      "id": "asset-1793440296186-18mtac",
+      "name": "image.png",
+      "fileName": "image-20261031095136-zwznk.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 28010,
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1788317443023/image-20261031095136-zwznk.png",
+      "remoteUrl": "notebooks/assets/note-1788317443023/image-20261031095136-zwznk.png",
+      "cached": true,
+      "published": true,
+      "localUrl": "notebooks/assets/note-1788317443023/image-20261031095136-zwznk.png"
+    },
+    {
+      "id": "asset-1793440546020-fkio5o",
+      "name": "image.png",
+      "fileName": "image-20261031095546-tabnw.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 490241,
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1788317443023/image-20261031095546-tabnw.png",
+      "remoteUrl": "notebooks/assets/note-1788317443023/image-20261031095546-tabnw.png",
+      "cached": true,
+      "published": true,
+      "localUrl": "notebooks/assets/note-1788317443023/image-20261031095546-tabnw.png"
+    }
+  ],
+  "html": "<p><strong>BEVDet4D</strong> 是由商汤科技研究院黄俊杰等人于 2022 年提出的一种针对多相机 3D 目标检测的高效时空 4D 感知框架。它是经典单帧 3D 检测框架 <strong>BEVDet</strong> 的自然延伸，核心在于<strong>将时序线索（Temporal Cues）引入鸟瞰图（BEV）空间</strong>，从而大幅提升了模型的动态目标检测能力（特别是速度预测的准确度）。它的核心思想是：利用多个摄像头构建 BEV（鸟瞰视角）特征，再融合历史时刻的 BEV 特征，让模型同时具备空间感知和时序感知能力。</p><hr><blockquote><p>BEVDet4D 的本质，就是先将多相机图像转换成统一 BEV 空间，再利用自车运动补偿将历史 BEV 特征对齐到当前帧，通过简单的特征拼接，让检测网络同时学习当前空间信息与历史运动信息。</p></blockquote><h1>架构</h1><img src=\"notebooks/assets/note-1788317443023/image-20261031093204-bg37h.png\" alt=\"image.png\" title=\"image.png\"><div data-mermaid-code=\"flowchart TB\n\n    subgraph INPUT[&quot;① 多相机时序输入&quot;]\n        direction LR\n        I0[&quot;当前帧 t&lt;br/&gt;6 cameras&lt;br/&gt;B×6×3×H×W&quot;]\n        I1[&quot;历史帧 t-1&lt;br/&gt;6 cameras&lt;br/&gt;B×6×3×H×W&quot;]\n        META[&quot;相机参数&lt;br/&gt;Intrinsics K&lt;br/&gt;Extrinsics T&quot;]\n        POSE[&quot;自车位姿&lt;br/&gt;Ego Pose t-1 / t&quot;]\n    end\n\n    subgraph IMG[&quot;② Image-view Encoder（两帧共享权重）&quot;]\n        direction LR\n        B0[&quot;Image Backbone&lt;br/&gt;ResNet / VoVNet&quot;]\n        B1[&quot;Image Neck&lt;br/&gt;FPN&quot;]\n        B2[&quot;Image Feature&lt;br/&gt;B×6×C×Hf×Wf&quot;]\n        B0 --&gt; B1 --&gt; B2\n    end\n\n    subgraph VIEW[&quot;③ View Transformer（LSS）&quot;]\n        direction LR\n        V0[&quot;Depth Net&lt;br/&gt;预测深度分布&quot;]\n        V1[&quot;Depth Probability&lt;br/&gt;B×6×D×Hf×Wf&quot;]\n        V2[&quot;Context Feature&lt;br/&gt;B×6×Cbev×Hf×Wf&quot;]\n        V3[&quot;Lift&lt;br/&gt;构建视锥特征&quot;]\n        V4[&quot;Splat / BEV Pooling&lt;br/&gt;投影到 BEV 网格&quot;]\n        V5[&quot;BEV Feature&lt;br/&gt;B×Cbev×Hbev×Wbev&quot;]\n        V0 --&gt; V1\n        V0 --&gt; V2\n        V1 --&gt; V3\n        V2 --&gt; V3\n        V3 --&gt; V4 --&gt; V5\n    end\n\n    subgraph TEMP[&quot;④ Temporal BEV Fusion&quot;]\n        direction TB\n        T0[&quot;历史 BEV 特征缓存&quot;]\n        T1[&quot;BEV Pre-process Encoder&lt;br/&gt;2个 Residual Units&quot;]\n        T2[&quot;当前帧 BEV 特征&quot;]\n        T3[&quot;历史 BEV 特征&lt;br/&gt;Ego-motion Alignment&quot;]\n        T4[&quot;BEV Feature Alignment&lt;br/&gt;历史坐标 → 当前坐标&quot;]\n        T5[&quot;Temporal Concatenation&lt;br/&gt;沿 Channel 维度拼接&quot;]\n        T6[&quot;融合 BEV 特征&lt;br/&gt;B×2Cbev×Hbev×Wbev&quot;]\n\n        T0 --&gt; T1\n        T1 --&gt; T3\n        T3 --&gt; T4\n        T2 --&gt; T5\n        T4 --&gt; T5\n        T5 --&gt; T6\n    end\n\n    subgraph DET[&quot;⑤ BEV Encoder + Detection Head&quot;]\n        direction TB\n        D0[&quot;BEV Encoder&lt;br/&gt;2D CNN / ResNet&quot;]\n        D1[&quot;BEV Feature&lt;br/&gt;空间特征增强&quot;]\n        D2[&quot;CenterPoint-style Detection Head&quot;]\n        D3[&quot;分类分支&lt;br/&gt;Object Class&quot;]\n        D4[&quot;回归分支&lt;br/&gt;Box Center / Size / Yaw&quot;]\n        D5[&quot;速度分支&lt;br/&gt;Velocity / Motion Offset&quot;]\n        D6[&quot;3D Bounding Boxes&lt;br/&gt;类别 + 位置 + 尺寸 + 朝向 + 速度&quot;]\n\n        D0 --&gt; D1 --&gt; D2\n        D2 --&gt; D3\n        D2 --&gt; D4\n        D2 --&gt; D5\n        D3 --&gt; D6\n        D4 --&gt; D6\n        D5 --&gt; D6\n    end\n\n    I0 --&gt; B0\n    I1 --&gt; B0\n    B2 --&gt; V0\n    META --&gt; V4\n    V5 --&gt; T2\n    V5 --&gt; T0\n    POSE --&gt; T4\n    T6 --&gt; D0\n\n    classDef input fill:#e6f2ff,stroke:#4682b4,color:#123;\n    classDef feature fill:#e8f5e9,stroke:#4caf50,color:#123;\n    classDef temporal fill:#fff3e0,stroke:#ff9800,color:#123;\n    classDef output fill:#f3e5f5,stroke:#9c27b0,color:#123;\n\n    class I0,I1,META,POSE input;\n    class B2,V5,T2,T3,T6,D1 feature;\n    class T0,T1,T4,T5 temporal;\n    class D6 output;\" data-type=\"mermaid-diagram\" class=\"mermaid-diagram\"></div><h1>模块解释</h1><h2>BEV Pre-process Encoder</h2><p>LSS 生成的 BEV 特征主要是空间投影聚合的结果，并不意味着特征已经充分提取了 BEV 空间中的语义和上下文关系。</p><p>例如，一个车辆在 BEV 中可能占据几个网格，但这些网格的特征来自不同相机、不同图像位置的投影。单纯的投影聚合不一定能很好地表达车辆整体结构。所以 BEVDet4D 在时序融合之前增加一个 BEV 特征编码模块</p><img src=\"notebooks/assets/note-1788317443023/image-20261031095136-zwznk.png\" alt=\"image.png\" title=\"image.png\"><p>这里使用残差连接是因为，这个block是想让模型学习的特征增量。</p><h2>Ego-motion Alignment</h2><p>它的核心目的就是：将历史时刻的 BEV 特征，从历史自车坐标系转换到当前自车坐标系。</p><p>BEV 特征不是连续的坐标点，而是一个二维特征矩阵。</p><p>例如：</p><p><span data-tex=\"B_{t-1}\\in R^{256\\times200\\times200}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></p><p>假设 BEV 范围是：</p><ul><li><p>X：-50m ~ 50m</p></li><li><p>Y：-50m ~ 50m</p></li><li><p>分辨率：0.5m</p></li></ul><p>那么每个网格对应现实空间中的一个 0.5m × 0.5m 区域。</p><p>Ego-motion Alignment 实际上需要完成：</p><ol><li><p>遍历当前 BEV 网格，确定其在当前自车坐标系中的物理坐标。</p></li><li><p>使用逆变换，计算该位置在历史自车坐标系中的对应坐标。</p></li><li><p>将历史坐标转换为历史 BEV 特征图上的浮点索引。</p></li><li><p>从历史 BEV 特征图中采样对应特征。</p></li><li><p>填充到当前 BEV 网格中。</p></li></ol><p>这里通常采用双线性插值（Bilinear Interpolation）。</p><img src=\"notebooks/assets/note-1788317443023/image-20261031095546-tabnw.png\" alt=\"image.png\" title=\"image.png\"><blockquote><p>为什么是反向采样，每次都是从当前bev特征图里去找历史对应位置的特征，这样可以保证当前 BEV 网格都有明确的采样位置，避免正向投影时出现网格空洞。</p></blockquote>"
 }
