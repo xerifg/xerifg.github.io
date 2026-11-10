@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SparseDrive 感知架构交互式拆解</title>
+<style>
+:root{--bg:#f4f7fb;--panel:#fff;--ink:#172b4d;--muted:#5b6b82;--line:#cbd5e1;--blue:#dbeafe;--blue2:#2563eb;--green:#dcfce7;--green2:#15803d;--purple:#f3e8ff;--purple2:#7e22ce;--orange:#ffedd5;--orange2:#c2410c;--teal:#ccfbf1;--teal2:#0f766e;--red:#fee2e2}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,"Microsoft YaHei",system-ui,sans-serif;color:var(--ink);line-height:1.5}
+header{padding:28px 24px 18px;background:linear-gradient(120deg,#102a56,#1d4ed8);color:#fff}
+header h1{margin:0 0 8px;font-size:clamp(24px,3vw,36px)}header p{margin:0;max-width:1100px;color:#dbeafe}
+main{max-width:1500px;margin:auto;padding:20px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+button{border:1px solid #cbd5e1;background:#fff;border-radius:9px;padding:9px 13px;color:var(--ink);cursor:pointer;font-weight:600}
+button:hover,button.active{background:#dbeafe;border-color:#60a5fa}
+.note{background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:12px 15px;margin:12px 0 18px;color:#7c2d12}
+.section{background:var(--panel);border:1px solid #d7e0ec;border-radius:16px;padding:16px;margin:16px 0;box-shadow:0 4px 16px #1e293b0a}
+.section h2{font-size:20px;margin:0 0 12px}.section h3{font-size:16px;margin:0 0 8px}
+.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}
+.card{position:relative;border:1px solid var(--line);border-radius:12px;padding:13px;background:#fff;min-width:0;cursor:pointer;transition:.15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 18px #0f172a12}
+.card .kicker{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.card h3{margin:4px 0 7px;font-size:16px}.card p{margin:5px 0;font-size:13px;color:#334155}
+.card .dim{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#f8fafc;border-radius:7px;padding:6px;font-size:12px;color:#334155;overflow-wrap:anywhere}
+.blue{background:linear-gradient(180deg,#eff6ff,#fff);border-color:#93c5fd}.green{background:linear-gradient(180deg,#f0fdf4,#fff);border-color:#86efac}.purple{background:linear-gradient(180deg,#faf5ff,#fff);border-color:#d8b4fe}.orange{background:linear-gradient(180deg,#fff7ed,#fff);border-color:#fdba74}.teal{background:linear-gradient(180deg,#f0fdfa,#fff);border-color:#5eead4}
+.arrow{text-align:center;color:#64748b;font-size:24px;align-self:center}
+.dual{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.branch{border:2px solid;border-radius:15px;padding:14px}.branch.agent{border-color:#22c55e;background:#f7fff8}.branch.map{border-color:#3b82f6;background:#f8fbff}
+.branch-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.branch-title h3{margin:0;font-size:19px}.tag{font-size:11px;font-weight:800;padding:4px 8px;border-radius:99px;background:#e2e8f0}
+.branch-flow{display:grid;grid-template-columns:1fr 24px 1.2fr 24px 1fr;gap:6px;align-items:center}
+.mini{border:1px solid #cbd5e1;border-radius:10px;padding:10px;background:#fff;min-width:0}.mini h4{margin:0 0 6px;font-size:14px}.mini p{margin:3px 0;font-size:12px;color:#475569}.mini .dim{font-size:11px}
+.decoder{margin-top:12px;border:2px dashed #94a3b8;border-radius:14px;padding:14px;background:#fbfdff}
+.decoder-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.decoder-head h3{margin:0;font-size:18px}
+.steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:12px}
+.step{border-radius:11px;padding:11px;border:1px solid #cbd5e1;background:white;min-width:0;cursor:pointer}
+.step h4{font-size:13px;margin:0 0 7px}.step p{font-size:12px;margin:4px 0;color:#475569}
+.step .num{display:inline-flex;width:23px;height:23px;align-items:center;justify-content:center;border-radius:50%;background:#e2e8f0;font-weight:800;margin-bottom:6px}
+.step:nth-child(1){background:#eff6ff;border-color:#93c5fd}.step:nth-child(2){background:#faf5ff;border-color:#d8b4fe}.step:nth-child(3){background:#fff7ed;border-color:#fdba74}.step:nth-child(4){background:#f0fdfa;border-color:#5eead4}.step:nth-child(5){background:#fdf4ff;border-color:#e9d5ff}
+.loop{margin-top:12px;text-align:center;background:#eef2ff;border-radius:9px;padding:9px;color:#3730a3;font-size:13px;font-weight:700}
+.details{display:none;margin-top:14px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;padding:15px}
+.details.show{display:block}.details h3{margin:0 0 8px}.details p{margin:6px 0}.details code,code{font-family:ui-monospace,Consolas,monospace;background:#e2e8f0;padding:2px 5px;border-radius:5px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;border-bottom:1px solid #e2e8f0;padding:9px;vertical-align:top}th{background:#f8fafc}
+.pill{display:inline-block;padding:3px 7px;border-radius:7px;background:#e0f2fe;font-size:12px;font-weight:700}
+.small{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:8px;flex-wrap:wrap}.legend span{padding:5px 9px;border-radius:7px;font-size:12px;font-weight:700}
+@media(max-width:900px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.dual{grid-template-columns:1fr}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.branch-flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}.cols{grid-template-columns:1fr}}
+@media(max-width:560px){main{padding:10px}.flow{grid-template-columns:1fr}.steps{grid-template-columns:1fr}header{padding:22px 16px}.branch-flow{display:flex;flex-direction:column}.arrow{transform:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>SparseDrive 感知模型：交互式架构拆解</h1>
+  <p>从多视角图像输入，到共享 Backbone + FPN，再到动态目标与地图元素两条独立的 Sparse4D 感知分支。点击任意模块查看它的输入、输出与作用。</p>
+</header>
+<main>
+  <div class="toolbar">
+    <button class="active" data-mode="all">显示完整架构</button>
+    <button data-mode="agent">突出动态目标分支</button>
+    <button data-mode="map">突出地图元素分支</button>
+    <button data-mode="decoder">突出单层 Decoder</button>
+    <button id="expand">展开所有模块说明</button>
+  </div>
+  <div class="note"><b>阅读提示：</b>维度是按原版 SparseDrive 常见配置和 Sparse4D 实现方式整理的示意值；具体项目分支、配置文件和代码版本可能不同。图中 <code>N</code> 表示目标候选实例数，<code>M</code> 表示地图候选实例数，<code>C</code> 表示类别数。不要把 Anchor 参数维度与特征向量维度混为一谈。</div>
+
+  <section class="section" id="input">
+    <h2>① 输入与共享特征提取</h2>
+    <div class="flow">
+      <div class="card blue" data-detail="images">
+        <div class="kicker">Input</div><h3>多视角相机图像</h3>
+        <p>通常为环视相机输入，例如 6 个视角。每个视角分别进入图像 Backbone。</p>
+        <div class="dim">I: [B, Ncam, 3, H, W]</div>
+        <p class="small">Ncam 示例为 6；B 为 batch size。</p>
+      </div>
+      <div class="card blue" data-detail="backbone">
+        <div class="kicker">Shared</div><h3>Image Backbone</h3>
+        <p>例如 ResNet-50，逐视角提取多层图像特征。</p>
+        <div class="dim">多层特征；通道数随 stage 变化</div>
+        <p class="small">不是 Agent 与 Map 各自一套 Backbone。</p>
+      </div>
+      <div class="card blue" data-detail="fpn">
+        <div class="kicker">Shared Neck</div><h3>FPN</h3>
+        <p>融合 Backbone 多个 stage 的语义信息，形成多尺度特征金字塔。</p>
+        <div class="dim">常见 embed_dims = 256</div>
+        <p class="small">每个相机视角都有对应的多尺度特征。</p>
+      </div>
+      <div class="card blue" data-detail="pyramid">
+        <div class="kicker">Shared Feature Maps</div><h3>多尺度 FPN 特征</h3>
+        <p>以下是 4 层金字塔的典型表达；各层空间尺寸依赖输入分辨率和配置。</p>
+        <div class="dim">P2: [B,Ncam,256,H/4,W/4]<br>P3: [B,Ncam,256,H/8,W/8]<br>P4: [B,Ncam,256,H/16,W/16]<br>P5: [B,Ncam,256,H/32,W/32]</div>
+      </div>
+    </div>
+    <div class="details" id="detail-images"><h3>多视角图像输入</h3><p>模型通常把每个相机的图像作为独立视角处理，并保留相机内外参用于把 3D 采样点投影到图像特征平面。相机数量、图像大小由数据与配置决定。</p></div>
+    <div class="details" id="detail-backbone"><h3>Backbone</h3><p>负责从 RGB 图像中提取视觉特征。不同 stage 的特征具有不同空间分辨率和语义层次，后续 FPN 会把它们整合成统一通道数的金字塔特征。</p></div>
+    <div class="details" id="detail-fpn"><h3>FPN Neck</h3><p>FPN 输出多尺度特征图。Sparse4D Decoder 的各层通常重复访问同一组 FPN 特征，而不是每层重新运行 Backbone/FPN。</p></div>
+    <div class="details" id="detail-pyramid"><h3>多尺度维度怎么读</h3><p><code>[B,Ncam,256,H/8,W/8]</code> 表示 batch、相机数、通道数、高度、宽度。实际代码中可能把 B 与 Ncam 合并为一个维度，或将特征组织为 list/tuple。</p></div>
+  </section>
+
+  <section class="section" id="branches">
+    <h2>② 两个独立但结构相似的 Sparse4D 感知分支</h2>
+    <div class="dual">
+      <div class="branch agent" id="agentBranch">
+        <div class="branch-title"><h3>动态目标分支 Agent / Detection</h3><span class="tag">独立 Head</span></div>
+        <div class="branch-flow">
+          <div class="mini"><h4>3D Box Anchor</h4><div class="dim">N × 11（常见编码）</div><p>候选框几何状态：位置、尺寸、朝向、速度等。</p></div>
+          <div class="arrow">+</div>
+          <div class="mini"><h4>Instance Feature</h4><div class="dim">N × 256</div><p>每个候选实例的可学习内容特征。</p></div>
+          <div class="arrow">→</div>
+          <div class="mini green"><h4>Sparse4DHead</h4><p>多层迭代 Decoder</p><div class="dim">常见 6 层；每层细化特征与 Box</div></div>
+        </div>
+        <div class="mini" style="margin-top:10px"><h4>输出</h4><div class="dim">Box: N × 11<br>Class logits: N × C<br>可选质量分数 / 中间层辅助预测</div><p>经过分类、置信度和后处理等步骤形成动态目标感知结果。</p></div>
+      </div>
+      <div class="branch map" id="mapBranch">
+        <div class="branch-title"><h3>地图元素分支 Map</h3><span class="tag">独立 Head</span></div>
+        <div class="branch-flow">
+          <div class="mini"><h4>Polyline Anchor</h4><div class="dim">M × 点集参数</div><p>候选地图折线，由多个 3D 点描述几何形状。</p></div>
+          <div class="arrow">+</div>
+          <div class="mini"><h4>Instance Feature</h4><div class="dim">M × 256</div><p>每条候选地图元素对应的内容特征。</p></div>
+          <div class="arrow">→</div>
+          <div class="mini" style="background:#eff6ff"><h4>Sparse4DHead</h4><p>多层迭代 Decoder</p><div class="dim">结构相似，几何编码/细化模块不同</div></div>
+        </div>
+        <div class="mini" style="margin-top:10px"><h4>输出</h4><div class="dim">Polyline / 点坐标 + 类别分数</div><p>例如车道线、路沿等地图元素；具体类别集合取决于数据集和配置。</p></div>
+      </div>
+    </div>
+    <div class="details" id="detail-branches"><h3>两个 Head 的关系</h3><p>两条分支共享图像 Backbone + FPN 的输出，但各自维护自己的 Anchor、Instance Feature、几何编码、Decoder 参数与细化模块。它们都使用 Sparse4D 风格的模块组合，但不是同一个 Decoder 实例，也不会在感知 Head 内简单地把 Agent Query 和 Map Query 拼到一起做同一组 Attention。</p></div>
+  </section>
+
+  <section class="section" id="decoder">
+    <div class="decoder-head">
+      <h2>③ 单层 Sparse4D Decoder：每层内部发生什么？</h2>
+      <span class="pill">点击模块查看细节</span>
+    </div>
+    <p class="small">下面以动态目标分支举例。地图分支的整体流程相似，但使用 Polyline Anchor、点集几何编码和地图专用 Refinement。</p>
+    <div class="flow" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="card purple" data-detail="anchor"><div class="kicker">State</div><h3>Anchor + Instance Feature</h3><p>输入当前层的候选几何状态与实例内容特征。</p><div class="dim">B: [N,11]<br>F: [N,256]</div></div>
+      <div class="card purple" data-detail="encoder"><div class="kicker">Geometry</div><h3>SparseBox3DEncoder</h3><p>把几何参数转换成几何编码。</p><div class="dim">anchor_embed: [N,256]（常见）</div></div>
+      <div class="card purple" data-detail="gnn"><div class="kicker">Instance Interaction</div><h3>GNN / Attention</h3><p>实例间信息交互；几何编码作为位置/几何信息参与计算。</p><div class="dim">Instance feature: [N,256]</div></div>
+      <div class="card orange" data-detail="keypoints"><div class="kicker">Geometry-guided sampling</div><h3>3D Keypoint Generator</h3><p>从当前 Box 生成中心、轴向和可学习采样点。</p><div class="dim">每个 Box 多个 3D 点</div></div>
+      <div class="card orange" data-detail="deformable"><div class="kicker">Image Evidence</div><h3>Deformable Feature Aggregation</h3><p>把采样点投影到多视角 FPN，在多个尺度上采样并聚合图像特征。</p><div class="dim">聚合后: [N,256]</div></div>
+      <div class="card teal" data-detail="ffn"><div class="kicker">Feature Update</div><h3>Norm / FFN / Residual</h3><p>通过归一化、前馈网络和残差更新实例特征。</p><div class="dim">F: [N,256]</div></div>
+    </div>
+    <div class="steps">
+      <div class="step" data-detail="encoder"><div class="num">1</div><h4>几何编码</h4><p>Box 参数 → 几何特征。</p><p class="dim">B[N,11] → E[N,256]</p></div>
+      <div class="step" data-detail="gnn"><div class="num">2</div><h4>实例交互</h4><p>在候选实例之间传播上下文信息。</p><p class="dim">F 与 E 配合</p></div>
+      <div class="step" data-detail="deformable"><div class="num">3</div><h4>图像特征聚合</h4><p>由 Box 决定“去哪里看”，从共享 FPN 取特征。</p><p class="dim">多相机 × 多尺度</p></div>
+      <div class="step" data-detail="ffn"><div class="num">4</div><h4>特征更新</h4><p>FFN、Norm、Residual 更新实例内容特征。</p><p class="dim">F[N,256] → F'[N,256]</p></div>
+      <div class="step" data-detail="refine"><div class="num">5</div><h4>框细化</h4><p>预测框参数增量、类别分数等。</p><p class="dim">B[N,11] → B'[N,11]</p></div>
+    </div>
+    <div class="loop">更新后的 Anchor + Instance Feature → 下一层 Decoder；下一层重新编码几何、重新生成采样点，并再次读取同一组 FPN 特征。</div>
+    <div class="details" id="detail-anchor"><h3>Anchor 与 Instance Feature 不是同一个东西</h3><p><b>Anchor</b> 是显式几何状态，例如中心位置、尺寸、朝向和速度；<b>Instance Feature</b> 是每个候选目标对应的高维可学习内容向量。它们一一对应并协同更新，但不应理解为把 Box 参数直接当成 256 维特征。</p></div>
+    <div class="details" id="detail-encoder"><h3>SparseBox3DEncoder</h3><p>输入当前 3D Box 参数，编码成几何嵌入 <code>anchor_embed</code>。它可用于实例 Attention 的几何/位置编码，也会传入几何引导的特征聚合模块。它本身不从图像上采样，也不直接输出最终预测框。</p><p>注意：实际编码器可能对不同几何字段分别编码后再组合；“输出 256 维”是常见配置下的概括，具体中间分组维度以配置为准。</p></div>
+    <div class="details" id="detail-gnn"><h3>GNN / Attention</h3><p>用于候选实例之间的交互。在 <code>decouple_attn=True</code> 的实现路径中，内容特征和几何编码分开处理后再组合进入注意力模块。常见配置的图模型输入维度为 <code>512 = 256 + 256</code>，但这不意味着每一层的 Q/K/V 都直接等于原始拼接向量，内部还会经过投影层。</p><p>时序 GNN（temp_gnn）是否存在于某一层，取决于 <code>operation_order</code> 与层配置；不要简单认为所有层完全相同。</p></div>
+    <div class="details" id="detail-keypoints"><h3>3D Keypoint Generator</h3><p>根据当前 Box 的位置、尺寸和朝向生成一组 3D 采样点，包括固定几何点和可学习点。点数、具体位置和坐标变换由实现及配置决定。</p></div>
+    <div class="details" id="detail-deformable"><h3>Deformable Feature Aggregation</h3><p>采样点结合相机内外参投影到各个相机视图，然后从多尺度 FPN 特征图采样，并通过权重进行聚合。这里采样的是 FPN 特征向量，不是直接取 RGB 像素。每层通常重复读取同一组 FPN 特征，但由于 Anchor 更新，采样位置可以改变。</p></div>
+    <div class="details" id="detail-ffn"><h3>FFN / Norm / Residual</h3><p>对实例特征做进一步非线性变换和稳定训练的归一化/残差更新。常见情况下，输入输出实例特征维度保持 <code>[N,256]</code>，方便层与层之间迭代。</p></div>
+    <div class="details" id="detail-refine"><h3>SparseBox3DRefinementModule</h3><p>根据当前实例特征预测 Box 参数的修正量、类别分数，以及配置支持的质量分数等。输出更新后的 Anchor 供下一层使用。它与 Encoder 的职责不同：Encoder 编码几何；Refinement 预测如何修正几何。</p></div>
+  </section>
+
+  <section class="section">
+    <h2>④ 关键维度速查表</h2>
+    <div class="cols">
+      <div>
+        <h3>动态目标分支（常见配置示意）</h3>
+        <table><thead><tr><th>对象 / 模块</th><th>典型维度</th><th>含义</th></tr></thead><tbody>
+          <tr><td>检测 Anchor 数量</td><td><code>N ≈ 900</code></td><td>候选实例数量，随配置变化</td></tr>
+          <tr><td>单个 Box 参数</td><td><code>约 11 维</code></td><td>位置、尺寸、朝向表示、速度等；编码形式依实现</td></tr>
+          <tr><td>Instance Feature</td><td><code>[N,256]</code></td><td>每个候选目标一个内容特征向量</td></tr>
+          <tr><td>Anchor Embed</td><td><code>[N,256]</code></td><td>几何编码的常见输出维度</td></tr>
+          <tr><td>解耦 Attention 组合输入</td><td><code>[N,512]</code></td><td>常见为 256 维内容特征 + 256 维几何编码</td></tr>
+          <tr><td>Decoder 层数</td><td><code>常见 6 层</code></td><td>具体层数由配置决定</td></tr>
+          <tr><td>分类输出</td><td><code>[N,C]</code></td><td>C 为目标类别数</td></tr>
+        </tbody></table>
+      </div>
+      <div>
+        <h3>地图分支（常见配置示意）</h3>
+        <table><thead><tr><th>对象 / 模块</th><th>典型表达</th><th>含义</th></tr></thead><tbody>
+          <tr><td>地图 Anchor 数量</td><td><code>M ≈ 100</code></td><td>候选地图实例数，随配置变化</td></tr>
+          <tr><td>Polyline Anchor</td><td><code>[M, P, 3]</code> 或编码形式</td><td>M 条候选折线，每条由 P 个点描述</td></tr>
+          <tr><td>Instance Feature</td><td><code>[M,256]</code></td><td>每条地图候选一个特征向量</td></tr>
+          <tr><td>几何编码</td><td><code>[M,256]</code>（常见）</td><td>点集/折线专用编码，不是 Box Encoder</td></tr>
+          <tr><td>地图输出</td><td><code>点坐标 + 类别分数</code></td><td>折线几何及其语义类别</td></tr>
+          <tr><td>Head 结构</td><td><code>Sparse4DHead 风格</code></td><td>与目标分支类似，但模块和参数独立</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>⑤ 最重要的架构理解</h2>
+    <div class="cols">
+      <div class="card blue"><h3>共享什么？</h3><p>共享图像 Backbone + FPN 提取的多视角、多尺度图像特征。Decoder 的各层都可以从这组特征中取证。</p></div>
+      <div class="card green"><h3>独立什么？</h3><p>Agent 与 Map 各自维护 Anchor、Instance Feature、几何编码、Decoder 参数和细化模块。结构相似，但不是同一个 Head 实例。</p></div>
+      <div class="card purple"><h3>为什么要 Anchor + Feature？</h3><p>Anchor 提供显式几何状态，Feature 提供可学习的语义/上下文表示。两者一一对应，联合迭代更新。</p></div>
+      <div class="card orange"><h3>为什么每层都看图像？</h3><p>每层根据当前几何状态重新生成采样点，从同一组 FPN 特征提取证据，逐步改善目标框或地图折线。</p></div>
+    </div>
+    <p class="small">范围说明：本页面聚焦 SparseDrive 的 Sparse Perception。感知输出之后还会进入运动预测与规划相关模块；Agent 与 Map 在后续规划/预测阶段可能发生跨分支交互，这与感知 Head 内部是否共享 Decoder 是不同问题。</p>
+  </section>
+  <footer class="small" style="text-align:center;padding:12px">SparseDrive 架构学习页面 · 可离线打开 · 点击模块查看说明</footer>
+</main>
+<script>
+const cards=[...document.querySelectorAll('[data-detail]')];
+const details=[...document.querySelectorAll('.details')];
+function showDetail(id){details.forEach(d=>d.classList.toggle('show',d.id==='detail-'+id));}
+cards.forEach(c=>c.addEventListener('click',()=>{const id=c.dataset.detail;showDetail(id);const d=document.getElementById('detail-'+id);if(d)d.scrollIntoView({behavior:'smooth',block:'nearest'});}));
+document.querySelectorAll('[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{
+ document.querySelectorAll('[data-mode]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+ const mode=btn.dataset.mode;
+ document.getElementById('agentBranch').style.opacity=(mode==='map')?'.25':'1';
+ document.getElementById('mapBranch').style.opacity=(mode==='agent')?'.25':'1';
+ document.getElementById('decoder').style.outline=(mode==='decoder')?'3px solid #818cf8':'none';
+ document.getElementById('branches').style.outline=(mode==='agent'||mode==='map')?'2px solid #93c5fd':'none';
+ if(mode==='all'){document.getElementById('agentBranch').style.opacity='1';document.getElementById('mapBranch').style.opacity='1';}
+}));
+let expanded=false;
+document.getElementById('expand').addEventListener('click',()=>{expanded=!expanded;details.forEach(d=>d.classList.toggle('show',expanded));document.getElementById('expand').textContent=expanded?'收起所有模块说明':'展开所有模块说明';});
+</script>
+</body>
+</html>
