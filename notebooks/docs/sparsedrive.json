@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "note-1232b1d1-1467-4ee1-8302-1f0369625cc0",
+  "title": "SparseDrive",
+  "folderId": "folder-1789438262579",
+  "path": "Notebooks/自动驾驶/端到端模型",
+  "tags": [],
+  "properties": {
+    "type": "论文",
+    "status": "在读",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-10-29T02:14:15.502Z",
+  "updatedAt": "2026-11-10T03:10:46.383Z",
+  "assets": [
+    {
+      "id": "asset-1793190252495-z0skak",
+      "name": "image.png",
+      "fileName": "image-20261028122412-45zqw.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 156891,
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/image-20261028122412-45zqw.png",
+      "remoteUrl": "notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/image-20261028122412-45zqw.png",
+      "cached": true,
+      "published": true,
+      "localUrl": "notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/image-20261028122412-45zqw.png"
+    },
+    {
+      "id": "asset-1793190294572-ytjv6g",
+      "name": "image.png",
+      "fileName": "image-20261028122454-nnza9.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 39938,
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/image-20261028122454-nnza9.png",
+      "remoteUrl": "notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/image-20261028122454-nnza9.png",
+      "cached": true,
+      "published": true,
+      "localUrl": "notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/image-20261028122454-nnza9.png"
+    },
+    {
+      "id": "asset-1793240055476-auxwfg",
+      "name": "sparsedrive_perception_architecture.html",
+      "fileName": "sparsedrive-perception-architecture-20261029021415-tho08.html",
+      "kind": "file",
+      "type": "text/html",
+      "size": 23046,
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/sparsedrive-perception-architecture-20261029021415-tho08.html",
+      "remoteUrl": "notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/sparsedrive-perception-architecture-20261029021415-tho08.html",
+      "cached": true,
+      "published": true,
+      "localUrl": "notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/sparsedrive-perception-architecture-20261029021415-tho08.html"
+    }
+  ],
+  "html": "<p><strong>SparseDrive</strong> 是一种先进的端到端自动驾驶（End-to-End Autonomous Driving）<strong>框架，由清华大学、地平线等机构的研究人员提出。它打破了以往多数端到端方案（如 UniAD、VAD）严重依赖密集鸟瞰图（Dense BEV）特征的传统，创新性地采用</strong>稀疏场景表示（Sparse Scene Representation）来无缝打通感知、预测与规划。</p><hr><h3>论文与项目地址</h3><ul><li><p><strong>第一代 SparseDrive (ICRA 2025)</strong></p><ul><li><p><strong>论文标题</strong>：<em>SparseDrive: End-to-End Autonomous Driving via Sparse Scene Representation</em></p></li><li><p><strong>论文地址 (arXiv)</strong>：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://arxiv.org/abs/2405.19620\">https://arxiv.org/abs/2405.19620</a></p></li><li><p><strong>开源项目地址 (GitHub)</strong>：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://github.com/swc-17/SparseDrive\">https://github.com/swc-17/SparseDrive</a></p></li></ul></li><li><p><strong>最新进展：SparseDriveV2 (ECCV 2026)</strong></p><ul><li><p>团队近期也推出了升级版 <strong>SparseDriveV2</strong>，进一步引入了“Scoring is All You Need”的设计理念，在 NAVSIM 和 Bench2Drive 闭环/端到端评测中取得了更强悍的表现。</p></li><li><p><strong>论文地址 (arXiv)</strong>：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://arxiv.org/abs/2603.29163\">https://arxiv.org/abs/2603.29163</a></p></li><li><p><strong>开源项目地址 (GitHub)</strong>：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://github.com/swc-17/SparseDriveV2\">https://github.com/swc-17/SparseDriveV2</a></p></li></ul></li></ul><h1>架构</h1><img src=\"notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/image-20261028122412-45zqw.png\" alt=\"image.png\" title=\"image.png\"><p>可以把整个模型拆成三个核心部分：</p><img src=\"notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/image-20261028122454-nnza9.png\" alt=\"image.png\" title=\"image.png\"><p>整体数据流可以概括为：</p><pre><code>多视角相机图像\n       │\n       ▼\n图像 Backbone → 多尺度图像特征\n       │\n       ▼\n对称稀疏感知模块\n       ├── 动态目标：检测与跟踪\n       └── 静态道路元素：在线地图\n       │\n       ▼\n稀疏实例特征 + 历史实例记忆\n       │\n       ▼\n并行运动规划器\n       ├── 周围目标的未来轨迹\n       └── 自车的候选行驶轨迹\n                    │\n                    ▼\n           分层筛选 + 碰撞感知重评分\n                    │\n                    ▼\n              最终自车轨迹</code></pre><h1>1.Symmetric Sparse Perception</h1><div data-type=\"file-attachment\" class=\"doc-attachment-card\"><a class=\"doc-attachment\" href=\"notebooks/assets/note-1232b1d1-1467-4ee1-8302-1f0369625cc0/sparsedrive-perception-architecture-20261029021415-tho08.html\" download=\"sparsedrive_perception_architecture.html\">附件：sparsedrive_perception_architecture.html</a><span>22.5 KB</span></div><p></p><h1>2.Instance Memory Queue</h1><h1>3.Parallel Motion Planner</h1>"
+}
