@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-31T10:07:44.300Z",
+  "updatedAt": "2026-11-10T03:10:46.383Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -200,7 +200,7 @@
         "自动驾驶",
         "bev模型"
       ],
-      "updatedAt": "2026-09-09T03:40:38.225Z",
+      "updatedAt": "2026-11-10T03:10:46.383Z",
       "file": "notebooks/docs/bev模型技术路线.json"
     },
     {
@@ -1070,6 +1070,15 @@
       ],
       "updatedAt": "2026-10-28T10:17:04.387Z",
       "file": "notebooks/docs/qat量化训练.json"
+    },
+    {
+      "id": "note-1232b1d1-1467-4ee1-8302-1f0369625cc0",
+      "title": "SparseDrive",
+      "folderId": "folder-1789438262579",
+      "path": "Notebooks/自动驾驶/端到端模型",
+      "tags": [],
+      "updatedAt": "2026-11-10T03:10:46.383Z",
+      "file": "notebooks/docs/sparsedrive.json"
     }
   ]
 }
