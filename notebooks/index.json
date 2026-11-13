@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-11T04:04:28.843Z",
+  "updatedAt": "2026-11-13T11:43:52.710Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -200,7 +200,7 @@
         "自动驾驶",
         "bev模型"
       ],
-      "updatedAt": "2026-11-11T04:04:28.843Z",
+      "updatedAt": "2026-11-13T11:43:52.710Z",
       "file": "notebooks/docs/bev模型技术路线.json"
     },
     {
