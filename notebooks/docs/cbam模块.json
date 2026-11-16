@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "id": "note-b4029984-bb23-4231-9ba9-21c8fb653a3c",
+  "title": "CBAM模块",
+  "folderId": "folder-1785676511361",
+  "path": "Notebooks/模型",
+  "tags": [
+    "CBAM"
+  ],
+  "properties": {
+    "type": "",
+    "status": "待整理",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-11-16T07:07:32.457Z",
+  "updatedAt": "2026-11-16T07:07:50.131Z",
+  "assets": [
+    {
+      "id": "asset-1794812125770-jor4h8",
+      "name": "image.png",
+      "fileName": "image-20261116065525-vljzj.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 30268,
+      "localUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065525-vljzj.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065525-vljzj.png",
+      "remoteUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065525-vljzj.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1794812208193-79kpfe",
+      "name": "image.png",
+      "fileName": "image-20261116065648-vrmky.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 2667,
+      "localUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065648-vrmky.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065648-vrmky.png",
+      "remoteUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065648-vrmky.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1794812258492-x797nk",
+      "name": "image.png",
+      "fileName": "image-20261116065738-humuq.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 46343,
+      "localUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065738-humuq.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065738-humuq.png",
+      "remoteUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065738-humuq.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1794812300376-cpctab",
+      "name": "image.png",
+      "fileName": "image-20261116065820-p00l9.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 2020,
+      "localUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065820-p00l9.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065820-p00l9.png",
+      "remoteUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065820-p00l9.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1794812581846-xkkkp8",
+      "name": "image.png",
+      "fileName": "image-20261116070301-2hsh4.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 39269,
+      "localUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116070301-2hsh4.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116070301-2hsh4.png",
+      "remoteUrl": "notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116070301-2hsh4.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<p>原文链接：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://chatgpt.com/share/6afaaba2-a33c-83ec-8c9b-a4db63091bf6\">https://chatgpt.com/share/6afaaba2-a33c-83ec-8c9b-a4db63091bf6</a></p><p>CBAM（Convolutional Block Attention Module，卷积块注意力模块）是一种轻量级的注意力机制，主要用于增强 CNN（卷积神经网络）的特征提取能力。</p><p>它的核心思想是：</p><p>让网络自动学习：当前特征图中，哪些通道更重要，以及图像中的哪些空间位置更重要。</p><p>例如，在自动驾驶感知任务中，输入一张道路图像，网络可能提取出车辆、行人、车道线、路面、建筑物等特征。CBAM 希望网络能够自动增强与当前任务相关的特征，抑制无关背景信息。</p><p>CBAM 最早由 2018 年的论文《CBAM: Convolutional Block Attention Module》提出，可以插入 ResNet、VGG 等 CNN 网络中。</p><h2>1. CBAM 整体架构</h2><p>CBAM 由两个注意力模块串联组成：</p><ol><li><p>Channel Attention Module（通道注意力）：判断哪些特征通道更重要。</p></li><li><p>Spatial Attention Module（空间注意力）：判断特征图上的哪些空间位置更重要。</p></li></ol><img src=\"notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065525-vljzj.png\" alt=\"image.png\" title=\"image.png\"><blockquote><p>注意：两个模块是串行关系，而不是并行关系。先进行通道注意力，再进行空间注意力。</p></blockquote><h2>2. Channel Attention：通道注意力</h2><p>这是 CBAM 的第一个模块。</p><h3>2.1 它解决什么问题？</h3><p>假设 CNN Backbone 输出一个特征图：</p><img src=\"notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065648-vrmky.png\" alt=\"image.png\" title=\"image.png\"><p>这里有 256 个通道，每个通道都是一个 \\(80\\times80\\) 的二维特征图。</p><p>可以把每个通道理解成一个特征检测器。虽然实际网络中通道并没有固定的人工语义，但不同通道会逐渐学习到不同的特征模式，例如：</p><ul><li><p>某些通道对车辆轮廓响应较强。</p></li><li><p>某些通道对边缘、纹理响应较强。</p></li><li><p>某些通道对道路标线响应较强。</p></li><li><p>某些通道对背景纹理响应较强。</p></li></ul><p>问题是：这 256 个通道对当前任务的贡献可能并不相同。</p><p>Channel Attention 就是要学习一个权重，告诉网络哪些通道应该增强，哪些通道应该抑制。</p><h3>2.2 具体计算过程</h3><img src=\"notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065738-humuq.png\" alt=\"image.png\" title=\"image.png\"><p>这里有几个关键细节。</p><p>第一，为什么要做 Average Pooling 和 Max Pooling？</p><p>假设某个通道的特征图是：</p><img src=\"notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116065820-p00l9.png\" alt=\"image.png\" title=\"image.png\"><p>那么：</p><ul><li><p>Average Pooling：得到 18/9=2，反映整个通道的平均响应。</p></li><li><p>Max Pooling：得到 8，反映这个通道最强的局部响应。</p></li></ul><p>两者提供不同的信息，组合起来有助于判断通道的重要程度。</p><p>第二，为什么需要 MLP？</p><p>Pooling 之后得到两个长度为 256 的向量。</p><p>MLP 的作用是学习通道之间的关系，而不是简单地对每个通道独立计算权重。</p><p>以 reduction ratio r=4 为例：</p><p><span><strong><span data-tex=\"256 \\rightarrow 64 \\rightarrow 256\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></strong></span></p><p>其中：</p><ul><li><p>第一层 FC：256 降维到 64。</p></li><li><p>ReLU：增加非线性表达能力。</p></li><li><p>第二层 FC：64 恢复到 256。</p></li><li><p>两个分支共享这套 FC 参数。</p></li></ul><p>最后两个分支的结果相加，再通过 Sigmoid 得到 256 个权重。</p><p>第三，权重如何作用于原始特征图？</p><p>假设得到：</p><p><span><span data-tex=\"M_c = [0.2, 0.9, 0.5, \\dots]\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></span></p><p>那么第一个通道所有 \\(80\\times80\\) 的元素都乘以 0.2，第二个通道所有元素都乘以 0.9，第三个通道都乘以 0.5。</p><p>这就是通道注意力。</p><p>它并不是改变通道数量，而是给每个通道分配一个动态权重。</p><h2>3. Spatial Attention：空间注意力</h2><p><strong>完成 Channel Attention 后，得到增强后的特征图：</strong></p><p><span><strong><span data-tex=\"F' \\in \\mathbb{R}^{256 \\times 80 \\times 80}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span></strong></span></p><p>现在解决另一个问题：</p><p>即使某个通道很重要，这个通道中的所有空间位置也不一定都重要。</p><p>例如，在车辆检测任务中，特征图上可能有车辆、天空、建筑物、道路等区域。我们希望网络能够更加关注车辆所在的区域。</p><h3>3.1 具体计算过程</h3><p>这一次与通道注意力恰好相反：</p><ul><li><p>Channel Attention：沿着空间维度做 Pooling。</p></li><li><p>Spatial Attention：沿着通道维度做 Pooling。</p></li></ul><img src=\"notebooks/assets/note-b4029984-bb23-4231-9ba9-21c8fb653a3c/image-20261116070301-2hsh4.png\" alt=\"image.png\" title=\"image.png\"><p><span>这里重点解释几个操作。</span></p><p><strong>第一：为什么沿通道维度做 Pooling？</strong></p><p><span>原始特征图是：</span></p><div data-tex=\"256 \\times 80 \\times 80\" data-type=\"math-block\" class=\"math-node math-block\"></div><p><span>对每个空间位置，把 256 个通道压缩成两个数：</span></p><ul><li><p><span>一个平均值。</span></p></li><li><p><span>一个最大值。</span></p></li></ul><p><span>最终得到两个 <span data-tex=\"80 \\times 80\" data-type=\"math-inline\" class=\"math-node math-inline\"></span> 的二维特征图。</span></p><p><span>这样就从 256 个通道的特征中提取出了每个位置的整体响应信息。</span></p><p><strong>第二：为什么要拼接？</strong></p><p><span>将两个特征图在通道维度拼接：</span></p><div data-tex=\"[F_{avg}^{s}; F_{max}^{s}] \\in \\mathbb{R}^{2 \\times 80 \\times 80}\" data-type=\"math-block\" class=\"math-node math-block\"></div><p><span>这样卷积层就可以同时利用平均响应和最大响应。</span></p><p><strong>第三：为什么使用 7×7 卷积？</strong></p><p><span>输入是 2 个通道，输出是 1 个通道：</span></p><div data-tex=\"Conv(2 \\rightarrow 1,\\ kernel=7 \\times 7)\" data-type=\"math-block\" class=\"math-node math-block\"></div><p><span>这个卷积的目的，是融合周围空间位置的信息，判断哪些位置更值得关注。</span></p><p><span>例如，某个位置是否处于车辆轮廓附近，可以结合周围的特征进行判断。</span></p><p><span>最后通过 Sigmoid 得到空间注意力权重：</span></p><div data-tex=\"M_s \\in \\mathbb{R}^{1 \\times 80 \\times 80}\" data-type=\"math-block\" class=\"math-node math-block\"></div><p><span>假设某个位置的权重为 0.9，那么这个位置的 256 个通道都会乘以 0.9。</span></p><p><span>因此，空间注意力不会改变特征图的 H、W 或 C。</span></p>"
+}
