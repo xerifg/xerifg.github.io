@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-13T11:43:52.710Z",
+  "updatedAt": "2026-11-16T07:07:50.131Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -1079,6 +1079,17 @@
       "tags": [],
       "updatedAt": "2026-11-10T03:10:46.383Z",
       "file": "notebooks/docs/sparsedrive.json"
+    },
+    {
+      "id": "note-b4029984-bb23-4231-9ba9-21c8fb653a3c",
+      "title": "CBAM模块",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
+      "tags": [
+        "CBAM"
+      ],
+      "updatedAt": "2026-11-16T07:07:50.131Z",
+      "file": "notebooks/docs/cbam模块.json"
     }
   ]
 }
