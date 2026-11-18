@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "id": "note-0dd0de28-0ede-4e26-8aa0-445156d5dcab",
+  "title": "CMT模型",
+  "folderId": "folder-1785676968352",
+  "path": "Notebooks/自动驾驶/3D检测模型",
+  "tags": [],
+  "properties": {
+    "type": "论文",
+    "status": "在读",
+    "source": "https://github.com/junjie18/CMT，https://arxiv.org/pdf/2301.01283",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-11-17T11:55:09.777Z",
+  "updatedAt": "2026-11-18T03:42:26.740Z",
+  "assets": [
+    {
+      "id": "asset-1794916426122-iy931e",
+      "name": "image.png",
+      "fileName": "image-20261117115346-ik81j.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 125313,
+      "localUrl": "notebooks/assets/note-0dd0de28-0ede-4e26-8aa0-445156d5dcab/image-20261117115346-ik81j.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-0dd0de28-0ede-4e26-8aa0-445156d5dcab/image-20261117115346-ik81j.png",
+      "remoteUrl": "notebooks/assets/note-0dd0de28-0ede-4e26-8aa0-445156d5dcab/image-20261117115346-ik81j.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<p><span><strong>CMT</strong>（<strong>Cross Modal Transformer</strong>），这是由旷视科技（Megvii）等机构在 <strong>ICCV 2023</strong> 上提出的经典端到端多模态 3D 目标检测框架。该模型旨在解决自动驾驶中多传感器（相机 + 激光雷达）融合效率与鲁棒性的痛点，在 nuScenes 数据集上曾取得非常亮眼的成绩</span></p><img src=\"notebooks/assets/note-0dd0de28-0ede-4e26-8aa0-445156d5dcab/image-20261117115346-ik81j.png\" alt=\"image.png\" title=\"image.png\"><p></p>"
+}
