@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-18T04:17:03.245Z",
+  "updatedAt": "2026-11-18T15:12:41.878Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -81,6 +81,21 @@
       "id": "folder-1789440059892",
       "name": "世界模型",
       "parentId": "folder-1783672397764"
+    },
+    {
+      "id": "folder-1795010992005",
+      "name": "多模态融合方案",
+      "parentId": "folder-1785676968352"
+    },
+    {
+      "id": "folder-1795011055851",
+      "name": "基于视觉方案",
+      "parentId": "folder-1785676968352"
+    },
+    {
+      "id": "folder-1795011065176",
+      "name": "基于点云方案",
+      "parentId": "folder-1785676968352"
     }
   ],
   "sources": [
@@ -145,25 +160,25 @@
     {
       "id": "note-1784688756600",
       "title": "VoxelNet",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011065176",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于点云方案",
       "tags": [
         "模型",
         "VoxelNet"
       ],
-      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/voxelnet模型.json"
     },
     {
       "id": "note-1784083273659",
       "title": "VIT模型",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [
         "模型",
         "ViT"
       ],
-      "updatedAt": "2026-08-02T13:31:21.194Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/vit模型.json"
     },
     {
@@ -268,26 +283,26 @@
     {
       "id": "note-1785207464379",
       "title": "PointPillars",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011065176",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于点云方案",
       "tags": [
         "模型",
         "PointPillars"
       ],
-      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/pointpillars模型.json"
     },
     {
       "id": "note-1785294364683",
       "title": "SECOND",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [
         "模型",
         "自动驾驶",
         "SECOND"
       ],
-      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/second检测模型.json"
     },
     {
@@ -675,10 +690,10 @@
     {
       "id": "note-1786936744672",
       "title": "Vision Banana",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [],
-      "updatedAt": "2026-08-17T04:02:15.221Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/vision-banana.json"
     },
     {
@@ -695,13 +710,13 @@
     {
       "id": "note-1786933817439",
       "title": "CenterPoint",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011065176",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于点云方案",
       "tags": [
         "自动驾驶",
         "CenterPoint"
       ],
-      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/centerpoint模型.json"
     },
     {
@@ -729,12 +744,12 @@
     {
       "id": "note-1787192363486",
       "title": "BevFusion",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795010992005",
+      "path": "Notebooks/自动驾驶/3D检测模型/多模态融合方案",
       "tags": [
         "BevFusion"
       ],
-      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "updatedAt": "2026-11-18T15:12:41.878Z",
       "file": "notebooks/docs/bevfusion模型.json"
     },
     {
@@ -760,21 +775,21 @@
     {
       "id": "note-1787659557134",
       "title": "BevDepth",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [],
-      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/bevdepth模型.json"
     },
     {
       "id": "note-1787659274566",
       "title": "LSS模型",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [
         "LSS"
       ],
-      "updatedAt": "2026-08-27T12:51:17.722Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/lss模型.json"
     },
     {
@@ -802,19 +817,19 @@
     {
       "id": "note-1787833111086",
       "title": "BevFormer",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [],
-      "updatedAt": "2026-08-27T12:51:17.722Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/bevformer.json"
     },
     {
       "id": "note-1787833139796",
       "title": "SparseBEV",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [],
-      "updatedAt": "2026-08-27T12:51:17.722Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/sparsebev.json"
     },
     {
@@ -842,32 +857,32 @@
     {
       "id": "note-1788317443023",
       "title": "BEVDet4D",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [
         "BEVDet4D"
       ],
-      "updatedAt": "2026-10-31T10:07:44.300Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/bevdet4d.json"
     },
     {
       "id": "note-1788317424521",
       "title": "BEVDet",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [],
-      "updatedAt": "2026-09-02T12:49:47.733Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/bevdet.json"
     },
     {
       "id": "note-1788317188382",
       "title": "Sparse4D",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795011055851",
+      "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
       "tags": [
         "Sparse4D"
       ],
-      "updatedAt": "2026-09-09T12:29:34.071Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/sparse4d.json"
     },
     {
@@ -978,10 +993,10 @@
     {
       "id": "note-349eaaf4-c8dc-4e61-8ea3-40e0cb87268d",
       "title": "MGAF 多模态检测模型",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795010992005",
+      "path": "Notebooks/自动驾驶/3D检测模型/多模态融合方案",
       "tags": [],
-      "updatedAt": "2026-10-14T02:00:59.589Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/mgaf-多模态检测模型.json"
     },
     {
@@ -1094,11 +1109,22 @@
     {
       "id": "note-0dd0de28-0ede-4e26-8aa0-445156d5dcab",
       "title": "CMT模型",
-      "folderId": "folder-1785676968352",
-      "path": "Notebooks/自动驾驶/3D检测模型",
+      "folderId": "folder-1795010992005",
+      "path": "Notebooks/自动驾驶/3D检测模型/多模态融合方案",
       "tags": [],
-      "updatedAt": "2026-11-18T03:42:26.740Z",
+      "updatedAt": "2026-11-18T14:16:34.251Z",
       "file": "notebooks/docs/cmt模型.json"
+    },
+    {
+      "id": "note-0d29bf0b-1d51-4181-9c71-bc83411b4f3a",
+      "title": "TransFusion",
+      "folderId": "folder-1795010992005",
+      "path": "Notebooks/自动驾驶/3D检测模型/多模态融合方案",
+      "tags": [
+        "transfusion"
+      ],
+      "updatedAt": "2026-11-18T15:12:41.878Z",
+      "file": "notebooks/docs/transfusion.json"
     }
   ]
 }
