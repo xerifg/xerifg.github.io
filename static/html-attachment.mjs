@@ -15,10 +15,11 @@ export function enhanceHtmlAttachments(root) {
     let panel = null;
     let controller = null;
     link.setAttribute("aria-expanded", "false");
-    link.title = "点击预览 HTML";
+    link.title = "点击全屏预览 HTML";
     const close = () => {
       controller?.abort();
       controller = null;
+      panel?.close();
       panel?.remove();
       panel = null;
       link.setAttribute("aria-expanded", "false");
@@ -29,11 +30,16 @@ export function enhanceHtmlAttachments(root) {
       if (panel) { close(); return; }
       const request = new AbortController();
       controller = request;
-      panel = document.createElement("div");
+      panel = document.createElement("dialog");
       panel.className = "html-attachment-preview";
       panel.contentEditable = "false";
+      panel.setAttribute("aria-label", `HTML 预览：${link.getAttribute("download") || link.textContent}`);
+      const dismiss = () => { close(); if (link.isConnected) link.focus(); };
+      panel.addEventListener("cancel", event => { event.preventDefault(); dismiss(); });
       const toolbar = document.createElement("div");
       toolbar.className = "html-attachment-toolbar";
+      const title = document.createElement("strong");
+      title.textContent = link.getAttribute("download") || link.textContent;
       const download = link.cloneNode(true);
       download.removeAttribute("aria-expanded");
       download.removeAttribute("class");
@@ -41,14 +47,16 @@ export function enhanceHtmlAttachments(root) {
       download.textContent = "下载";
       const collapse = document.createElement("button");
       collapse.type = "button";
-      collapse.textContent = "收起预览";
-      collapse.addEventListener("click", () => { close(); link.focus(); });
-      toolbar.append(download, collapse);
+      collapse.textContent = "关闭预览";
+      collapse.autofocus = true;
+      collapse.addEventListener("click", dismiss);
+      toolbar.append(title, download, collapse);
       const status = document.createElement("p");
       status.setAttribute("role", "status");
       status.textContent = "正在加载 HTML 预览…";
       panel.append(toolbar, status);
-      card.append(panel);
+      document.body.append(panel);
+      panel.showModal();
       link.setAttribute("aria-expanded", "true");
       try {
         const url = new URL(link.getAttribute("href"), document.baseURI);
@@ -70,7 +78,7 @@ export function enhanceHtmlAttachments(root) {
         frame.srcdoc = `<!doctype html>\n${content.documentElement.outerHTML}`;
         status.replaceWith(frame);
       } catch (error) {
-        if (!request.signal.aborted) status.textContent = "HTML 预览加载失败，请收起后重试，或下载原文件。";
+        if (!request.signal.aborted) status.textContent = "HTML 预览加载失败，请关闭后重试，或下载原文件。";
       }
     };
     link.addEventListener("click", toggle);

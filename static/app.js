@@ -13,7 +13,7 @@ import Highlight from "https://esm.sh/@tiptap/extension-highlight@2.11.7";
 import TextStyle from "https://esm.sh/@tiptap/extension-text-style@2.11.7";
 import Color from "https://esm.sh/@tiptap/extension-color@2.11.7";
 import { NoteImage } from "./note-image.mjs?v=20260919-image-resize-v1";
-import { enhanceHtmlAttachments } from "./html-attachment.mjs?v=20261029-html-preview-v1";
+import { enhanceHtmlAttachments } from "./html-attachment.mjs?v=20261118-html-fullscreen-v1";
 import { WhiteboardNode, enhanceWhiteboards } from "./note-whiteboard.mjs?v=20260919-whiteboard-v8";
 import Placeholder from "https://esm.sh/@tiptap/extension-placeholder@2.11.7";
 import Table from "https://esm.sh/@tiptap/extension-table@2.11.7";

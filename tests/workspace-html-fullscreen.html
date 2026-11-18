@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HTML 全屏预览验收</title>
+<link rel="stylesheet" href="../static/app.css?v=20261118-html-fullscreen-v1">
+<style>body{display:block;padding:24px}#results{white-space:pre-wrap}</style>
+<button id="run">运行检查</button><pre id="results">尚未运行</pre>
+<div id="reader" style="transform:translateX(0);max-width:360px;overflow:hidden">
+  <div data-type="file-attachment" class="doc-attachment-card"><a href="workspace-html-attachment-sample.html" download="示例.html">附件：示例.html</a></div>
+  <div data-type="file-attachment" class="doc-attachment-card"><a href="missing.html" download="missing.html">失效附件</a></div>
+</div>
+<script type="module">
+import {enhanceHtmlAttachments} from '../static/html-attachment.mjs?v=20261118-html-fullscreen-v1';
+const root=document.querySelector('#reader'), link=root.querySelector('a'), output=document.querySelector('#results');
+let cleanup=enhanceHtmlAttachments(root);
+const check=(ok,label)=>{if(!ok)throw Error(label);output.textContent+=`PASS ${label}\n`;};
+const waitFor=async predicate=>{for(let i=0;i<150;i++){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw Error('等待超时');};
+document.querySelector('#run').onclick=async()=>{
+ output.textContent='';
+ try{
+  const original=root.innerHTML;
+  link.click();
+  const dialog=document.querySelector('dialog.html-attachment-preview');
+  check(dialog?.open,'点击后打开全屏对话框');
+  await waitFor(()=>dialog.querySelector('iframe'));
+  const rect=dialog.getBoundingClientRect(), frame=dialog.querySelector('iframe'), frameRect=frame.getBoundingClientRect();
+  check(rect.x===0&&rect.y===0&&Math.abs(rect.width-innerWidth)<2&&Math.abs(rect.height-innerHeight)<2,'预览铺满窗口且不受正文容器限制');
+  check(frameRect.height>innerHeight-100&&frameRect.width>=innerWidth-2,'HTML 内容填满工具栏以外的区域');
+  check(frame.getAttribute('sandbox')==='allow-scripts','保留脚本隔离');
+  check(dialog.querySelector('a').download==='示例.html','保留下载入口');
+  dialog.querySelector('button').click();
+  check(!document.querySelector('dialog')&&document.activeElement===link,'关闭后清理预览并恢复焦点');
+  check(root.innerHTML===original,'预览不修改正文');
+  link.click();await waitFor(()=>document.querySelector('dialog iframe'));
+  document.querySelector('dialog').dispatchEvent(new Event('cancel',{cancelable:true}));
+  check(!document.querySelector('dialog'),'Escape 取消事件可关闭预览');
+  root.querySelectorAll('a')[1].click();
+  await waitFor(()=>document.querySelector('dialog [role="status"]')?.textContent.includes('失败'));
+  document.querySelector('dialog button').click();
+  check(!document.querySelector('dialog'),'加载失败仍可退出');
+  link.click();cleanup();
+  await new Promise(resolve=>setTimeout(resolve,40));
+  check(!document.querySelector('dialog'),'卸载时取消请求并清理全屏预览');
+  cleanup=enhanceHtmlAttachments(root);
+  output.textContent+='DONE 全部检查通过';
+ }catch(error){output.textContent+='FAIL '+error.stack;}
+};
+</script>
+</html>
