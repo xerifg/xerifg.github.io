@@ -15,7 +15,7 @@
   },
   "dailyDate": "",
   "createdAt": "2026-11-18T14:12:16.795Z",
-  "updatedAt": "2026-11-18T14:49:15.036Z",
+  "updatedAt": "2026-11-18T15:07:32.051Z",
   "assets": [],
   "html": "<p><span><strong>TransFusion</strong> 是由香港科技大学、华为等机构的研究人员在 CVPR 2022 上提出的经典且极具影响力的<strong>激光雷达-相机（LiDAR-Camera）多模态 3D 目标检测</strong>算法。</span></p><p><span>该算法的核心出发点是解决传统多模态融合中由于硬关联（Hard Association）导致的鲁棒性差问题（例如在强光、弱光、恶劣天气或传感器外参标定微小偏差时，基于投影矩阵强制将点云和图像像素硬绑定往往会导致性能急剧下降）。TransFusion 提出了一种基于 <strong>Transformer 的软关联（Soft-Association）机制</strong>，实现了高效且高鲁棒性的多传感器融合。</span></p>"
 }
