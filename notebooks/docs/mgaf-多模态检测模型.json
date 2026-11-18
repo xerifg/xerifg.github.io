@@ -2,8 +2,8 @@
   "version": 1,
   "id": "note-349eaaf4-c8dc-4e61-8ea3-40e0cb87268d",
   "title": "MGAF 多模态检测模型",
-  "folderId": "folder-1785676968352",
-  "path": "Notebooks/自动驾驶/3D检测模型",
+  "folderId": "folder-1795010992005",
+  "path": "Notebooks/自动驾驶/3D检测模型/多模态融合方案",
   "tags": [],
   "properties": {
     "type": "论文",
@@ -14,8 +14,8 @@
     ]
   },
   "dailyDate": "",
-  "createdAt": "2026-10-09T02:50:10.519Z",
-  "updatedAt": "2026-10-14T02:00:59.589Z",
+  "createdAt": "2026-10-14T02:00:59.589Z",
+  "updatedAt": "2026-11-18T14:16:34.251Z",
   "assets": [],
   "html": "<p>参考文章：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://mp.weixin.qq.com/s/PrGSAydZuScenqW97lbWMQ?poc_token=HHlQyGqjJdHyzIgoAdnfY2-XV5810AMnsIfZQk0_\">https://mp.weixin.qq.com/s/PrGSAydZuScenqW97lbWMQ?poc_token=HHlQyGqjJdHyzIgoAdnfY2-XV5810AMnsIfZQk0_</a></p><p></p>"
 }
