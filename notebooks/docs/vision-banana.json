@@ -2,11 +2,18 @@
   "version": 1,
   "id": "note-1786936744672",
   "title": "Vision Banana",
-  "folderId": "folder-1785676968352",
-  "path": "Notebooks/自动驾驶/检测模型",
+  "folderId": "folder-1795011055851",
+  "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
   "tags": [],
-  "createdAt": "2026-08-17T03:26:40.632Z",
-  "updatedAt": "2026-08-17T04:02:15.221Z",
+  "properties": {
+    "type": "",
+    "status": "",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-08-17T04:02:15.221Z",
+  "updatedAt": "2026-11-18T14:16:34.251Z",
   "assets": [
     {
       "id": "asset-1786937094142-tf443p",
