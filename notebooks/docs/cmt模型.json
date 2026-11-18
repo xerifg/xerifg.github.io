@@ -2,8 +2,8 @@
   "version": 1,
   "id": "note-0dd0de28-0ede-4e26-8aa0-445156d5dcab",
   "title": "CMT模型",
-  "folderId": "folder-1785676968352",
-  "path": "Notebooks/自动驾驶/3D检测模型",
+  "folderId": "folder-1795010992005",
+  "path": "Notebooks/自动驾驶/3D检测模型/多模态融合方案",
   "tags": [],
   "properties": {
     "type": "论文",
@@ -12,8 +12,8 @@
     "aliases": []
   },
   "dailyDate": "",
-  "createdAt": "2026-11-17T11:55:09.777Z",
-  "updatedAt": "2026-11-18T03:42:26.740Z",
+  "createdAt": "2026-11-18T03:42:26.740Z",
+  "updatedAt": "2026-11-18T14:16:34.251Z",
   "assets": [
     {
       "id": "asset-1794916426122-iy931e",
