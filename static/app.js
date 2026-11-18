@@ -29,6 +29,7 @@ import {
   ChevronRight, Database, FileText, Paperclip, Send, Sparkles, Star, StarOff
 } from "https://esm.sh/lucide-react@0.468.0?external=react";
 import { applyTreeDrop } from "./tree-dnd.mjs";
+import { repairLegacyAssetReferences } from "./legacy-asset-repair.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { filterCommandItems } from "./command-palette.mjs";
 import { canEditNotebook, clearModalState } from "./library-ui-model.mjs?v=20261118-local-edit-v1";
@@ -5819,9 +5820,7 @@ async function publishPendingAssets(settings, note) {
       dataUrl: "",
       published: true
     });
-    if (asset.storage === "indexeddb" && asset.assetId) {
-      draftAssetStore.remove(asset.assetId).catch((error) => console.warn("Published draft asset cleanup failed", error));
-    }
+    // Keep draft bytes: the document/index commit and queued history saves can still fail.
   }
   const publishedIds = new Set(published.map((asset) => asset.id));
   const preserved = referenced.filter((asset) => !publishedIds.has(asset.id));
@@ -5927,6 +5926,7 @@ function migrate(data) {
   merged.sources = normalizeSources(data.sources);
   merged.sourcesDirty = data.sourcesDirty === true;
   merged.notes = merged.notes.map((note) => {
+    note = repairLegacyAssetReferences(note);
     const noteDirty = Boolean(note.dirty);
     const noteHtml = normalizeHtml(note.html || blocksToHtml(note.blocks));
     const noteAssets = Array.isArray(note.assets) ? note.assets : [];

@@ -4,6 +4,7 @@
 <script type="module">
 import { saveSnapshot, restorePortableNotes, downloadNotebook } from '../static/knowledge-storage.mjs?v=20260919-history-assets-v1';
 import { hydrateDraftAsset, createDraftAssetStore } from '../static/draft-asset-store.mjs';
+import { repairLegacyAssetReferences } from '../static/legacy-asset-repair.mjs';
 const remote='/tests/workspace-whiteboard-image.svg';
 const output=document.querySelector('#result');
 const check=(ok,message)=>{if(!ok)throw Error(message);};
@@ -62,6 +63,29 @@ document.querySelector('#run').onclick=async()=>{
     finally{URL.createObjectURL=originalURL;HTMLAnchorElement.prototype.click=originalClick;}
     const backup=JSON.parse(await captured.text());
     check(backup.notes[0].assets[0].dataUrl?.startsWith('data:image/svg+xml;base64,'),'发布附件没有包含在备份中');
+  });
+  await run('BevFusion 旧图片修复后可添加实际 HTML 文件并保存历史与恢复',async()=>{
+    const source=await (await fetch('../notebooks/docs/bevfusion模型.json')).json();
+    source.html=source.html
+      .replaceAll('notebooks/assets/note-1787192363486/image-20260825024246-jdw6a.png','blob:https://xerifg.github.io/93d18d2d-fc4d-401c-9dea-ca13193087cc')
+      .replaceAll('notebooks/assets/note-1787192363486/image-20260825031048-voxnn.png','blob:https://xerifg.github.io/e3863ea2-0330-4c4d-a88d-cf92095ea709');
+    const repaired=repairLegacyAssetReferences(source);
+    check(!repaired.html.includes('blob:'),'没有修复旧图片引用');
+    let response=await fetch('../.notebook-cache/asset-repair/bevfusion-architecture.html');
+    if(!response.ok)response=await fetch('../notebooks/assets/note-1787192363486/bevfusion-architecture-20261118141459-mg5c5.html');
+    check(response.ok,'HTML 测试样本不可用');
+    const file=await response.blob(), assetId=crypto.randomUUID();
+    await store.put(assetId,file);
+    const localUrl=await store.createObjectUrl(assetId);urls.push(localUrl);
+    const n=note(`${repaired.html}<div data-type="file-attachment"><a class="doc-attachment" href="${localUrl}" download="bevfusion-architecture.html">HTML</a></div>`,[...repaired.assets,{id:assetId,assetId,storage:'indexeddb',localUrl,name:'bevfusion-architecture.html'}]);
+    await saveSnapshot(n,store);
+    const snapshot=await latest(n.id), attachment=snapshot.assets.find(asset=>asset.name==='bevfusion-architecture.html');
+    check(attachment?.dataUrl,'HTML 文件没有保存在历史中');
+    const [restored]=await restorePortableNotes([snapshot],store);
+    const restoredAttachment=restored.assets.find(asset=>asset.name==='bevfusion-architecture.html');
+    urls.push(restoredAttachment.localUrl);
+    check(await (await store.get(restoredAttachment.assetId)).text()===await file.text(),'HTML 内容恢复不完整');
+    check(!snapshot.html.includes('blob:'),'历史包含过期的临时地址');
   });
   // Remove only the histories and temporary URLs created by this test run.
   const db=await request(indexedDB.open('personal-notebook-history-v1',1));
