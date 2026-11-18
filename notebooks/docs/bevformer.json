@@ -2,11 +2,18 @@
   "version": 1,
   "id": "note-1787833111086",
   "title": "BevFormer",
-  "folderId": "folder-1785676968352",
-  "path": "Notebooks/自动驾驶/检测模型",
+  "folderId": "folder-1795011055851",
+  "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
   "tags": [],
-  "createdAt": "2026-08-27T12:18:40.928Z",
-  "updatedAt": "2026-08-27T12:51:17.722Z",
+  "properties": {
+    "type": "",
+    "status": "",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-08-27T12:51:17.722Z",
+  "updatedAt": "2026-11-18T14:16:34.251Z",
   "assets": [],
   "html": "<p></p>"
 }
