@@ -179,7 +179,7 @@ http://127.0.0.1:8000/
 PORT=8000
 ```
 
-编辑草稿仍在浏览器本地保存；发布经 Cloudflare 后端调用 GitHub Contents API，不经过 `server.py`。登录使用自定义账号，详情见 [云端配置](cloud/README.md)。本地地址测试云端接口时须将 Worker 的 `FRONTEND_ORIGIN` 设置为对应的本地来源；正式使用时改回线上站点。
+通过本机 HTTP 地址（`localhost`、`127.0.0.1` 或 `[::1]`）测试时，可免登录新建、编辑和恢复本地草稿，草稿仍保存在当前浏览器。线上编辑以及发布、AI、Wiki 等云端操作仍需账号登录；发布经 Cloudflare 后端调用 GitHub Contents API，不经过 `server.py`。账号配置见 [云端配置](cloud/README.md)。本地地址测试云端接口时须将 Worker 的 `FRONTEND_ORIGIN` 设置为对应的本地来源；正式使用时改回线上站点。
 
 ## 测试
 

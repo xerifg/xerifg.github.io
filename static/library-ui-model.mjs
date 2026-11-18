@@ -15,6 +15,11 @@ export function toggleContextDrawer(isOpen) {
   return !Boolean(isOpen);
 }
 
+export function canEditNotebook(authenticated, location = {}) {
+  return Boolean(authenticated) || (location.protocol === "http:"
+    && ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname));
+}
+
 export function clearModalState() {
   return { modal: null, modalContext: null };
 }

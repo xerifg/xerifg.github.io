@@ -31,7 +31,7 @@ import {
 import { applyTreeDrop } from "./tree-dnd.mjs";
 import { sortTableRows } from "./table-model.mjs";
 import { filterCommandItems } from "./command-palette.mjs";
-import { clearModalState } from "./library-ui-model.mjs?v=20260920-favorites-v1";
+import { canEditNotebook, clearModalState } from "./library-ui-model.mjs?v=20261118-local-edit-v1";
 import { normalizeSources, SOURCE_NOTE_ID } from "./sources-model.mjs";
 import { SourcesPage } from "./sources-ui.mjs?v=20260920-sources-v2";
 import { FAVORITES_INDEX_PATH, hasFavoriteChanges, normalizeFavorites, resolveFavoriteNotes, toggleFavorite } from "./favorites-model.mjs?v=20260920-favorites-v1";
@@ -1087,9 +1087,9 @@ function App() {
     return () => window.removeEventListener("pointerdown", closeCreateMenu, true);
   }, [state.openCreateMenu, patchState]);
 
-  const hasEditSession = state.authenticated;
+  const hasEditSession = canEditNotebook(state.authenticated, window.location);
   const requireEditPermission = (pendingAuthAction = "edit") => {
-    if (state.authenticated) return true;
+    if (state.authenticated || (pendingAuthAction === "edit" && hasEditSession)) return true;
     patchState((draft) => {
       draft.pendingAuthAction = pendingAuthAction;
       draft.modalContext = null;
@@ -2011,7 +2011,7 @@ function App() {
         onBrowse: () => navigate("library"), onPublish: () => preparePublish(undefined, true) });
     }
     if (state.view === "sources") {
-      return h(SourcesPage, { sources: state.sources, canEdit: state.authenticated,
+      return h(SourcesPage, { sources: state.sources, canEdit: hasEditSession,
         dirty: state.sourcesDirty, saving: state.syncStatus === "publishing", persistenceStatus: localPersistenceStatus,
         onChange: sources => { if (requireEditPermission("edit")) patchState(draft => { draft.sources = normalizeSources(sources); draft.sourcesDirty = true; }); },
         onLogin: () => requireEditPermission("edit"),
@@ -2075,7 +2075,7 @@ function App() {
               key: `${note.id}-${state.mode}`,
               note,
               state,
-              editable: state.mode === "edit" && state.authenticated,
+              editable: state.mode === "edit" && hasEditSession,
               updateNote,
               handleAction,
               onStartDirectoryResize,
@@ -2139,8 +2139,8 @@ function App() {
     splitChoosing ? h(QuickOpen, { title: "选择对照阅读的笔记", notes: state.notes.filter(n => n.id !== state.activeId), folders: state.folders, query: commandQuery, onQuery: setCommandQuery,
       onOpen: id => { patchState(draft => { draft.workspace = { ...draft.workspace, splitId: id }; }); setSplitChoosing(false); setCommandQuery(""); }, onClose: () => { setSplitChoosing(false); setCommandQuery(""); } }) : null,
     toolsView === "new" ? h(CreateNoteDialog, { onClose: () => setToolsView(null), onCreate: (title, template) => createNote(null, { title, template }), onFolder: () => { setToolsView(null); handleAction("new-folder-in-folder", null); } }) : null,
-    toolsView === "history" && note ? h(HistoryDialog, { note, canRestore: state.authenticated, onRestore: restoreNoteVersion, onClose: () => setToolsView(null) }) : null,
-    toolsView === "backup" ? h(BackupDialog, { state, store: draftAssetStore, canRestore: state.authenticated, onRestore: importBackup, onClose: () => setToolsView(null) }) : null
+    toolsView === "history" && note ? h(HistoryDialog, { note, canRestore: hasEditSession, onRestore: restoreNoteVersion, onClose: () => setToolsView(null) }) : null,
+    toolsView === "backup" ? h(BackupDialog, { state, store: draftAssetStore, canRestore: hasEditSession, onRestore: importBackup, onClose: () => setToolsView(null) }) : null
   );
 }
 
@@ -4387,6 +4387,7 @@ function renderFolder(state, folder, depth, visibleNotes, selectNote, handleActi
   return h("div", { className: "tree-section", key: folder.id },
     h("button", {
       className: `tree-folder indent-${Math.min(depth, 3)} ${isCollapsed ? "collapsed" : ""} ${dragTarget?.type === "folder" && dragTarget.id === folder.id ? `drop-${dragTarget.position}` : ""}`,
+      style: { "--tree-depth": depth },
       title: isCollapsed ? "展开目录" : "收起目录",
       "data-tree-id": folder.id,
       tabIndex: treeKeyboard.focusedId === folder.id ? 0 : -1,
@@ -5072,6 +5073,7 @@ function renderNoteItem(state, note, depth, selectNote, handleAction, treeDrag, 
   return h("div", { className: "tree-section", key: note.id },
     h("button", {
       className: `tree-note indent-${Math.min(depth, 3)} ${isActive ? "active" : ""} ${treeDrag.draggedItem?.type === "note" && treeDrag.draggedItem.id === note.id ? "is-dragging" : ""} ${dragTarget?.type === "note" && dragTarget.id === note.id ? `drop-${dragTarget.position}` : ""}`,
+      style: { "--tree-depth": depth },
       role: "treeitem",
       "aria-level": depth + 1,
       "aria-current": isActive ? "page" : undefined,
