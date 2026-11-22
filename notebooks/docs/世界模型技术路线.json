@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "id": "note-a717b074-0a6d-421a-ad0d-7aef54194eaf",
+  "title": "世界模型技术路线",
+  "folderId": "folder-1785677240481",
+  "path": "Notebooks/世界模型",
+  "tags": [
+    "世界模型概览"
+  ],
+  "properties": {
+    "type": "",
+    "status": "待整理",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-11-22T12:01:48.871Z",
+  "updatedAt": "2026-11-22T12:02:06.421Z",
+  "assets": [
+    {
+      "id": "asset-1795345133776-an7i70",
+      "name": "image.png",
+      "fileName": "image-20261122105853-w8scd.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 80046,
+      "localUrl": "notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122105853-w8scd.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122105853-w8scd.png",
+      "remoteUrl": "notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122105853-w8scd.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1795345998002-a9hpzf",
+      "name": "image.png",
+      "fileName": "image-20261122111318-c0xa3.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 35826,
+      "localUrl": "notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122111318-c0xa3.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122111318-c0xa3.png",
+      "remoteUrl": "notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122111318-c0xa3.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1795347892187-ve0p4z",
+      "name": "image.png",
+      "fileName": "image-20261122114452-lg3vk.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 30142,
+      "localUrl": "notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122114452-lg3vk.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122114452-lg3vk.png",
+      "remoteUrl": "notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122114452-lg3vk.png",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<h1>世界模型派系</h1><img src=\"notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122105853-w8scd.png\" alt=\"image.png\" title=\"image.png\"><ul><li><p><strong>视频生成</strong>：追求像素级逼真。Sora、Cosmos。工业上主要用来造不存在的 Corner Case 数据。</p></li><li><p><strong>交互世界 / 3D 空间</strong>：追求可导航、可编辑。Genie 4 支持实时操控；李飞飞的 World Labs 走 3D 原生资产路线（Marble），靠 NeRF / 3DGS 做空间锚点。</p></li><li><p><strong>JEPA 潜空间</strong>：LeCun 离开 Meta 后创立 AMI Labs 继续押注，主张 LLM 只是统计模式匹配，文本是现实的损失性投影。</p></li></ul><h2>交互世界和传统的3D重建有什么区别？</h2><p><span style=\"color: rgb(31, 35, 41);\">两者产物看起来像（都是一片可漫游的 splat），但本质完全不同——一个是\"测量+拟合\"，一个是\"想象+生成\"。</span></p><img src=\"notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122111318-c0xa3.png\" alt=\"image.png\" title=\"image.png\"><h1>世界模型的演进</h1><p>参考视频：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://www.bilibili.com/video/BV1ZdpM6jEi7/?spm_id_from=333.337.search-card.all.click&amp;vd_source=8c065934da63850a7afd383a2017d263\">一口气看懂世界模型！</a></p><h2><strong>第一集：Dreamer 系——在“梦”里训策略</strong></h2><ul><li><p><strong>World Models（2018）</strong>​：把智能体拆成 V（VAE 压图像）、M（MDN-RNN，预测下一帧的隐状态分布）、C（线性控制器）。M 学的是“当前状态 + 动作 → 未来状态”，奠定了世界模型的基本定义。可以在模型内部“做梦”训练策略。</p></li><li><p><strong>梦里的坑</strong>：策略会钻世界模型的漏洞——比如发现梦里怪物不发火球，于是站到那个位置拿满分，到真实环境却一塌糊涂。这就是 <strong>sim-to-real gap</strong>。</p></li><li><p><strong>PlaNet / Dreamer V1–V3</strong>：引入 RSSM、在想象轨迹里训 actor-critic，并用真实环境数据不断校准模型漏洞。Dreamer V3 的关键结论是：<strong>性能主要来自无监督重建损失，去掉 reward/value 梯度几乎不掉分</strong>——“世界模型重要的是世界，而不是任务”；它也曾实现从零在 Minecraft 挖到钻石。</p></li><li><p><strong>DayDreamer</strong>：把这套方法搬到真机器狗上，不用仿真、不用人类演示。机器人只负责采集传感器数据和执行；电脑用真实数据学一个“身体模型”，再在模型里预演几千万步，约 <strong>1 小时学会站立/行走</strong>，被推倒后再学 10 分钟就能适应。优势在于：模型是从真机数据里隐式拟合出来的，不需要手写摩擦力、力矩曲线等仿真参数。</p></li></ul><h2><strong>第二集：JEPA 系——不生成像素，在表征空间预测</strong></h2><ul><li><p>LeCun 的核心主张：像素空间预测有两大问题——<strong>未来不唯一</strong>（容易输出模糊平均），以及<strong>大量不可预测也不重要的细节</strong>（树叶晃动、路面反光）会浪费算力。</p></li><li><p><strong>JEPA（联合嵌入预测架构）</strong>​：先把输入编码到表征空间，再预测未来表征；潜变量 Z 可理解为动作。难点是<strong>防止表征坍缩</strong>，方法包括对比学习或最大化表征信息量等四条准则。</p></li><li><p><strong>I-JEPA / V-JEPA / V-JEPA 2</strong>：用掩码块预测的方式学习编码器；V-JEPA 2 把 ViT 扩到 10 亿参数、用超 100 万小时视频预训练。第二阶段冻结编码器，只训动作条件的预测器（V-JEPA2-AC）；真机上用目标图做引导，每次采样 800 条动作，选 latent 空间里最接近目标图的 10 条取平均执行。</p></li><li><p><strong>局限与遗产</strong>：对相机位置敏感、长程规划弱、不支持语言。但它留下的<strong>视频编码器</strong>被大量后续工作复用，例如接 LLM 做视频问答、作为 VLA 的视觉骨干（JEPA-VLA）。</p></li></ul><h2><strong>第三集：Cosmos 系——把视频生成模型当物理模拟器</strong></h2><ul><li><p><strong>UniPi（2023）</strong>​：用文本 + 当前帧生成未来视频，再用一个轻量逆动力学头（IDM）把画面翻译成机器人动作。这是“视频世界模型 + 逆动力学”范式的起点。</p></li><li><p><strong>Genie（Google DeepMind）</strong>​：从无标注视频里学出 8 个离散的 <strong>latent action</strong>，实现细粒度控制。最重要的贡献是提出：<strong>隐动作是无标注人类视频与机器人策略之间的接口</strong>。</p></li><li><p><strong>Cosmos 1（英伟达）</strong>​：定位为“世界基础模型平台”，开源数据清洗管线、tokenizer、权重。原始数据 2000 万小时，经过切分、运动/画质/字幕/类型过滤、标注、去重，得到约 1 亿预训练片段。</p></li><li><p><strong>Cosmos Policy</strong>：把动作块伪装成“奇怪的画面帧”混进视频序列里一起生成；通过 3 种 mask 分别训练策略（50%）、世界模型（25%）和 value（25%），并加入含失败案例的 rollout 数据。推理有“策略模式”和“规划模式”：采样 8 个动作块、各想象 3 个未来、用 value 投票，真机准确率从 61.3% 提升到 72%。</p></li><li><p><strong>Cosmos 3</strong>：全模态模型（语言、图像、视频、音频、动作），双塔结构：Qwen3 自回归塔 + 扩散塔。一个模型可作 VLM、生图、音视频生成、策略模型、前向动力学、逆动力学六种用途。动作被统一表示成“两帧之间世界发生了什么变化”的增量（ego pose、末端 pose、手、夹爪等部件拼接），并用 2200 万样本预训练 + 220 万 Physical AI 样本 SFT。开源 Nano 16B / Super 64B，在多项 Physical AI benchmark 上超过闭源模型，机器人 benchmark 上也超过 π0.5。</p></li></ul><h2><strong>第四集：World Action Model——视频和动作一起出</strong></h2><ul><li><p><strong>三个概念的区别</strong>：WM 输入观测+动作，只输出未来观测；VLA 输入观测+语言，只输出动作；<strong>WAM</strong> 输入观测+语言，同时输出未来观测和动作。</p></li><li><p><strong>DreamZero</strong>：正式提出 WAM 这个术语，并“拷打”VLA——VLA 继承语言先验，擅长语义泛化，但缺乏几何、动力学、接触等物理先验。DreamZero 在同一个模型里联合建模“视频预测 × 逆动力学”，让两个模态互相促进。</p><ul><li><p>关键工程 trick：推理时<strong>用机器人实时拍到的真实画面替换掉想象出来的上下文帧</strong>，写进 KV cache，从根上抑制累积误差。0.6 秒算出未来 1.6 秒的动作；Flash 版通过缓存、量化等优化提速 38 倍。</p></li><li><p>数据：自采 AgiBot G1 约 500 小时、7193 段、22 个真实场景，任务刻意做成长尾（每个任务最多 50 段）。</p></li><li><p>实验：在完全没见过的环境和物体上大幅优于 π0.5；加入仅 12 分钟人类第一视角视频，成功率直接涨约 16 个点，说明这类路线非常吃视觉数据而非动作标签。</p></li></ul></li><li><p><strong>LingBot-VA / 2.0（蚂蚁）</strong>​：指出 VLA 存在“表征纠缠”——看懂场景、理解物理、运动控制挤在一个网络里样本效率低。它采用双流 MoT（5B 视频塔 + 350M 动作塔），严格因果注意力，且 <strong>KV cache 从不清空</strong>，模型始终能看到从任务开始到现在的完整历史。异步推理时用一步前向动力学重算缺失帧来纠错，准确率从朴素异步的 74.3% 拉回 90.4%。2.0 加入高层 planner、SamVAE（用瓶颈逼出隐式动作）、MCP 多块预测（防止模型直接复制相邻帧作弊）、人类视频示教和细粒度标注。</p></li><li><p><strong>一个值得注意的消融</strong>：Fast World Action Model 发现，<strong>真正关键的是训练时的视频预测目标</strong>；在分布内任务上，推理时到底生不生成画面影响不大，甚至“先生成视频再逆动力学”比联合去噪还略好，只是更慢。但作者也承认没做泛化性测试。</p></li></ul><h2><strong>核心判断</strong></h2><ol><li><p>三年半的主线是：<strong>动作从模型外（逆动力学）逐步走进模型内部，成为原生模态</strong>。</p><p>动作 a 在世界模型计算图里的位置变了——从\"模型算完之后再反推出来的结果\"，变成\"模型自己序列里的一等公民\"。</p><img src=\"notebooks/assets/note-a717b074-0a6d-421a-ad0d-7aef54194eaf/image-20261122114452-lg3vk.png\" alt=\"image.png\" title=\"image.png\"></li><li><p>世界模型用海量互联网视频学到了 VLA 缺失的物理/几何先验，在新场景、新动作泛化上有明显优势，且能直接利用人类视频数据。</p></li><li><p>闭环实时纠偏（用真实观测刷新 KV cache）比纯开环 rollout 更重要。</p></li><li><p><strong>VLA 和世界模型并不互斥</strong>——π0.7 已经把世界模型输出的未来帧作为 goal image 喂给 VLA，性能大幅提升；“具身智能的未来应是两者结合”。</p></li></ol>"
+}
