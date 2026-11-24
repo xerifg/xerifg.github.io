@@ -4,16 +4,47 @@
   "title": "BevFormer",
   "folderId": "folder-1795011055851",
   "path": "Notebooks/自动驾驶/3D检测模型/基于视觉方案",
-  "tags": [],
+  "tags": [
+    "bevformer"
+  ],
   "properties": {
-    "type": "",
-    "status": "",
-    "source": "",
+    "type": "论文",
+    "status": "已整理",
+    "source": "https://arxiv.org/pdf/2203.17270，https://github.com/fundamentalvision/bevformer",
     "aliases": []
   },
   "dailyDate": "",
-  "createdAt": "2026-08-27T12:51:17.722Z",
-  "updatedAt": "2026-11-18T14:16:34.251Z",
-  "assets": [],
-  "html": "<p></p>"
+  "createdAt": "2026-11-24T06:23:27.446Z",
+  "updatedAt": "2026-11-24T06:23:35.786Z",
+  "assets": [
+    {
+      "id": "asset-1795501349825-9hq5xj",
+      "name": "image.png",
+      "fileName": "image-20261124062229-bvhg0.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 194064,
+      "localUrl": "notebooks/assets/note-1787833111086/image-20261124062229-bvhg0.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1787833111086/image-20261124062229-bvhg0.png",
+      "remoteUrl": "notebooks/assets/note-1787833111086/image-20261124062229-bvhg0.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1795501369534-1p0agy",
+      "name": "bevformer-architecture.html",
+      "fileName": "bevformer-architecture-20261124062249-gkpoy.html",
+      "kind": "file",
+      "type": "text/html",
+      "size": 64171,
+      "localUrl": "notebooks/assets/note-1787833111086/bevformer-architecture-20261124062249-gkpoy.html",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-1787833111086/bevformer-architecture-20261124062249-gkpoy.html",
+      "remoteUrl": "notebooks/assets/note-1787833111086/bevformer-architecture-20261124062249-gkpoy.html",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<blockquote><p>BevFormer与Sparse4D有什么区别：BEVFormer 是先把整个空间编码成 BEV 特征，再从 BEV 中检测目标；Sparse4D 则更倾向于直接维护目标级别的稀疏特征。</p></blockquote><p><strong>BEVFormer</strong>（<em>BEVFormer: Learning Bird's-Eye-View Representation from Multi-Camera Images via Spatiotemporal Transformers</em>）是 ECCV 2022 提出的一项经典<strong>纯视觉自动驾驶 3D 感知框架</strong>。它利用 Transformer 在空间和时间维度上聚合多视角相机特征，生成统一的<strong>鸟瞰图（Bird's-Eye-View, BEV）特征表示</strong>，从而同时支持 3D 目标检测、语义地图分割等多项下游感知任务。</p><p>参考chatgpt讲解链接：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://chatgpt.com/share/6b04fbc7-cb10-83ec-a6ba-53b542e8029f\">https://chatgpt.com/share/6b04fbc7-cb10-83ec-a6ba-53b542e8029f</a></p><h1>核心思想</h1><p>在自动驾驶中，下游的规划与控制天然发生在 3D 空间，而相机图像是 2D 透视投影。BEVFormer 的核心思路是：<strong>用网格状可学习的 BEV Queries 作为空间载体，分别通过注意力机制从“当前多相机图像”和“历史 BEV 特征”中提取信息，并将特征局部化采样以控制计算量</strong>。</p><h1>架构</h1><img src=\"notebooks/assets/note-1787833111086/image-20261124062229-bvhg0.png\" alt=\"image.png\" title=\"image.png\"><div data-type=\"file-attachment\" class=\"doc-attachment-card\"><a class=\"doc-attachment\" href=\"notebooks/assets/note-1787833111086/bevformer-architecture-20261124062249-gkpoy.html\" download=\"bevformer-architecture.html\">附件：bevformer-architecture.html</a><span>62.7 KB</span></div><p></p>"
 }
