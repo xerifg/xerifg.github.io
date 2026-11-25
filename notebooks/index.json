@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-24T06:23:35.786Z",
+  "updatedAt": "2026-11-25T03:31:53.593Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -1147,6 +1147,17 @@
       "tags": [],
       "updatedAt": "2026-11-22T12:08:28.158Z",
       "file": "notebooks/docs/2026-11-22.json"
+    },
+    {
+      "id": "note-12f742de-767d-496b-ba79-0a5e0f754e70",
+      "title": "Sparse4D-Radar",
+      "folderId": "folder-1795010992005",
+      "path": "Notebooks/自动驾驶/3D检测模型/多模态融合方案",
+      "tags": [
+        "sparse4D-radar"
+      ],
+      "updatedAt": "2026-11-25T03:31:53.593Z",
+      "file": "notebooks/docs/sparse4d-radar.json"
     }
   ]
 }
