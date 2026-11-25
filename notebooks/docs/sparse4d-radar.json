@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "id": "note-12f742de-767d-496b-ba79-0a5e0f754e70",
+  "title": "Sparse4D-Radar",
+  "folderId": "folder-1795010992005",
+  "path": "Notebooks/自动驾驶/3D检测模型/多模态融合方案",
+  "tags": [
+    "sparse4D-radar"
+  ],
+  "properties": {
+    "type": "论文",
+    "status": "已整理",
+    "source": "https://arxiv.org/abs/2607.04098?utm_source=chatgpt.com，https://github.com/Aiuan/Sparse4D-Radar?utm_source=chatgpt.com",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-11-25T03:31:47.153Z",
+  "updatedAt": "2026-11-25T03:31:53.593Z",
+  "assets": [
+    {
+      "id": "asset-1795577162693-gz4ftt",
+      "name": "image.png",
+      "fileName": "image-20261125032602-affnr.png",
+      "kind": "image",
+      "type": "image/png",
+      "size": 172315,
+      "localUrl": "notebooks/assets/note-12f742de-767d-496b-ba79-0a5e0f754e70/image-20261125032602-affnr.png",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-12f742de-767d-496b-ba79-0a5e0f754e70/image-20261125032602-affnr.png",
+      "remoteUrl": "notebooks/assets/note-12f742de-767d-496b-ba79-0a5e0f754e70/image-20261125032602-affnr.png",
+      "cached": true,
+      "published": true
+    },
+    {
+      "id": "asset-1795577380209-h2xjdr",
+      "name": "sparse4d_radar_architecture.html",
+      "fileName": "sparse4d-radar-architecture-20261125032940-j9qas.html",
+      "kind": "file",
+      "type": "text/html",
+      "size": 46211,
+      "localUrl": "notebooks/assets/note-12f742de-767d-496b-ba79-0a5e0f754e70/sparse4d-radar-architecture-20261125032940-j9qas.html",
+      "localPath": "",
+      "remotePath": "notebooks/assets/note-12f742de-767d-496b-ba79-0a5e0f754e70/sparse4d-radar-architecture-20261125032940-j9qas.html",
+      "remoteUrl": "notebooks/assets/note-12f742de-767d-496b-ba79-0a5e0f754e70/sparse4d-radar-architecture-20261125032940-j9qas.html",
+      "cached": true,
+      "published": true
+    }
+  ],
+  "html": "<p>参考讲解：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://chatgpt.com/share/6b064c4e-cfc0-83ec-8603-fd6d35aa9e8b\">https://chatgpt.com/share/6b064c4e-cfc0-83ec-8603-fd6d35aa9e8b</a></p><p><span><strong>Sparse4D-Radar</strong>（全称 <em>Sparse4D-Radar: An Efficient and Robust Framework for Surround-View 3D Object Detection via 4D Radar-Camera Fusion</em>，2026年7月发布于 arXiv）是一个面向自动驾驶环视 3D 目标检测的高效、鲁棒的 <strong>4D 毫米波雷达与视觉（Camera）稀疏融合框架</strong>。</span></p><p><span>它继承了 <strong>Sparse4D 系列</strong> 的纯稀疏 Query 迭代范式，绕开了显式构建稠密 BEV 网格带来的高显存与计算开销，同时针对 4D 成像雷达（4D Imaging Radar）点云稀疏、多径噪声（“鬼影”）多但具备精确径向速度与全天候鲁棒性的特点，设计了专门的跨模态交互机制。</span></p><hr><h1>模型架构</h1><img src=\"notebooks/assets/note-12f742de-767d-496b-ba79-0a5e0f754e70/image-20261125032602-affnr.png\" alt=\"image.png\" title=\"image.png\"><div data-type=\"file-attachment\" class=\"doc-attachment-card\"><a class=\"doc-attachment\" href=\"notebooks/assets/note-12f742de-767d-496b-ba79-0a5e0f754e70/sparse4d-radar-architecture-20261125032940-j9qas.html\" download=\"sparse4d_radar_architecture.html\">附件：sparse4d_radar_architecture.html</a><span>45.1 KB</span></div><h1>核心创新模块</h1><p><span>针对 4D 雷达与视觉融合中的“特征空间不对齐”、“雷达杂波干扰”以及“恶劣天气下图像退化”三大痛点，Sparse4D-Radar 在 Decoder 中引入了三个核心设计：</span></p><h2><span>1. Deformable Fusion（可变形跨模态融合）</span></h2><ul><li><p><strong>3D 关键点重投影</strong><span>：针对每个 3D Object Query，在锚框周围生成一组固定 + 可学习的 3D 关键点（<span data-tex=\"P_{key}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>）。</span></p></li><li><p><strong>双域采样</strong><span>：利用相机内外参将 <span data-tex=\"P_{key}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span> 投影到多视角图像平面（<span data-tex=\"P_{img}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>）采样语义特征；同时利用雷达外参将其投影到雷达坐标系（<span data-tex=\"P_{pts}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>）采样几何与运动特征。</span></p></li><li><p><strong>分层加权聚合</strong><span>：结合实例特征 <span data-tex=\"F_{ins}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>、锚框嵌入 <span data-tex=\"E_{anc}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span> 以及传感器位姿编码，通过 MLP 动态预测图像与雷达各尺度特征的采样权重（<span data-tex=\"W_{img}, W_{pts}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>），实现稀疏空间下的细粒度特征聚合。</span></p></li></ul><h2><span>2. VCS（Velocity-Consistency Sampling，速度一致性采样）</span></h2><ul><li><p><strong>解决痛点</strong><span>：毫米波雷达容易受到金属护栏、地面反射等产生静止杂波或动态“鬼影（Ghost Reflections）”，直接融合会污染目标特征并拉大速度估计误差。</span></p></li><li><p><strong>工作机制</strong><span>：4D 雷达能够直接测量多普勒速度。VCS 模块将 Query 预测的关键点速度编码（<span data-tex=\"PE_{key}^{vel}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>）与采样邻域内雷达点的速度编码（<span data-tex=\"E_{rad}^{vel}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>）计算点积相似度得分 <span data-tex=\"S_{vel}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>：</span></p><div data-tex=\"S_{vel} = \\sigma\\left(\\frac{PE_{key}^{vel} \\odot E_{rad}^{vel}}{\\sqrt{C}}\\right)\" data-type=\"math-block\" class=\"math-node math-block\"></div></li><li><p><span>利用 <span data-tex=\"S_{vel}\" data-type=\"math-inline\" class=\"math-node math-inline\"></span> 对采样的雷达特征进行加权调制，自动抑制速度不匹配的杂波点，保留运动一致的真实目标点，显著降低了平均速度误差（mAVE）。</span></p></li></ul><h2><span>3. AMG（Adaptive Modality Gating，自适应模态门控）</span></h2><ul><li><p><strong>解决痛点</strong><span>：在夜间、逆光、雨雾等恶劣工况下，相机视觉语义严重退化，若维持固定权重融合会导致误检或漏检。</span></p></li><li><p><strong>工作机制</strong><span>：在完成各自的模态特征增强后，AMG 将图像特征 <span data-tex=\"F_{img}''\" data-type=\"math-inline\" class=\"math-node math-inline\"></span> 与雷达特征 <span data-tex=\"F_{pts}''\" data-type=\"math-inline\" class=\"math-node math-inline\"></span> 拼接，通过一个轻量级 MLP + Sigmoid 生成通道/实例级的置信度门控权重 <span data-tex=\"G\" data-type=\"math-inline\" class=\"math-node math-inline\"></span>：</span></p><div data-tex=\"G = \\sigma\\left(\\text{MLP}([F_{img}''; F_{pts}''])\\right)\" data-type=\"math-block\" class=\"math-node math-block\"></div><div data-tex=\"F_{fusion} = \\text{MLP}\\left(G \\odot F_{img}'' + (1 - G) \\odot F_{pts}''\\right)\" data-type=\"math-block\" class=\"math-node math-block\"></div></li><li><p><span>当视觉退化时，<span data-tex=\"G\" data-type=\"math-inline\" class=\"math-node math-inline\"></span> 自动降低图像分支权重，使检测器平滑地将主导权切换至具备几何与测速优势的 4D 雷达分支。</span></p></li></ul>"
+}
