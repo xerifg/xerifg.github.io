@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sparse4D-Radar · 模型架构交互图谱</title>
+<style>
+:root{--bg:#eef3f8;--paper:#fff;--ink:#172c46;--muted:#52657d;--line:#d6e0eb;--cam:#2563eb;--rad:#087f8c;--qry:#7652be;--det:#b25a22;--temp:#34723c;--soft:#f6f9fc;--shadow:0 12px 35px #243d5b0a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}button,select,input{font:inherit}button,select{border:1px solid #aabbd0;border-radius:7px;background:#fff;color:var(--ink);padding:7px 12px;cursor:pointer}button:hover{background:#edf3fb}button.active{background:var(--ink);color:#fff}a{color:#205fb2;text-decoration:none}a:hover{text-decoration:underline}code,pre,.mono{font-family:Consolas,"Cascadia Mono",monospace}code{background:#edf2f8;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;background:#f0f4fa;border-left:3px solid #6b8aac;border-radius:4px;font-size:13px}
+.wrap{max-width:1600px;margin:auto;padding:0 30px}.top{background:#ffffffdf;border-bottom:1px solid var(--line)}.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:62px}.brand{font-weight:800;letter-spacing:.4px}.links{display:flex;gap:18px;font-size:13px}.hero{padding:34px 0 24px}.eyebrow{font-size:11px;letter-spacing:1.7px;color:var(--muted);font-weight:800;text-transform:uppercase}.hero h1{font-size:clamp(30px,4vw,48px);line-height:1.18;letter-spacing:-1px;margin:9px 0 12px}.hero p{color:var(--muted);max-width:900px;margin:0}.scope,.note{background:#fff9ed;border-left:3px solid #cf9b39;border-radius:0 7px 7px 0;padding:12px 16px;color:#715424;font-size:13px;margin:16px 0 22px}
+.tabs{display:flex;gap:22px;border-bottom:1px solid #c8d6e4;overflow:auto;position:sticky;top:0;background:var(--bg);z-index:5}.tabs button{border:0;border-radius:0;background:transparent;color:var(--muted);padding:12px 2px;white-space:nowrap;border-bottom:3px solid transparent}.tabs button.active{background:transparent;color:var(--ink);border-bottom-color:var(--cam);font-weight:800}
+section{padding:24px 0 12px;scroll-margin-top:62px}section[hidden]{display:none}.sectionhead{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:17px}.sectionhead h2{margin:0;font-size:24px}.sectionhead p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:22px;margin-bottom:18px}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 0}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--c)}
+.archgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(340px,.9fr);gap:18px;align-items:start}.diagram{background:#fbfdff;border:1px solid var(--line);border-radius:10px;padding:16px;overflow:auto}.lanes{display:grid;grid-template-columns:1fr 1fr;gap:14px}.lane{border:1px dashed #c7d5e4;border-radius:9px;padding:12px;min-width:0}.lane h3{font-size:13px;margin:0 0 10px;color:var(--muted);letter-spacing:.5px}.node{border:1.5px solid var(--c);background:color-mix(in srgb,var(--c) 5%,white);border-radius:9px;padding:11px 12px;margin:8px 0;cursor:pointer;min-width:0;transition:.15s}.node:hover,.node.selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 22%,transparent);transform:translateY(-1px)}.node .nt{font-weight:800;font-size:14px}.node .dims{font:11px/1.55 Consolas,"Microsoft YaHei",monospace;color:#52657d;margin-top:5px;overflow-wrap:anywhere}.node .tag{font-size:10px;letter-spacing:.8px;color:var(--c);font-weight:800}.down{text-align:center;color:#8ca0b6;font-size:18px;line-height:1.2}.merge{margin:14px auto;text-align:center;color:var(--muted);font-size:12px}.merge b{display:inline-block;padding:8px 18px;border:1px solid #cbd8e6;border-radius:20px;background:#fff}
+.centerflow{max-width:720px;margin:14px auto}.centerflow .node{text-align:center}.branchrow{display:grid;grid-template-columns:1fr 1fr;gap:14px}.detail{position:sticky;top:74px;max-height:calc(100vh - 92px);overflow:auto;padding:0}.detailhead{padding:18px 20px;background:var(--soft);border-bottom:1px solid var(--line)}.detailhead h3{margin:4px 0;font-size:20px}.detailbody{padding:18px 20px}.detailbody h4{margin:17px 0 5px;font-size:13px;color:#314a64}.detailbody p,.detailbody li{font-size:13px}.shape{background:#f7faff;border:1px solid #dce6f0;border-radius:7px;padding:10px 12px;font:12px/1.65 Consolas,"Microsoft YaHei",monospace;overflow-wrap:anywhere}.ops{padding-left:19px}.ops li{margin:7px 0}.small{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;background:#f2f6fb;color:#415772;font-size:12px}th,td{padding:11px 12px;border-bottom:1px solid #dfe7ef;vertical-align:top}td{overflow-wrap:anywhere}.tablewrap{overflow:auto}.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{border:1px solid var(--line);border-radius:9px;padding:15px;background:#fff}.card h3{margin:0 0 7px;font-size:15px}.card p{font-size:13px;margin:0;color:#435970}.callout{background:#edf6f7;color:#2b5d62;border-radius:8px;padding:14px 16px;font-size:13px;margin:12px 0}.warn{background:#fff4e9;color:#8a4b1e;border-left:3px solid #cf8a3b;padding:12px 15px;border-radius:0 7px 7px 0;font-size:13px;margin:12px 0}
+.formula{background:#f2f5fa;border-radius:7px;padding:12px 15px;font:13px/1.8 Consolas,"Microsoft YaHei",monospace;overflow-wrap:anywhere}.sliderrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:10px 0}.sliderrow input{flex:1;min-width:150px}.pill{display:inline-block;padding:3px 8px;border-radius:20px;background:#edf2f8;font-size:11px;color:#53677d;margin:2px}
+footer{border-top:1px solid var(--line);padding:25px 0 40px;color:var(--muted);font-size:12px;margin-top:30px}
+@media(max-width:1050px){.archgrid{grid-template-columns:1fr}.detail{position:static;max-height:none}.detailbody{max-height:none}.wrap{padding:0 18px}}
+@media(max-width:680px){.wrap{padding:0 12px}.lanes,.branchrow,.two,.three{grid-template-columns:1fr}.links{gap:8px}.hero{padding-top:24px}.sectionhead{align-items:start;flex-direction:column}.panel{padding:15px}.tabs{gap:16px}}
+@media print{body{background:white}.top,.tabs,.detail{display:none!important}.wrap{max-width:none;padding:0}.panel{box-shadow:none;break-inside:avoid}section[hidden]{display:block!important}section{break-before:page}.diagram{overflow:visible}}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap"><div class="brand">MODEL ARCHITECTURE ATLAS <span class="small">/ Sparse4D-Radar</span></div><div class="links"><a href="https://arxiv.org/abs/2607.04098" target="_blank">论文 ↗</a><a href="https://github.com/Aiuan/Sparse4D-Radar/tree/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21" target="_blank">代码快照 ↗</a><button onclick="window.print()">打印 / PDF</button></div></div></div>
+<main class="wrap">
+<header class="hero"><div class="eyebrow">PAPER × OFFICIAL CODE · OFFLINE INTERACTIVE ATLAS</div><h1>Sparse4D-Radar<br>环视 Camera–4D Radar 稀疏 3D 检测</h1><p>以官方仓库配置和 forward 实现为主线，追踪 Camera PV 特征、Radar BEV 特征如何被同一组 3D Keypoints 采样，再进入 Sparse Instance Decoder，最终输出 3D boxes。点击架构卡片查看输入输出维度、作用与算子顺序。</p></header>
+<div class="scope"><b>本图基线：</b>官方代码 commit <code>97c9fb658d69e8d0974d24bbed8d3c0823fc8e21</code>。默认展示 <b>Acc</b> 配置（包含 VCS + AMG）；可切换 Base 对照。维度依据配置推导，B=Batch，A=900 个 Anchor，K=13 个 Keypoints，C=通道。此页面是源码静态追踪，不代表已运行模型。</div>
+<nav class="tabs">
+<button class="active" data-tab="architecture">交互架构</button><button data-tab="io">输入输出</button><button data-tab="tensors">张量与配置</button><button data-tab="mechanics">关键机制演示</button><button data-tab="training">训练与推理</button><button data-tab="innovation">创新与问题</button><button data-tab="sources">论文对照与来源</button>
+</nav>
+
+<section id="architecture">
+<div class="sectionhead"><div><h2>01 · 从传感器输入到 3D 检测输出</h2><p>双 Encoder 并行；目标 Query 驱动跨模态采样；六层级联 Decoder 逐步修正 Anchor。</p></div><div><label class="small">配置版本　</label><select id="mode"><option value="acc">Sparse4D-Radar-Acc</option><option value="base">Sparse4D-Radar-Base</option></select></div></div>
+<div class="legend"><span><i class="dot" style="--c:var(--cam)"></i>Camera 分支</span><span><i class="dot" style="--c:var(--rad)"></i>Radar 分支</span><span><i class="dot" style="--c:var(--qry)"></i>Sparse Query / Fusion</span><span><i class="dot" style="--c:var(--temp)"></i>时序传播</span><span><i class="dot" style="--c:var(--det)"></i>检测输出</span></div>
+<div class="archgrid">
+<div class="diagram" id="main-diagram">
+ <div class="lanes">
+  <div class="lane"><h3>CAMERA · PERSPECTIVE VIEW</h3>
+   <div class="node" data-node="cam-in" style="--c:var(--cam)"><div class="tag">INPUT</div><div class="nt">6 路环视图像</div><div class="dims">[B, 6, 3, 544, 960]</div></div><div class="down">↓</div>
+   <div class="node" data-node="cam-enc" style="--c:var(--cam)"><div class="tag">BACKBONE + NECK</div><div class="nt">GridMask → ResNet-50 → FPN</div><div class="dims">4 levels · [B, 6, 256, H/stride, W/stride]</div></div><div class="down">↓</div>
+   <div class="node" data-node="cam-feat" style="--c:var(--cam)"><div class="tag">PV FEATURES</div><div class="nt">多相机、多尺度图像特征</div><div class="dims">P3–P6: 136×240, 68×120, 34×60, 17×30</div></div>
+   <div class="node" data-node="depth" style="--c:var(--cam)"><div class="tag">AUXILIARY</div><div class="nt">DenseDepthNet（辅助深度分支）</div><div class="dims">3 个尺度各输出 [B×6, 1, Hₗ, Wₗ]</div></div>
+  </div>
+  <div class="lane"><h3>4D RADAR · BEV</h3>
+   <div class="node" data-node="rad-in" style="--c:var(--rad)"><div class="tag">INPUT</div><div class="nt">3 Sweeps 4D Radar 点云</div><div class="dims">[B, N≤40000, 8] · xyz / vx,vy / 其余属性</div></div><div class="down">↓</div>
+   <div class="node" data-node="rad-enc" style="--c:var(--rad)"><div class="tag">PILLAR ENCODER</div><div class="nt">Voxelization → PillarFeatureNet → Scatter</div><div class="dims">每 Pillar ≤10 点；64 通道；320×480</div></div><div class="down">↓</div>
+   <div class="node" data-node="rad-backbone" style="--c:var(--rad)"><div class="tag">BACKBONE + NECK</div><div class="nt">SECOND → SECONDFPN</div><div class="dims">3 scales → concat → [B, 384, 160, 240]</div></div>
+   <div class="node" data-node="rad-feat" style="--c:var(--rad)"><div class="tag">RADAR BEV FEATURE</div><div class="nt">单层级融合后的 BEV 特征</div><div class="dims">[B, 384, 160, 240]</div></div>
+  </div>
+ </div>
+ <div class="merge"><b>两路特征 + 标定 / 时间元信息</b></div>
+ <div class="centerflow">
+  <div class="node" data-node="bank" style="--c:var(--qry)"><div class="tag">SPARSE INSTANCE BANK</div><div class="nt">900 Learnable Anchors + Instance Features</div><div class="dims">Anchor [B,900,Dₐ] · Feature [B,900,256] · 历史缓存最多 600 个</div></div><div class="down">↓</div>
+  <div class="node" data-node="kps" style="--c:var(--qry)"><div class="tag">GEOMETRY QUERY</div><div class="nt">Anchor Encoder + 3D Keypoint Generator</div><div class="dims">固定 7 点 + 可学习 6 点 = K=13 · [B,900,13,3]</div></div><div class="down">↓</div>
+  <div class="branchrow">
+   <div class="node" data-node="img-sample" style="--c:var(--cam)"><div class="tag">CAMERA SAMPLING</div><div class="nt">3D → 2D 投影 → Grid Sample</div><div class="dims">6 cameras × 4 FPN levels × 13 points</div></div>
+   <div class="node" data-node="pts-sample" style="--c:var(--rad)"><div class="tag">RADAR SAMPLING</div><div class="nt">XY 归一化 → BEV Grid Sample</div><div class="dims">1 BEV level × 13 points · 384 channels</div></div>
+  </div>
+  <div class="branchrow">
+   <div class="node" data-node="img-weight" style="--c:var(--cam)"><div class="tag">HIERARCHICAL AGGREGATION</div><div class="nt">Camera 权重聚合</div><div class="dims">视角 × 尺度 × 分组 → [B,900,256]</div></div>
+   <div class="node" data-node="vcs" style="--c:var(--rad)"><div class="tag">ACC ONLY · VCS</div><div class="nt">Velocity-Consistency Sampling</div><div class="dims">原始 Radar 邻域速度 → S_vel → 调制 BEV 采样特征</div></div>
+  </div>
+  <div class="node" data-node="amg" style="--c:var(--qry)"><div class="tag" id="fusion-tag">ACC ONLY · AMG</div><div class="nt" id="fusion-title">Adaptive Modality Gating</div><div class="dims" id="fusion-dims">Camera 256 + Radar 384 → 映射 256 → 门控融合 256</div></div><div class="down">↓</div>
+  <div class="node" data-node="decoder" style="--c:var(--qry)"><div class="tag">SPARSE CASCADED DECODER · 6 BLOCKS</div><div class="nt">Temporal GNN → Instance GNN → Deformable Fusion → FFN → Refinement</div><div class="dims">Instance [B,900,256]；融合残差 cat 后 [B,900,512]</div></div><div class="down">↓</div>
+  <div class="branchrow">
+   <div class="node" data-node="heads" style="--c:var(--det)"><div class="tag">PREDICTION HEADS</div><div class="nt">分类 + 3D Box + Quality</div><div class="dims">cls [B,900,4] · box [B,900,Dₐ] · quality [B,900,2]</div></div>
+   <div class="node" data-node="cache" style="--c:var(--temp)"><div class="tag">TEMPORAL CACHE</div><div class="nt">Top-K 历史 Instance 传播到下一帧</div><div class="dims">最多 600 个历史 Feature / Anchor</div></div>
+  </div>
+  <div class="down">↓</div>
+  <div class="node" data-node="out" style="--c:var(--det)"><div class="tag">POST PROCESS</div><div class="nt">Top-K Decode → 3D Detection</div><div class="dims">boxes_3d [M,9] · scores_3d [M] · labels_3d [M]</div></div>
+ </div>
+ <p class="small">注：图中“单层级融合后的 Radar BEV”是配置 pts_num_levels=1、pts_feat_dims=384 的真实含义；不是三张 BEV 特征图分别参与 Query 采样。</p>
+</div>
+<aside class="panel detail"><div class="detailhead"><div class="eyebrow" id="d-group">模块说明</div><h3 id="d-title">选择左侧任意模块</h3></div><div class="detailbody" id="d-body"><p>点击左侧任意架构节点，可查看该模块的功能、输入输出形状、算子顺序和实现注意事项。</p></div></aside>
+</div>
+</section>
+
+<section id="io" hidden>
+<div class="sectionhead"><div><h2>02 · 输入与输出契约</h2><p>区分原始传感器输入、模型内部特征、训练标签与推理返回结构。</p></div></div>
+<div class="panel tablewrap"><table><thead><tr><th>数据</th><th>字段 / 形状</th><th>来源与用途</th><th>训练 / 推理</th></tr></thead><tbody>
+<tr><td>Camera</td><td class="mono">img [B,6,3,544,960]</td><td>6 路环视图像；ResizeCropFlip、Normalize、GridMask 后送入 ResNet-50</td><td>训练、推理</td></tr>
+<tr><td>4D Radar</td><td class="mono">points [B,N,8], N≤40000</td><td>3 sweeps 累积；8 维输入；VCS 直接读取 xyz（0:3）与 vx,vy（3:5）</td><td>训练、推理</td></tr>
+<tr><td>标定 / 元信息</td><td class="mono">projection_mat [B,6,3,4]；image_wh；timestamp；T_global / T_global_inv</td><td>Camera 投影、跨帧 Anchor 坐标变换、时间间隔补偿</td><td>训练、推理</td></tr>
+<tr><td>3D GT</td><td class="mono">gt_bboxes_3d；gt_labels_3d</td><td>稀疏框回归与分类监督；训练时还构造 DN anchors</td><td>仅训练</td></tr>
+<tr><td>深度 GT</td><td class="mono">gt_depth[3 scales]</td><td>DenseDepthNet 辅助监督，loss_weight=0.2</td><td>仅训练</td></tr>
+<tr><td>检测输出</td><td class="mono">boxes_3d [M,9]；scores_3d [M]；labels_3d [M]</td><td>Top-K decoder 解码；坐标、尺寸、yaw、速度</td><td>仅推理</td></tr>
+</tbody></table></div>
+<div class="two">
+<div class="panel"><h3>Radar 点字段的代码级确认</h3><p>配置使用 <code>LoadRadarPointsMultiSweeps_omnihd</code>，<code>load_dim=8</code>、<code>sweeps_num=3</code>、<code>use_dim=[0..7]</code>。VCS 代码明确取 <code>points[i][:,:3]</code> 作为邻域坐标，取 <code>points[i][:,3:5]</code> 作为 vx、vy。剩余通道参与 PillarFeatureNet，但其具体语义应以 OmniHD 数据定义为准。</p></div>
+<div class="panel"><h3>输出 box 解码</h3><p>内部 Anchor 使用 log 尺寸与 sin/cos yaw 表达；后处理将尺寸取 exp，将 yaw 通过 atan2(sin_yaw, cos_yaw) 还原。输出顺序可概括为 <code>[x,y,z,w,l,h,yaw,vx,vy]</code>。</p></div>
+</div>
+</section>
+
+<section id="tensors" hidden>
+<div class="sectionhead"><div><h2>03 · 张量尺寸与关键配置</h2><p>以下以 Acc 配置、输入 960×544、6 cameras、900 anchors 为基准。H/W 顺序在文字中明确标注。</p></div></div>
+<div class="panel tablewrap"><table><thead><tr><th>阶段</th><th>张量 / 逻辑尺寸</th><th>推导依据</th></tr></thead><tbody>
+<tr><td>Camera 输入</td><td class="mono">[B,6,3,544,960]</td><td>input_shape=(960,544)，多视角 6 路</td></tr>
+<tr><td>ResNet-50 C2–C5</td><td class="mono">[B,6,256,136,240]；[B,6,512,68,120]；[B,6,1024,34,60]；[B,6,2048,17,30]</td><td>stride 4/8/16/32</td></tr>
+<tr><td>FPN P3–P6</td><td class="mono">4 × [B,6,256,Hₗ,Wₗ]</td><td>FPN out_channels=256；4 levels</td></tr>
+<tr><td>Radar Pillar 网格</td><td class="mono">[B,64,320,480]</td><td>PC range X=[-60,60], Y=[-40,40]；voxel=0.25m；Scatter output_shape=[320,480]（Y,X）</td></tr>
+<tr><td>SECOND 三尺度</td><td class="mono">[B,64,160,240]；[B,128,80,120]；[B,256,40,60]</td><td>3 stages，stride 2/2/2，通道 64/128/256</td></tr>
+<tr><td>SECONDFPN</td><td class="mono">[B,384,160,240]</td><td>三个分支上采样到 160×240，各 128 通道后 concat</td></tr>
+<tr><td>Instance Bank</td><td class="mono">Feature [B,900,256]；Anchor [B,900,Dₐ]</td><td>900 K-means anchors；Anchor 状态编码含位置、尺寸、sin/cos yaw、速度等</td></tr>
+<tr><td>Keypoints</td><td class="mono">[B,900,13,3]</td><td>7 fixed scales + 6 learnable offsets；相对 Box 尺寸缩放并按 yaw 旋转，再平移到中心</td></tr>
+<tr><td>Camera 采样</td><td class="mono">[B,900,6,4,13,256]</td><td>投影到 6 个相机；4 个 FPN level；13 points；每层 256 通道</td></tr>
+<tr><td>Radar 采样</td><td class="mono">[B,900,1,13,384]</td><td>BEV grid_sample；单层 384 通道；分 8 组，每组 48 维</td></tr>
+<tr><td>融合输出</td><td class="mono">AMG: [B,900,256]；concat: [B,900,640] → Linear 256</td><td>Acc 用 AMG；Base 直接 concat Camera 256 与 Radar 384</td></tr>
+<tr><td>Decoder 特征</td><td class="mono">Instance [B,900,256]；Fusion residual cat [B,900,512]</td><td>FFN in_channels=512 → 1024 → 256</td></tr>
+<tr><td>分类 / 框 / 质量</td><td class="mono">[B,900,4] / [B,900,Dₐ] / [B,900,2]</td><td>4 类；质量分支输出 centerness、yawness</td></tr>
+</tbody></table></div>
+<div class="three">
+<div class="card"><h3>空间范围</h3><p class="mono">[-60,-40,-3, 60,40,5] m</p><p>XY 0.25m 分辨率；Z 方向 voxel size=8m。</p></div>
+<div class="card"><h3>稀疏 Query</h3><p class="mono">900 anchors × 13 keypoints</p><p>不是 200×200 BEV Query；以候选目标为中心采样。</p></div>
+<div class="card"><h3>Decoder 深度</h3><p class="mono">6 blocks / 8 heads</p><p>embed_dims=256，num_groups=8，dropout=0.1。</p></div>
+</div>
+<div class="warn"><b>维度边界：</b>Anchor 的完整状态向量长度 Dₐ 由 K-means anchor 文件和 box 编码约定决定，页面不把它误写成固定 9。可直接从代码确认其语义字段包括 xyz、log(wlh)、sin/cos yaw、速度；输出解码为 9 维物理 box。</div>
+</section>
+
+<section id="mechanics" hidden>
+<div class="sectionhead"><div><h2>04 · 关键机制演示</h2><p>用交互小例子理解 Query 如何采样两种模态，以及 VCS 与 AMG 分别作用在哪个张量上。</p></div></div>
+<div class="panel"><h3>机制 A · 同一个 3D Keypoint，映射到两种特征坐标系</h3><div class="two">
+<div><p><b>Camera 路径：</b>齐次投影矩阵将 3D Keypoint 投影到每个 Camera 的像素平面，再按 image_wh 归一化，转为 [-1,1] 的 grid_sample 坐标。</p><div class="formula">P_img = projection_mat · [x,y,z,1]ᵀ<br>u = X/Z；v = Y/Z<br>grid = 2 · (u,v)/image_wh − 1</div></div>
+<div><p><b>Radar 路径：</b>只使用 Keypoint 的 XY，按 point_cloud_range 归一化到 BEV 特征图坐标；Z 不参与 BEV 采样坐标。</p><div class="formula">x_norm = (x − x_min)/(x_max − x_min)<br>y_norm = (y − y_min)/(y_max − y_min)<br>grid_bev = 2 · (x_norm,y_norm) − 1</div></div></div></div>
+<div class="panel"><h3>机制 B · VCS 速度一致性权重</h3><p>VCS 不是对 BEV embedding 做相似度，而是：Anchor 的 vx,vy 与原始 Radar 点云中每个 Keypoint 半径 0.5m 内的邻域平均速度，分别经过共享 Velocity Encoder，再做逐通道点积、缩放、Sigmoid。所得权重逐 Keypoint 乘到已采样的 Radar BEV 特征上。</p>
+<div class="sliderrow"><label>目标速度 vx</label><input id="vx" type="range" min="-10" max="15" step=".5" value="8"><output id="vxv">8.0 m/s</output></div>
+<div class="sliderrow"><label>邻域 Radar 平均速度 vx</label><input id="rvx" type="range" min="-10" max="15" step=".5" value="7.5"><output id="rvxv">7.5 m/s</output></div>
+<div class="sliderrow"><label>是否存在有效邻域点</label><select id="valid"><option value="yes">存在</option><option value="no">不存在</option></select></div>
+<div class="callout" id="vcs-result">示意：速度较一致，VCS 会倾向保留该 Keypoint 的 Radar 特征。</div>
+<div class="formula">E_k = VelocityEncoder(v_anchor)<br>E_r = VelocityEncoder(mean(v_radar_neighbors))<br>S = sigmoid(Σ(E_k ⊙ E_r) / √C)<br>S_refined = valid·S + (1−valid)·0.5<br>F_pts_new = S_refined · F_pts</div>
+<p class="small">滑块只展示机制，不模拟真实网络的 Encoder 参数或真实相似度数值。真实 S 必须由训练后的共享 MLP/LayerNorm 计算。</p></div>
+<div class="panel"><h3>机制 C · AMG 自适应模态门控</h3><div class="two"><div><p>先把 Camera 256 维和 Radar 384 维分别投影到 256 维，再拼接计算逐通道门控 G。</p><div class="formula">f_img = FC_img(F_img) → 256<br>f_pts = FC_pts(F_pts) → 256<br>G = sigmoid(FC([f_img; f_pts]))</div></div><div><p>门控不是简单给整幅图像或整个 Radar 一个标量；它是每个 Instance 的 256 维通道权重。</p><div class="formula">F_mix = G ⊙ f_img + (1−G) ⊙ f_pts<br>F_out = FC_out(F_mix) → 256</div></div></div></div>
+</section>
+
+<section id="training" hidden>
+<div class="sectionhead"><div><h2>05 · 训练与推理路径</h2><p>将共同的特征提取与 Head 路径分开看，避免把训练专用分支误认为推理主干。</p></div></div>
+<div class="two">
+<div class="panel"><h3>训练 forward</h3><ol><li>读取多视角图像、三帧 Radar sweeps、标定与 GT。</li><li>Camera：GridMask → ResNet/FPN；同时 DenseDepthNet 输出 3 个尺度深度图。</li><li>Radar：Voxelization → PillarFeatureNet → Scatter → SECOND → SECONDFPN。</li><li>Head 获取 900 learnable instances 与上一帧缓存；训练时构造 denoising anchors 并加 attention mask。</li><li>6 个 Decoder refinement stages 产生多层分类、box、quality 预测。</li><li>每层计算 Focal 分类损失与 SparseBox3D 回归损失；DN 分支单独计算辅助损失；另加 dense depth loss。</li></ol></div>
+<div class="panel"><h3>推理 forward</h3><ol><li>Camera 与 Radar 双分支提取特征。</li><li>InstanceBank 读取当前 900 anchors / features，并取有效历史缓存。</li><li>Decoder 完成跨模态融合、时序交互和 Anchor 逐层 refinement。</li><li>InstanceBank 缓存置信度 Top-K 的 600 个历史实例。</li><li>SparseBox3DDecoder 对最终层分类分数做 Sigmoid、类别维 Top-K，解码 log 尺寸和 yaw。</li><li>返回 boxes_3d、scores_3d、labels_3d（可选 instance_ids）。</li></ol></div>
+</div>
+<div class="panel"><h3>训练配置摘录（Acc）</h3><div class="three"><div class="card"><h3>优化器</h3><p class="mono">AdamW · lr=6e−5<br>weight_decay=0.001<br>grad_clip=25</p></div><div class="card"><h3>学习率</h3><p class="mono">CosineAnnealing<br>linear warmup=500 iters<br>min_lr_ratio=1e−3</p></div><div class="card"><h3>训练周期</h3><p class="mono">100 epochs<br>total_batch_size=32<br>8 GPUs（配置默认）</p></div></div><p class="small">Base 配置 total_batch_size=48；Acc 配置 total_batch_size=32。仓库 README 报告的 FPS 是 RTX 4090 单卡测试口径，不能直接当作车规平台延迟。</p></div>
+</section>
+
+<section id="innovation" hidden>
+<div class="sectionhead"><div><h2>06 · 论文贡献、实现观察与工程问题</h2><p>区分论文设计、代码可证事实和工程分析；不把推断包装成实验结论。</p></div></div>
+<div class="three">
+<div class="card"><h3>贡献 / 设计 1</h3><p><b>目标 Query 驱动的 Camera–Radar Deformable Fusion。</b>以 Anchor 生成 3D Keypoints，分别从 Camera PV 与 Radar BEV 采样，避免先构建稠密 Camera BEV 再融合。</p></div>
+<div class="card"><h3>贡献 / 设计 2</h3><p><b>VCS（Acc）。</b>利用原始 Radar 点云邻域速度一致性，对 Radar BEV 采样特征进行 Keypoint 级调制，意图抑制运动不一致的反射。</p></div>
+<div class="card"><h3>贡献 / 设计 3</h3><p><b>AMG（Acc）。</b>将两种模态映射到统一 256 维后逐通道门控，学习 Instance 级的模态贡献。</p></div>
+</div>
+<div class="panel"><h3>源码可确认的关键实现差异</h3><ul>
+<li><b>Base：</b><code>use_deformable_func=True</code>，走自定义 DAF CUDA 聚合路径；没有 VCS / AMG 配置。</li>
+<li><b>Acc：</b><code>use_deformable_func=False</code>，走 PyTorch <code>grid_sample</code> 路径，并在 Radar sampling 后插入 VCS，再用 AMG 融合。</li>
+<li><b>VCS 插入点：</b><code>features_pts = self.refine_layer(features_pts, key_points, anchor, metas['points'])</code>，发生在 Radar BEV 多层级采样/加权之后、Keypoint 求和之前。</li>
+<li><b>AMG 插入点：</b>Camera 和 Radar 两支特征完成各自 Keypoint 聚合后，进入 <code>fusion_layer(feat_img, feat_pts)</code>。</li>
+<li><b>Decoder 次序：</b>配置表达式切片后，第 1 个 block 从 deformable 开始；后续 5 个 block 执行 temp_gnn → gnn → norm → deformable → ffn → norm → refine。</li>
+</ul></div>
+<div class="panel"><h3>工程风险 / 研究问题</h3>
+<div class="warn"><b>1. 标定误差直接影响跨模态采样。</b>Camera Keypoint 投影依赖 projection_mat；Radar BEV 采样依赖 point_cloud_range 与坐标系一致性。外参偏差会使两个分支采样到不同物理位置。可做标定扰动鲁棒性测试、投影可视化与在线质量门控；论文架构本身不等于解决标定漂移。</div>
+<div class="warn"><b>2. VCS 依赖 Anchor 速度先验。</b>Anchor 的 vx/vy 不准时，真实目标 Radar 特征可能被降权；邻域平均速度也可能被多径/邻近目标污染。建议分桶评估速度误差、有效邻域比例，并对 VCS 权重做可视化/消融。</div>
+<div class="warn"><b>3. 多帧累积与时间同步。</b>Radar sweeps_num=3，历史实例另有 temporal cache。两种时间信息的坐标补偿/时间戳若不一致，可能造成运动拖影或 Anchor 对齐误差。</div>
+<div class="warn"><b>4. Acc 的算子路径与 Base 不同。</b>Acc 关闭自定义 DAF，改用 PyTorch grid_sample，以支持 VCS 插入；性能差异不能简单归因于 VCS/AMG 本身。比较时要控制算子实现与输入配置。</div>
+<div class="warn"><b>5. 900 anchors / 13 keypoints 的效率权衡。</b>稀疏不等于廉价；Camera sampling 的候选量约为 B×900×6×4×13，Decoder 还包含 900×900 的 Instance self-attention。需要结合实际 batch、特征尺寸与车载算力 profile。</div>
+</div>
+</section>
+
+<section id="sources" hidden>
+<div class="sectionhead"><div><h2>07 · 论文与源码证据</h2><p>本图基于以下论文、配置和实现文件构建；源码链接固定到检索到的 commit。</p></div></div>
+<div class="panel"><h3>核心来源</h3><ul>
+<li><a href="https://arxiv.org/abs/2607.04098" target="_blank">论文：Sparse4D-Radar, arXiv:2607.04098</a> — 方法动机、整体框架、消融与实验。</li>
+<li><a href="https://github.com/Aiuan/Sparse4D-Radar/tree/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21" target="_blank">官方代码快照 commit 97c9fb6</a> — 本图所追踪的代码版本。</li>
+<li><a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/configs/sparse4dradar_acc.py" target="_blank">Acc 配置</a>；<a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/configs/sparse4dradar_base.py" target="_blank">Base 配置</a>。</li>
+</ul></div>
+<div class="panel"><h3>按模块追踪的关键文件</h3><div class="tablewrap"><table><thead><tr><th>文件</th><th>核验内容</th></tr></thead><tbody>
+<tr><td><a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/mmdet3d_plugin/models/sparse4dradar.py" target="_blank">sparse4dradar.py</a></td><td>总 forward；Camera/Radar 双分支提特征；训练与推理入口。</td></tr>
+<tr><td><a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/mmdet3d_plugin/models/blocks.py" target="_blank">blocks.py</a></td><td>DeformableFeatureFusion：Keypoint 投影、PV/BEV grid_sample、分组权重聚合、模态融合调用位置。</td></tr>
+<tr><td><a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/mmdet3d_plugin/models/additional_module.py" target="_blank">additional_module.py</a></td><td>VelocityConsistencySampling 与 AdaptiveModalityGating 的实际公式和算子。</td></tr>
+<tr><td><a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/mmdet3d_plugin/models/sparse4d_head.py" target="_blank">sparse4d_head.py</a>；<a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/mmdet3d_plugin/models/sparse4dradar_head.py" target="_blank">sparse4dradar_head.py</a></td><td>Instance Bank 读写、Decoder operation_order、DN anchors、预测缓存。</td></tr>
+<tr><td><a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/mmdet3d_plugin/models/detection3d/detection3d_blocks.py" target="_blank">detection3d_blocks.py</a></td><td>Anchor Encoder、3D Keypoint Generator、Refinement Module。</td></tr>
+<tr><td><a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/mmdet3d_plugin/models/instance_bank.py" target="_blank">instance_bank.py</a>；<a href="https://github.com/Aiuan/Sparse4D-Radar/blob/97c9fb658d69e8d0974d24bbed8d3c0823fc8e21/projects/mmdet3d_plugin/models/detection3d/decoder.py" target="_blank">decoder.py</a></td><td>历史 Anchor 坐标投影、Top-K 缓存、最终 box decode。</td></tr>
+</tbody></table></div></div>
+<div class="note">尺寸说明：本图中能由配置和算子明确推导的尺寸给出具体数值；Anchor 状态长度 Dₐ、数据集中各 Radar 通道的完整命名，以及数据预处理内部坐标细节没有擅自猜测。未执行训练或推理。</div>
+</section>
+<footer>模型架构交互图谱 · 自包含 HTML，无 CDN / 外部 JS / 在线字体依赖。页面中的外部论文与源码链接需要联网。</footer>
+</main>
+<script>
+const details={
+"cam-in":["Camera 输入","Camera","6 路环视图像是模型的图像模态输入。模型 forward 接收 img 与 points 两个主输入。","[B,6,3,544,960]","[B×6,3,544,960]（展平相机维后送 Backbone）","1. 数据管线加载六路图像；2. ResizeCropFlipImage；3. NormalizeMultiviewImage；4. forward 中保持 batch 与 camera 维语义。","训练与推理都需要。投影矩阵、image_wh 等元信息与图像一起进入融合模块。"],
+"cam-enc":["Camera Encoder","Camera","提取多视角、多尺度 Perspective View 特征。GridMask 是输入增强；ResNet-50 提取 C2–C5；FPN 统一为 256 通道。","[B,6,3,544,960]","4 levels: [B,6,256,136,240], [B,6,256,68,120], [B,6,256,34,60], [B,6,256,17,30]","1. flatten camera: [B×6,3,H,W]；2. GridMask；3. ResNet50 out_indices=(0,1,2,3)，通道 256/512/1024/2048；4. FPN out_channels=256、num_outs=4；5. reshape 回 [B,6,C,H,W]。","Camera 特征没有被预先 lift 成稠密 BEV；后续由 3D Keypoint 投影到各相机特征图采样。"],
+"cam-feat":["Camera PV Features","Camera","保存每个相机、每个尺度的图像特征，供每个目标 Keypoint 按投影位置采样。","4 个特征图，各 [B,6,256,Hₗ,Wₗ]","采样后逻辑布局 [B,A,6,4,K,256]","1. 由 projection_mat 将 3D Keypoints 投影到图像平面；2. 按 image_wh 归一化；3. 坐标映射到 [-1,1]；4. 每个 FPN level 使用 grid_sample。","点落在图像外时 grid_sample 的 padding 行为受实现参数影响；源码中有效 mask 代码被注释，不能假设显式可见性过滤。"],
+"depth":["DenseDepthNet","Camera","Camera 辅助深度分支，用于训练监督，不是 Camera-Radar 主融合链路的必要输入。","前三个 FPN levels: [B,6,256,Hₗ,Wₗ]","3 个深度预测: [B×6,1,Hₗ,Wₗ]","每个尺度 1×1 Conv2d(256→1)；exp；按 focal/equal_focal=100 缩放；训练时对有效 GT 深度计算 L1 风格绝对误差。","配置 loss_weight=0.2、max_depth=60；推理时即使产生深度，也不作为最终 3D box 的直接输出。"],
+"rad-in":["4D Radar 输入","Radar","Radar 多帧点云输入，兼具空间几何、径向运动相关速度属性与反射属性。","[B,N,8], N≤40000","Voxelization 输入仍为每个点 8 维；VCS 同时保留原始点用于邻域速度分组。","1. LoadRadarPointsMultiSweeps_omnihd；2. sweeps_num=3；3. load_dim=8/use_dim=0..7；4. max_num=40000；5. point_cloud_range 过滤。","VCS 的代码明确使用 [:,:3] 作为 XYZ、[:,3:5] 作为 vx/vy。剩余通道语义以数据集定义为准。"],
+"rad-enc":["Pillar 编码与 Scatter","Radar","将稀疏 Radar 点按 XY voxel 聚合成伪图像 BEV。","points: [N,8]；每 voxel 最多 10 点","Pillar features: [V,64]；Scatter: [B,64,320,480]","1. Voxelization：voxel_size=(0.25,0.25,8)，range=[-60,-40,-3,60,40,5]；2. PillarFeatureNet：8→64；3. PointPillarsScatter：输出 [B,64,ny=320,nx=480]。","Z 方向 voxel size=8m，配置范围高度也为 8m；因此主要在 XY 平面构建 Pillar BEV。"],
+"rad-backbone":["SECOND + SECONDFPN","Radar","从 Pillar BEV 提取多尺度语义，再上采样到相同空间分辨率并拼接。","[B,64,320,480]","SECOND: [B,64,160,240], [B,128,80,120], [B,256,40,60]；FPN: [B,384,160,240]","SECOND 三个 stage：层数 3/5/5、stride 2/2/2、输出通道 64/128/256；SECONDFPN 上采样 stride 1/2/4，各分支输出 128 通道；concat channel 维。","最终不是三层 Radar feature list；SECONDFPN 返回一个 concat 后的 BEV feature，后续 pts_num_levels=1、pts_feat_dims=384。"],
+"rad-feat":["Radar BEV 特征","Radar","提供稠密 BEV feature map，供 Anchor Keypoints 在 XY 平面采样。","[B,384,160,240]","每个 Anchor 的 K 个采样点得到 [B,A,1,K,384]","1. 将 Keypoint XY 映射到 point_cloud_range 的 [0,1]；2. 转换到 [-1,1]；3. grid_sample；4. 按 8 组（每组 48 维）加权。","BEV sampling 只使用 Keypoint 的 XY；相机投影使用完整 XYZ。"],
+"bank":["Instance Bank","Query","保存 900 个可学习 Anchor 与 900 个 256 维 Instance Feature，并维护历史帧 Top-K 缓存。","learnable feature [900,256]；anchor [900,Dₐ]","当前帧 [B,900,256] + [B,900,Dₐ]；历史缓存最多 [B,600,*]","1. 从 K-means anchor 文件加载 900 个 anchor；2. tile 到 batch；3. 读取 cached_feature/cached_anchor；4. 按 T_global 坐标变换历史 Anchor；5. 检查 max_time_interval=2s。","num_temp_instances=600、confidence_decay=0.6、default_time_interval=0.5s。缓存的是 Instance 级信息，不是历史整张 BEV。"],
+"kps":["Anchor Encoder + Keypoint Generator","Query","将 Anchor 几何状态编码为位置先验，并从每个 3D box 生成固定与可学习采样点。","Anchor [B,900,Dₐ]；Feature [B,900,256]","Anchor embedding；Keypoints [B,900,13,3]","1. SparseBox3DEncoder 分别编码 xyz、log(wlh)、sin/cos yaw、velocity；2. 固定点按 box 尺寸缩放；3. Linear(256→18) 预测 6 个 learnable offsets；4. yaw 旋转；5. 加 box 中心。","固定点为中心、±x、±y、±z 共 7 个；learnable 点为 6 个。Keypoints 数量 K=13。"],
+"img-sample":["Camera Deformable Sampling","Camera / Fusion","同一组 3D Keypoints 投影到六路 Camera，在四个 FPN 尺度采样。","Keypoints [B,A,13,3]；projection_mat [B,6,3,4]；FPN [B,6,256,Hₗ,Wₗ]","sampled image features [B,A,6,4,13,256]；加权后 [B,A,13,256] → sum K → [B,A,256]","1. 拼齐次坐标 [x,y,z,1]；2. projection_mat 矩阵乘；3. 除以深度 Z；4. image_wh 归一化；5. grid_sample；6. 由 instance_feature+anchor_embed 预测权重；7. 8 组分组加权，沿 camera 与 level 聚合；8. 沿 Keypoint 维求和。","相机权重还利用 projection_mat 编码得到 camera embedding；softmax 沿 camera×level×keypoint 维进行。"],
+"pts-sample":["Radar BEV Deformable Sampling","Radar / Fusion","把 Keypoints 的 XY 映射到 Radar BEV feature map，并按组权重聚合。","Keypoints [B,A,13,3]；Radar BEV [B,384,160,240]","sampled radar features [B,A,1,13,384]；加权后 [B,A,13,384]","1. XY 按 point_cloud_range 归一化；2. grid 坐标映射到 [-1,1]；3. grid_sample；4. 384 通道分成 8 groups×48；5. 对 level 维（当前只有 1）聚合。","Acc 在该步骤后调用 VCS；之后再对 13 个 Keypoint 的特征求和。"],
+"img-weight":["Camera Hierarchical Aggregation","Camera / Fusion","学习每个 Instance、Camera、FPN Level、Keypoint、Group 的采样权重。","instance_feature+anchor_embed [B,A,256]；camera embedding [B,6,256]","weights_img [B,A,6,4,13,8]；Camera aggregate [B,A,256]","1. instance_feature + anchor_embed；2. camera projection embedding 加到每个实例；3. Linear(256→6×4×13×8)；4. reshape；5. softmax 沿 camera×level×keypoint 维；6. 每组 32 维特征加权并聚合。","8 个 group，每组 32 通道。训练时 attention dropout=0.15。"],
+"vcs":["Velocity-Consistency Sampling（Acc）","Radar / Acc","用原始 Radar 点云邻域速度校准已采样的 Radar BEV 特征，降低运动不一致点的贡献。","Anchor vx,vy；Keypoints [B,A,13,3]；原始 points [N,8]；Radar sampled feature [B,A,13,384]","S_refined [B,A,13]；输出仍为 [B,A,13,384]","1. anchor[...,8:10] 广播给 K 个 Keypoints；2. QueryAndGroup 半径 0.5m、最多 16 点；3. 对邻域点 vx,vy 求均值；4. 共享 Linear/ReLU/LayerNorm Velocity Encoder；5. 逐通道点积 / √C + Sigmoid；6. 无有效邻域时用 0.5；7. S_refined 乘 Radar sampled feature。","VCS 的相似度不是与 Radar BEV embedding 算，而是 Anchor 速度 embedding 与原始 Radar 邻域平均速度 embedding 算；相似度乘到 BEV 采样特征上。"],
+"amg":["Adaptive Modality Gating（Acc）","Fusion","对每个 Instance 的 Camera 与 Radar 特征做逐通道门控融合。","F_img [B,A,256]；F_pts [B,A,384]","F_out [B,A,256]","1. FC_img: 256→256；2. FC_pts: 384→256；3. concat 两路 256 维；4. Linear(512→256)+Sigmoid 得 G；5. G⊙f_img+(1−G)⊙f_pts；6. FC_out 256→256。","门控是每个目标、每个通道的 256 维权重，不是整个模态的单个标量。"],
+"decoder":["Sparse4D Cascaded Decoder","Query / Temporal","反复执行 Instance 关系建模、时序交互、跨模态采样和 Anchor refinement。","Instance [B,900,256]；Anchor [B,900,Dₐ]；历史 Feature/Anchor（最多 600）","每层输出更新 Feature [B,900,256]、Anchor [B,900,Dₐ]；每层 cls/box/quality 预测","Block 1：deformable→FFN→norm→refine；Block 2–6：temp_gnn→gnn→norm→deformable→FFN→norm→refine。GNN 为 8-head MultiheadAttention；FFN 512→1024→256。","operation_order 配置在拼接序列后执行 [2:] 切片，因此第一层没有显式 GNN / 前置 norm；后五层有 temporal GNN。"],
+"heads":["分类 / Box / Quality Head","Detection","从 Instance Feature + Anchor Embedding 回归 Anchor residual，同时预测类别和质量。","Feature [B,A,256]；Anchor embedding [B,A,256]；Anchor [B,A,Dₐ]","cls [B,A,4]；box [B,A,Dₐ]；quality [B,A,2]","Refinement：feature=instance_feature+anchor_embed；MLP(256→256→256→Dₐ)；对 xyz、log(wlh)、sin/cos yaw 做 residual add；速度按 time_interval 计算增量；并行分类 MLP 与 quality MLP。","4 类为 car、pedestrian、rider、large_vehicle；quality 两个量为 centerness 与 yawness。"],
+"cache":["Temporal Instance Cache","Temporal","把当前帧高置信度实例缓存，并在下一帧按自车位姿与时间间隔变换后参与 temp_gnn。","当前 Feature [B,900,256]；Anchor [B,900,Dₐ]；confidence","历史 Top-600 Feature / Anchor；下一帧 temp_gnn 的 K/V","1. confidence sigmoid；2. topk 选 600；3. detach 缓存；4. 下一帧根据 T_global / T_global_inv 做 Anchor projection；5. time interval 检查；6. temp_gnn 融合历史实例。","与三帧 Radar sweeps 累积不同：它缓存的是目标级 Instance，不是历史 Radar 点云或 BEV feature。"],
+"out":["SparseBox3DDecoder / 输出","Detection","对最后一层预测做类别分数筛选、Top-K 与物理 box 参数解码。","classification [B,A,4]；prediction [B,A,Dₐ]；quality [B,A,2]","boxes_3d [M,9]；scores_3d [M]；labels_3d [M]","1. cls sigmoid；2. 展平 Anchor×Class 后 topk(num_output=300)；3. 按类索引回取 box；4. size=exp(log_size)；5. yaw=atan2(sin_yaw,cos_yaw)；6. 输出 boxes/scores/labels。","若启用 quality，分数还乘 centerness sigmoid 并重排；当前配置 with_quality_estimation=True。"]
+};
+const groupColors={"Camera":"#2563eb","Radar":"#087f8c","Query":"#7652be","Camera / Fusion":"#2563eb","Radar / Fusion":"#087f8c","Fusion":"#7652be","Query / Temporal":"#7652be","Temporal":"#34723c","Detection":"#b25a22"};
+function selectNode(id){document.querySelectorAll('.node').forEach(n=>n.classList.toggle('selected',n.dataset.node===id));let d=details[id];if(!d)return;document.getElementById('d-group').textContent=d[1];document.getElementById('d-title').textContent=d[0];document.getElementById('d-body').innerHTML=`<p>${d[2]}</p><h4>输入</h4><div class="shape">${d[3]}</div><h4>输出</h4><div class="shape">${d[4]}</div><h4>算子 / 执行顺序</h4><ol class="ops">${d[5].split(/；(?=\\d+\\.)/).map(x=>`<li>${x}</li>`).join('')}</ol><h4>实现注意</h4><p>${d[6]}</p>`}
+document.querySelectorAll('.node').forEach(n=>n.addEventListener('click',()=>selectNode(n.dataset.node)));
+selectNode('vcs');
+const mode=document.getElementById('mode');
+mode.addEventListener('change',()=>{
+ const acc=mode.value==='acc';
+ document.getElementById('fusion-tag').textContent=acc?'ACC ONLY · AMG':'BASE · CONCAT';
+ document.getElementById('fusion-title').textContent=acc?'Adaptive Modality Gating':'直接 Concatenate';
+ document.getElementById('fusion-dims').textContent=acc?'Camera 256 + Radar 384 → 映射 256 → 门控融合 256':'Camera 256 + Radar 384 → Concat 640 → Linear 256';
+ const v=document.querySelector('[data-node="vcs"]');v.style.opacity=acc?'1':'.35';v.querySelector('.tag').textContent=acc?'ACC ONLY · VCS':'BASE · NOT USED';
+ const a=document.querySelector('[data-node="amg"]');a.style.opacity=acc?'1':'.55';
+ document.getElementById('d-body').innerHTML=acc?'<p>当前选择 Acc：VCS 对 Radar sampled feature 做速度一致性调制，AMG 在 Camera/Radar Keypoint 聚合后做逐通道门控。</p>':'<p>当前选择 Base：不构建 VCS 与 AMG。Camera 256 维与 Radar 384 维直接 concat 为 640 维，经 output_proj 映射为 256 维；其余 Sparse Decoder / InstanceBank 结构保持一致。</p>';
+ document.getElementById('d-title').textContent=acc?'Acc 融合增强路径':'Base 基础融合路径';
+});
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('main section').forEach(s=>s.hidden=s.id!==b.dataset.tab);}));
+const vx=document.getElementById('vx'),rvx=document.getElementById('rvx'),valid=document.getElementById('valid');
+function updateVcs(){document.getElementById('vxv').textContent=Number(vx.value).toFixed(1)+' m/s';document.getElementById('rvxv').textContent=Number(rvx.value).toFixed(1)+' m/s';let diff=Math.abs(Number(vx.value)-Number(rvx.value));let txt=valid.value==='no'?'邻域没有有效 Radar 点：代码回退到 default_similarity=0.5。':diff<1?'两者速度接近：通常会产生较高一致性权重，保留更多 Radar 特征。':diff<4?'速度存在一定差异：编码后的相似度由网络学习决定，可能降低该 Keypoint 特征权重。':'速度差异明显：网络倾向于降低该 Keypoint 的 Radar 特征贡献。';document.getElementById('vcs-result').textContent=txt;}
+[vx,rvx,valid].forEach(x=>x.addEventListener('input',updateVcs));[vx,rvx,valid].forEach(x=>x.addEventListener('change',updateVcs));updateVcs();
+</script>
+</body></html>
