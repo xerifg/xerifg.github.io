@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "note-03d1cc0c-ee68-48ad-8400-07a4f2143acb",
+  "title": "HENet-backbone",
+  "folderId": "folder-1785676511361",
+  "path": "Notebooks/模型",
+  "tags": [],
+  "properties": {
+    "type": "",
+    "status": "待整理",
+    "source": "",
+    "aliases": []
+  },
+  "dailyDate": "",
+  "createdAt": "2026-11-26T09:20:25.769Z",
+  "updatedAt": "2026-11-26T09:20:45.953Z",
+  "assets": [],
+  "html": "<p>官方参考：<a target=\"_blank\" rel=\"noreferrer\" href=\"https://developer.horizon.auto/blog/10144?utm_source=chatgpt.com\">https://developer.horizon.auto/blog/10144?utm_source=chatgpt.com</a></p>"
+}
