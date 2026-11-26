@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-25T03:31:53.593Z",
+  "updatedAt": "2026-11-26T09:20:45.953Z",
   "folders": [
     {
       "id": "folder-writing",
@@ -1158,6 +1158,15 @@
       ],
       "updatedAt": "2026-11-25T03:31:53.593Z",
       "file": "notebooks/docs/sparse4d-radar.json"
+    },
+    {
+      "id": "note-03d1cc0c-ee68-48ad-8400-07a4f2143acb",
+      "title": "HENet-backbone",
+      "folderId": "folder-1785676511361",
+      "path": "Notebooks/模型",
+      "tags": [],
+      "updatedAt": "2026-11-26T09:20:45.953Z",
+      "file": "notebooks/docs/henet-backbone.json"
     }
   ]
 }
